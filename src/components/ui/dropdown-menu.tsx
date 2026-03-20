@@ -11,8 +11,13 @@ const DropdownMenuContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <Menu.Portal>
-    <Menu.Positioner side="bottom" align="end" sideOffset={4}>
+    <Menu.Portal>
+    <Menu.Positioner
+      side="bottom"
+      align="end"
+      sideOffset={4}
+      positionMethod="fixed"
+    >
       <Menu.Popup
         ref={ref}
         className={cn(

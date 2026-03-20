@@ -51,14 +51,28 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/app/groups/${groupId}/meetings/${meetingId}`}
-          className="text-sm text-stone-600 dark:text-stone-400 hover:underline flex items-center gap-1"
-        >
-          <ArrowLeft className="size-4" />
-          Back to meeting
-        </Link>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href={`/app/groups/${groupId}/meetings/${meetingId}`}
+            className="text-sm text-stone-600 dark:text-stone-400 hover:underline flex items-center gap-1"
+          >
+            <ArrowLeft className="size-4" />
+            Back to meeting
+          </Link>
+          <Link
+            href={`/app/groups/${groupId}`}
+            className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
+          >
+            Group workspace
+          </Link>
+          <Link
+            href={`/app/groups/${groupId}/meetings`}
+            className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
+          >
+            All meetings
+          </Link>
+        </div>
       </div>
 
       <header>
@@ -80,11 +94,11 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
       {!summary ? (
         <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-8 text-center bg-stone-50/50 dark:bg-stone-900/30">
           <p className="text-stone-600 dark:text-stone-400 mb-4">
-            No summary generated yet. Complete the meeting to generate a
-            summary.
+            No summary yet. End the meeting from the meeting room (tap{" "}
+            <strong>End meeting</strong>) to generate one.
           </p>
           <Link href={`/app/groups/${groupId}/meetings/${meetingId}`}>
-            <Button>Go to meeting</Button>
+            <Button>Back to meeting</Button>
           </Link>
         </div>
       ) : (

@@ -43,6 +43,12 @@ export default async function GroupMembersPage({
   const members = membersResult.members ?? [];
   const invites = invitesResult.invites ?? [];
 
+  const inviteLinkBase = (
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    ""
+  ).replace(/\/$/, "");
+
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-8">
       <div>
@@ -71,7 +77,11 @@ export default async function GroupMembersPage({
         </div>
       )}
 
-      <GroupInviteManager groupId={groupId} initialInvites={invites} />
+      <GroupInviteManager
+        groupId={groupId}
+        initialInvites={invites}
+        inviteLinkBase={inviteLinkBase || undefined}
+      />
 
       <GroupMemberList groupId={groupId} members={members} currentUserId={user.id} />
     </div>

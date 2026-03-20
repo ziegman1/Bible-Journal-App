@@ -17,6 +17,7 @@ import { ThreeThirdsStepper } from "@/components/groups/three-thirds-stepper";
 import { LookBackSection } from "@/components/groups/look-back-section";
 import { LookUpSection } from "@/components/groups/look-up-section";
 import { LookForwardSection } from "@/components/groups/look-forward-section";
+import { StarterTrackMeetingBanner } from "@/components/groups/starter-track/starter-track-meeting-banner";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, CheckCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ interface Meeting {
   verse_end?: number | null;
   preset_story_id?: string | null;
   preset_stories?: { title: string; book: string; chapter: number; verse_start: number; verse_end: number } | null;
+  starter_track_week?: number | null;
 }
 
 interface Participant {
@@ -48,7 +50,6 @@ interface LiveMeetingViewProps {
   groupId: string;
   meetingId: string;
   currentUserId: string;
-  isAdmin: boolean;
   priorCommitments: { obedience: string; sharing: string } | null;
   lookback: Record<string, unknown>[];
   lookforward: Record<string, unknown>[];
@@ -66,7 +67,6 @@ export function LiveMeetingView({
   groupId,
   meetingId,
   currentUserId,
-  isAdmin,
   priorCommitments,
   lookback,
   lookforward,
@@ -99,7 +99,7 @@ export function LiveMeetingView({
     if (r.error) toast.error(r.error);
     else {
       setStatus("active");
-      toast.success("Meeting started");
+      toast.success("Meeting started — work through Look Back, Look Up, then Look Forward.");
       router.refresh();
     }
   }
@@ -111,7 +111,10 @@ export function LiveMeetingView({
       setStatus("completed");
       const sum = await generateMeetingSummary(meetingId);
       if (sum.error) toast.error(sum.error);
-      else toast.success("Meeting completed and summary generated");
+      else
+        toast.success(
+          "Meeting ended — summary saved. You can review it from this group’s meetings."
+        );
       router.refresh();
     }
   }
@@ -127,10 +130,10 @@ export function LiveMeetingView({
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <Link
             href={`/app/groups/${groupId}`}
-            className="text-sm text-stone-600 dark:text-stone-400 hover:underline flex items-center gap-1"
+            className="text-sm text-stone-600 dark:text-stone-400 hover:underline flex items-center gap-1 min-w-0 shrink"
           >
-            <ArrowLeft className="size-4" />
-            Back
+            <ArrowLeft className="size-4 shrink-0" />
+            <span className="truncate">Group</span>
           </Link>
           <div className="flex-1 min-w-0 text-center">
             <h1 className="font-serif text-lg text-stone-800 dark:text-stone-200 truncate">
@@ -159,18 +162,22 @@ export function LiveMeetingView({
                   : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200"
             }`}
           >
-            {status}
+            {status === "completed"
+              ? "Completed"
+              : status === "active"
+                ? "In progress"
+                : "Draft"}
           </span>
-          {isAdmin && status === "draft" && (
+          {status === "draft" && (
             <Button size="sm" onClick={handleStartMeeting}>
               <Play className="size-4 mr-1" />
               Start meeting
             </Button>
           )}
-          {isAdmin && status === "active" && (
+          {status === "active" && (
             <Button size="sm" onClick={handleCompleteMeeting}>
               <CheckCircle className="size-4 mr-1" />
-              Complete meeting
+              End meeting
             </Button>
           )}
           {status === "completed" && (
@@ -189,6 +196,45 @@ export function LiveMeetingView({
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
+
+        {meeting.starter_track_week != null && (
+          <StarterTrackMeetingBanner
+            groupId={groupId}
+            starterTrackWeek={meeting.starter_track_week}
+          />
+        )}
+
+        {status === "draft" && (
+          <p className="text-sm text-stone-600 dark:text-stone-400 text-center mb-6 -mt-2 max-w-lg mx-auto">
+            When everyone is here, tap <strong>Start meeting</strong> above.
+            You can still fill in sections beforehand if you like.
+          </p>
+        )}
+        {status === "active" && (
+          <p className="text-sm text-stone-600 dark:text-stone-400 text-center mb-6 -mt-2 max-w-lg mx-auto">
+            Use the three steps in order with your group. Tap{" "}
+            <strong>End meeting</strong> when you’re finished to save a summary.
+          </p>
+        )}
+        {status === "completed" && (
+          <p className="text-sm text-stone-600 dark:text-stone-400 text-center mb-6 -mt-2 max-w-lg mx-auto">
+            This meeting is finished. Open the{" "}
+            <Link
+              href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
+              className="text-amber-800 dark:text-amber-200 underline underline-offset-2"
+            >
+              summary
+            </Link>{" "}
+            or return to your{" "}
+            <Link
+              href={`/app/groups/${groupId}`}
+              className="text-amber-800 dark:text-amber-200 underline underline-offset-2"
+            >
+              group workspace
+            </Link>
+            .
+          </p>
+        )}
 
         {activeSection === 1 && (
           <LookBackSection
@@ -214,7 +260,6 @@ export function LiveMeetingView({
             participants={participants}
             observations={observations}
             currentUserId={currentUserId}
-            isAdmin={isAdmin}
             book={meeting.book ?? (meeting.preset_stories as { book: string } | null)?.book ?? ""}
             chapter={meeting.chapter ?? (meeting.preset_stories as { chapter: number } | null)?.chapter ?? 0}
           />
@@ -227,7 +272,6 @@ export function LiveMeetingView({
             participants={participants}
             practice={practice}
             currentUserId={currentUserId}
-            isAdmin={isAdmin}
           />
         )}
       </div>

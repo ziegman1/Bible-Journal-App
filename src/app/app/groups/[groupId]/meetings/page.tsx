@@ -40,8 +40,11 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
             ← Back to {groupResult.group.name}
           </Link>
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200 mt-2">
-            Meeting history
+            Meetings
           </h1>
+          <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
+            Open a draft, continue an in-progress meeting, or review past ones.
+          </p>
         </div>
         <Link href={`/app/groups/${groupId}/meetings/new`}>
           <Button>
@@ -54,10 +57,10 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
       {meetings.length === 0 ? (
         <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-12 text-center bg-stone-50/50 dark:bg-stone-900/30">
           <p className="text-stone-600 dark:text-stone-400 mb-4">
-            No meetings yet.
+            No meetings yet. Start one from here or from your group workspace.
           </p>
           <Link href={`/app/groups/${groupId}/meetings/new`}>
-            <Button>Start your first meeting</Button>
+            <Button>Start first meeting</Button>
           </Link>
         </div>
       ) : (
@@ -97,17 +100,29 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
                         </p>
                       )}
                     </div>
-                    <span
-                      className={`shrink-0 text-xs px-2 py-1 rounded-full ${
-                        m.status === "completed"
-                          ? "bg-stone-100 dark:bg-stone-800"
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {(m as { starter_track_week?: number | null }).starter_track_week != null && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100">
+                          Starter W
+                          {(m as { starter_track_week: number }).starter_track_week}
+                        </span>
+                      )}
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          m.status === "completed"
+                            ? "bg-stone-100 dark:bg-stone-800"
+                            : m.status === "active"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+                              : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200"
+                        }`}
+                      >
+                        {m.status === "completed"
+                          ? "Completed"
                           : m.status === "active"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
-                            : "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200"
-                      }`}
-                    >
-                      {m.status}
-                    </span>
+                            ? "In progress"
+                            : "Draft"}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               </li>

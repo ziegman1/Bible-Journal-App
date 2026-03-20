@@ -27,7 +27,6 @@ interface LookForwardSectionProps {
   participants: { user_id: string; display_name: string }[];
   practice: Record<string, unknown>[];
   currentUserId: string;
-  isAdmin: boolean;
 }
 
 export function LookForwardSection({
@@ -36,7 +35,6 @@ export function LookForwardSection({
   participants,
   practice,
   currentUserId,
-  isAdmin,
 }: LookForwardSectionProps) {
   const [obedience, setObedience] = useState(
     myLookforward?.obedience_statement ?? ""
@@ -58,7 +56,7 @@ export function LookForwardSection({
     });
     setSaving(false);
     if (r.error) toast.error(r.error);
-    else toast.success("Saved");
+    else toast.success("Look Forward commitments saved");
   }
 
   async function handleAssignPractice() {
@@ -154,7 +152,6 @@ export function LookForwardSection({
             ))}
           </ul>
         ) : (
-          isAdmin &&
           participants.length > 0 && (
             <Button variant="outline" onClick={handleAssignPractice}>
               <Shuffle className="size-4 mr-2" />

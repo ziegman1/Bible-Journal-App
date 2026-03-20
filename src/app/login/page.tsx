@@ -81,7 +81,14 @@ export default async function LoginPage({
             Forgot password?
           </Link>
           <span>·</span>
-          <Link href="/signup" className="text-stone-700 dark:text-stone-300 underline">
+          <Link
+            href={
+              params.redirectTo
+                ? `/signup?redirectTo=${encodeURIComponent(params.redirectTo)}`
+                : "/signup"
+            }
+            className="text-stone-700 dark:text-stone-300 underline"
+          >
             Sign up
           </Link>
         </p>

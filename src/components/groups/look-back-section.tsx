@@ -55,7 +55,7 @@ export function LookBackSection({
     });
     setSaving(false);
     if (r.error) toast.error(r.error);
-    else toast.success("Saved");
+    else toast.success("Look Back responses saved");
   }
 
   async function handleSaveFollowup() {
@@ -69,7 +69,7 @@ export function LookBackSection({
     });
     setSaving(false);
     if (r.error) toast.error(r.error);
-    else toast.success("Saved");
+    else toast.success("Accountability follow-up saved");
   }
 
   return (

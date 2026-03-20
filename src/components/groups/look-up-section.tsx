@@ -26,7 +26,6 @@ interface LookUpSectionProps {
   participants: { user_id: string; display_name: string }[];
   observations: Record<string, unknown>[];
   currentUserId: string;
-  isAdmin: boolean;
   book: string;
   chapter: number;
 }
@@ -50,7 +49,6 @@ export function LookUpSection({
   participants,
   observations,
   currentUserId,
-  isAdmin,
   book,
   chapter,
 }: LookUpSectionProps) {
@@ -107,8 +105,11 @@ export function LookUpSection({
     <div className="space-y-8">
       <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-6 bg-white dark:bg-stone-900/50 space-y-6 shadow-sm">
         <h2 className="text-lg font-medium text-stone-800 dark:text-stone-200">
-          Discovery Bible Study
+          Look Up — Discovery Bible Study
         </h2>
+        <p className="text-sm text-stone-600 dark:text-stone-400">
+          Read and discuss the passage together, then note observations below.
+        </p>
         {facilitator && (
           <p className="text-sm text-stone-600 dark:text-stone-400">
             Facilitator: {facilitator}
@@ -119,7 +120,6 @@ export function LookUpSection({
             Retelling: {reteller}
           </p>
         ) : (
-          isAdmin &&
           participants.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleAssignReteller}>
               <Shuffle className="size-4 mr-2" />

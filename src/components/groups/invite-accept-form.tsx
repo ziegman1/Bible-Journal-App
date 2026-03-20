@@ -30,11 +30,11 @@ export function InviteAcceptForm({ token }: InviteAcceptFormProps) {
     setSubmitting(true);
     const result = await acceptGroupInvite(token, first, last || undefined);
     setSubmitting(false);
-    if (result.error) {
+    if ("error" in result && result.error) {
       setError(result.error);
       return;
     }
-    if (result.groupId) {
+    if ("success" in result && result.success && result.groupId) {
       router.push(`/app/groups/${result.groupId}`);
       router.refresh();
     }
@@ -43,7 +43,7 @@ export function InviteAcceptForm({ token }: InviteAcceptFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-stone-600 dark:text-stone-400">
-        Please enter your name to join this group.
+        Enter the name you want shown in this group’s member list.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">

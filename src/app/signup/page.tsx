@@ -8,7 +8,7 @@ import { SupabaseCheckButton } from "@/components/supabase-check-button";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }) {
   const params = await searchParams;
   return (
@@ -39,6 +39,9 @@ export default async function SignUpPage({
           </div>
         )}
         <form action={signUp} className="space-y-4">
+          {params.redirectTo && (
+            <input type="hidden" name="redirectTo" value={params.redirectTo} />
+          )}
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>
             <Input
@@ -79,7 +82,14 @@ export default async function SignUpPage({
 
         <p className="text-center text-sm text-stone-500 dark:text-stone-400">
           Already have an account?{" "}
-          <Link href="/login" className="text-stone-700 dark:text-stone-300 underline">
+          <Link
+            href={
+              params.redirectTo
+                ? `/login?redirectTo=${encodeURIComponent(params.redirectTo)}`
+                : "/login"
+            }
+            className="text-stone-700 dark:text-stone-300 underline"
+          >
             Sign in
           </Link>
         </p>

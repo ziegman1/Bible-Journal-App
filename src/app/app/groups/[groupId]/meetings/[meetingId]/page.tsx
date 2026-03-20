@@ -61,7 +61,6 @@ export default async function MeetingPage({ params }: PageProps) {
       groupId={groupId}
       meetingId={meetingId}
       currentUserId={user.id}
-      isAdmin={result.role === "admin"}
       priorCommitments={result.priorCommitments ?? null}
       lookback={result.lookback ?? []}
       lookforward={result.lookforward ?? []}

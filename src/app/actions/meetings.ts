@@ -3,6 +3,43 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+type SupabaseServer = NonNullable<Awaited<ReturnType<typeof createClient>>>;
+
+/** Any member of the group (not platform-wide; invite/member admin lives in groups.ts). */
+async function requireGroupMember(
+  supabase: SupabaseServer,
+  groupId: string,
+  userId: string
+): Promise<{ ok: true } | { error: string }> {
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("id")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) return { error: "Not a member of this group" };
+  return { ok: true };
+}
+
+async function revalidateMeetingPaths(
+  supabase: SupabaseServer,
+  meetingId: string
+) {
+  const { data: row } = await supabase
+    .from("group_meetings")
+    .select("group_id")
+    .eq("id", meetingId)
+    .single();
+  if (!row?.group_id) return;
+  const gid = row.group_id;
+  revalidatePath(`/app/groups/${gid}/meetings/${meetingId}`);
+  revalidatePath(`/app/groups/${gid}/meetings/${meetingId}/summary`);
+  revalidatePath(`/app/groups/${gid}/meetings`);
+  revalidatePath(`/app/groups/${gid}`);
+  revalidatePath(`/app/groups/${gid}/starter-track`);
+}
+
 export async function listGroupMeetings(groupId: string) {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
@@ -26,6 +63,7 @@ export async function listGroupMeetings(groupId: string) {
       verse_start,
       verse_end,
       preset_story_id,
+      starter_track_week,
       preset_stories (title, book, chapter, verse_start, verse_end)
     `
     )
@@ -80,6 +118,8 @@ export async function createGroupMeeting(
     verseEnd?: number;
     presetStoryId?: string;
     facilitatorUserId?: string;
+    /** When set, completing this meeting can advance Starter Track progress. */
+    starterTrackWeek?: number;
   }
 ) {
   const supabase = await createClient();
@@ -102,6 +142,7 @@ export async function createGroupMeeting(
       verse_end: data.verseEnd ?? null,
       preset_story_id: data.presetStoryId ?? null,
       facilitator_user_id: data.facilitatorUserId ?? null,
+      starter_track_week: data.starterTrackWeek ?? null,
       status: "draft",
     })
     .select("id")
@@ -126,6 +167,9 @@ export async function createGroupMeeting(
 
   revalidatePath(`/app/groups/${groupId}`);
   revalidatePath(`/app/groups/${groupId}/meetings`);
+  if (data.starterTrackWeek != null) {
+    revalidatePath(`/app/groups/${groupId}/starter-track`);
+  }
   return { success: true, meetingId: meeting.id };
 }
 
@@ -266,20 +310,14 @@ export async function updateMeetingStatus(
 
   const { data: meeting } = await supabase
     .from("group_meetings")
-    .select("group_id")
+    .select("group_id, starter_track_week")
     .eq("id", meetingId)
     .single();
 
   if (!meeting) return { error: "Meeting not found" };
 
-  const { data: membership } = await supabase
-    .from("group_members")
-    .select("role")
-    .eq("group_id", meeting.group_id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (!membership) return { error: "Not a member of this group" };
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
   const { error } = await supabase
     .from("group_meetings")
@@ -288,8 +326,36 @@ export async function updateMeetingStatus(
 
   if (error) return { error: error.message };
 
+  if (
+    status === "completed" &&
+    meeting.starter_track_week != null &&
+    meeting.starter_track_week >= 1 &&
+    meeting.starter_track_week <= 8
+  ) {
+    const { data: en } = await supabase
+      .from("group_starter_track_enrollment")
+      .select("weeks_completed, vision_completed_at")
+      .eq("group_id", meeting.group_id)
+      .maybeSingle();
+
+    if (
+      en?.vision_completed_at &&
+      meeting.starter_track_week === en.weeks_completed + 1
+    ) {
+      await supabase
+        .from("group_starter_track_enrollment")
+        .update({ weeks_completed: meeting.starter_track_week })
+        .eq("group_id", meeting.group_id);
+      revalidatePath(`/app/groups/${meeting.group_id}/starter-track`);
+      for (let w = 1; w <= 8; w++) {
+        revalidatePath(`/app/groups/${meeting.group_id}/starter-track/week/${w}`);
+      }
+    }
+  }
+
   revalidatePath(`/app/groups/${meeting.group_id}/meetings`);
   revalidatePath(`/app/groups/${meeting.group_id}/meetings/${meetingId}`);
+  revalidatePath(`/app/groups/${meeting.group_id}`);
   return { success: true };
 }
 
@@ -311,6 +377,9 @@ export async function assignFacilitator(
     .single();
 
   if (!meeting) return { error: "Meeting not found" };
+
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
   const { error } = await supabase
     .from("group_meetings")
@@ -342,6 +411,9 @@ export async function assignStoryReteller(
     .single();
 
   if (!meeting) return { error: "Meeting not found" };
+
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
   const { error } = await supabase.from("story_retell_assignments").upsert(
     {
@@ -386,7 +458,7 @@ export async function saveLookBackResponse(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/app/groups/meetings/${meetingId}`);
+  await revalidateMeetingPaths(supabase, meetingId);
   return { success: true };
 }
 
@@ -418,7 +490,7 @@ export async function savePriorObedienceFollowup(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/app/groups/meetings/${meetingId}`);
+  await revalidateMeetingPaths(supabase, meetingId);
   return { success: true };
 }
 
@@ -451,7 +523,7 @@ export async function savePassageObservation(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/app/groups/meetings/${meetingId}`);
+  await revalidateMeetingPaths(supabase, meetingId);
   return { success: true };
 }
 
@@ -481,7 +553,7 @@ export async function saveLookForwardResponse(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/app/groups/meetings/${meetingId}`);
+  await revalidateMeetingPaths(supabase, meetingId);
   return { success: true };
 }
 
@@ -508,6 +580,9 @@ export async function assignPracticeActivity(
     .single();
 
   if (!meeting) return { error: "Meeting not found" };
+
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
   const { error } = await supabase.from("group_practice_assignments").insert({
     meeting_id: meetingId,
@@ -538,6 +613,9 @@ export async function generateMeetingSummary(meetingId: string) {
     .single();
 
   if (!meeting) return { error: "Meeting not found" };
+
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
   const passage =
     meeting.story_source_type === "preset_story" && meeting.preset_stories

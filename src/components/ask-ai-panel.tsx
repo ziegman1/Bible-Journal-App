@@ -25,6 +25,8 @@ interface AskAIPanelProps {
   onOpenChange: (open: boolean) => void;
   aiStyle?: "concise" | "balanced" | "in-depth";
   defaultToReflection?: boolean;
+  /** Optional passage text to show above the form (e.g. in sidebar layout) */
+  passageText?: React.ReactNode;
   initialThreadId?: string | null;
   initialMessages?: ThreadMessage[];
 }
@@ -40,6 +42,7 @@ export function AskAIPanel({
   onOpenChange,
   aiStyle = "balanced",
   defaultToReflection = false,
+  passageText,
   initialThreadId = null,
   initialMessages = [],
 }: AskAIPanelProps) {
@@ -189,6 +192,16 @@ export function AskAIPanel({
 
   return (
     <div className="p-4 space-y-4 flex flex-col min-h-0">
+      {passageText && (
+        <div className="shrink-0 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-3">
+          <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
+            {reference}
+          </h3>
+          <div className="text-stone-600 dark:text-stone-400 text-sm font-serif leading-relaxed">
+            {passageText}
+          </div>
+        </div>
+      )}
       {!showReflectionFirst && (
         <>
           {lastError && (

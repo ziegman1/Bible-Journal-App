@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle,
   BookMarked,
@@ -7,12 +8,7 @@ import {
   Star,
   MousePointer2,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface VerseActionMenuProps {
@@ -41,7 +37,6 @@ export interface VerseActionMenuProps {
 
 export function VerseActionMenu({
   verse,
-  reference,
   isHighlighted,
   isFavorited,
   onAskAI,
@@ -53,9 +48,26 @@ export function VerseActionMenu({
   onCompleteRange,
   onStartRangeSelection,
   children,
-  className,
 }: VerseActionMenuProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
   function handleClickCapture(e: React.MouseEvent) {
+    // Don't intercept clicks on toolbar buttons — let them handle their own onClick
+    if (e.target instanceof HTMLElement && e.target.closest("button")) {
+      return;
+    }
     if (e.shiftKey && onExtendRange) {
       e.preventDefault();
       e.stopPropagation();
@@ -68,68 +80,87 @@ export function VerseActionMenu({
       onCompleteRange(verse);
       return;
     }
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen((prev) => !prev);
   }
 
   return (
-    <span onClickCapture={handleClickCapture} className="inline">
-      <DropdownMenu>
-        <DropdownMenuTrigger className="w-full text-left [&]:appearance-none [&]:bg-transparent [&]:border-none [&]:p-0 [&]:font-inherit [&]:cursor-pointer">
-          {children}
-        </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            onAskAI();
-          }}
-        >
-          <MessageCircle className="size-4 shrink-0" />
-          Ask AI
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            onAddReflection();
-          }}
-        >
-          <BookMarked className="size-4 shrink-0" />
-          Add Reflection
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            onHighlight();
-          }}
-        >
-          <Highlighter
-            className={cn("size-4 shrink-0", isHighlighted && "text-amber-600")}
-          />
-          {isHighlighted ? "Remove highlight" : "Highlight"}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            onFavorite();
-          }}
-        >
-          <Star
-            className={cn("size-4 shrink-0", isFavorited && "fill-amber-500 text-amber-600")}
-          />
-          {isFavorited ? "Remove favorite" : "Favorite"}
-        </DropdownMenuItem>
-        {onStartRangeSelection && (
-          <DropdownMenuItem
+    <span ref={containerRef} onClickCapture={handleClickCapture} className="inline-block w-full">
+      <span className="cursor-pointer">{children}</span>
+      {open && (
+        <div className="flex flex-wrap items-center gap-1 mt-1 mb-2 py-1.5 px-2 rounded-lg bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
             onClick={(e) => {
-              e.preventDefault();
-              onStartRangeSelection(verse);
+              e.stopPropagation();
+              setOpen(false);
+              onAskAI();
             }}
           >
-            <MousePointer2 className="size-4 shrink-0" />
-            Select range
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            <MessageCircle className="size-3.5 shrink-0 mr-1" />
+            Ask AI
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onAddReflection();
+            }}
+          >
+            <BookMarked className="size-3.5 shrink-0 mr-1" />
+            Reflection
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 text-xs", isHighlighted && "text-amber-600")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onHighlight();
+            }}
+          >
+            <Highlighter className="size-3.5 shrink-0 mr-1" />
+            {isHighlighted ? "Unhighlight" : "Highlight"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 text-xs", isFavorited && "text-amber-600")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onFavorite();
+            }}
+          >
+            <Star
+              className={cn("size-3.5 shrink-0 mr-1", isFavorited && "fill-amber-500")}
+            />
+            {isFavorited ? "Unfavorite" : "Favorite"}
+          </Button>
+          {onStartRangeSelection && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onStartRangeSelection(verse);
+              }}
+            >
+              <MousePointer2 className="size-3.5 shrink-0 mr-1" />
+              Select range
+            </Button>
+          )}
+        </div>
+      )}
     </span>
   );
 }

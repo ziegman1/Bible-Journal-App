@@ -1,38 +1,57 @@
-// TEMP DEBUG: Remove after Resend diagnosis is complete.
-// Edit the test recipient below to send a diagnostic email.
-
-import { NextResponse } from "next/server";
+/**
+ * TEMP DEBUG: Resend diagnostic endpoint.
+ * GET /api/debug-resend?to=your@email.com
+ * - Checks env vars (RESEND_API_KEY, RESEND_FROM_EMAIL)
+ * - Sends a test email if ?to= is provided
+ * TODO: Remove or protect this route before production launch.
+ */
+import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Edit this to your email for testing:
-const TEST_RECIPIENT = "test@example.com";
+const IS_PRODUCTION =
+  process.env.VERCEL_ENV === "production" ||
+  process.env.NODE_ENV === "production";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const to = searchParams.get("to")?.trim();
+
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? null;
 
-  const safeEnv = {
+  const payload = {
+    ok: true,
+    source: "debug-resend" as const,
+    error: null as string | null,
     hasResendKey: !!resendApiKey,
     resendKeyLength: resendApiKey?.length ?? 0,
     hasFromEmail: !!fromEmail,
-    siteUrl,
+    fromEmail: fromEmail ?? "(will use onboarding@resend.dev)",
+    isProduction: IS_PRODUCTION,
+    productionWarning:
+      IS_PRODUCTION && !fromEmail
+        ? "RESEND_FROM_EMAIL not set. onboarding@resend.dev may fail in production. Verify your domain at https://resend.com/domains"
+        : null,
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? null,
     vercelEnv: process.env.VERCEL_ENV ?? null,
-    vercelUrl: process.env.VERCEL_URL ?? null,
-    gitBranch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
-    nodeEnv: process.env.NODE_ENV ?? null,
     timestamp: new Date().toISOString(),
   };
 
   if (!resendApiKey) {
+    payload.ok = false;
+    payload.error =
+      "Missing RESEND_API_KEY. Add it in Vercel Project Settings → Environment Variables.";
+    return NextResponse.json(payload);
+  }
+
+  if (!to) {
     return NextResponse.json({
-      ok: false,
-      source: "debug-resend",
-      error: "Missing RESEND_API_KEY",
-      ...safeEnv,
+      ...payload,
+      message:
+        "Add ?to=your@email.com to send a test email and verify Resend is working.",
     });
   }
 
@@ -42,34 +61,28 @@ export async function GET() {
   try {
     const { data, error } = await resend.emails.send({
       from,
-      to: TEST_RECIPIENT,
-      subject: "Resend debug test",
+      to: [to],
+      subject: "Resend debug test — Bible Journal",
       html: "<p>If you received this, Resend is working.</p>",
     });
 
     if (error) {
-      return NextResponse.json({
-        ok: false,
-        source: "debug-resend",
-        error: error.message,
-        resendError: error,
-        ...safeEnv,
-      });
+      payload.ok = false;
+      payload.error = error.message;
+      return NextResponse.json({ ...payload, resendError: error });
     }
 
+    payload.ok = true;
+    payload.error = null;
     return NextResponse.json({
-      ok: true,
-      source: "debug-resend",
+      ...payload,
       resendResponse: data,
-      ...safeEnv,
+      message: `Test email sent to ${to}`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({
-      ok: false,
-      source: "debug-resend",
-      error: message,
-      ...safeEnv,
-    });
+    payload.ok = false;
+    payload.error = message;
+    return NextResponse.json(payload);
   }
 }

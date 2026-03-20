@@ -55,7 +55,8 @@ export default async function GroupsPage() {
 
       <p className="text-stone-600 dark:text-stone-400 text-sm">
         Form and participate in disciple-making groups. Walk through the 3/3rds
-        process together—Look Back, Look Up, Look Forward.
+        process together—Look Back, Look Up, Look Forward. Open a group for its
+        workspace: next steps, meetings, and (for admins) invites.
       </p>
 
       {groupsWithMeetings.length === 0 ? (

@@ -58,7 +58,7 @@ export default async function ChapterPage({ params }: PageProps) {
       : null;
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <SaveReadingSession
         book={book.name}
         chapter={chapterNum}
@@ -66,7 +66,7 @@ export default async function ChapterPage({ params }: PageProps) {
         verseEnd={null}
         reference={`${book.name} ${chapterNum}`}
       />
-      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4 flex items-center justify-between flex-wrap gap-2">
+      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4 flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/app/read"
@@ -103,16 +103,18 @@ export default async function ChapterPage({ params }: PageProps) {
           )}
         </div>
       </div>
-      <ReaderView
-        chapter={chapter}
-        bookId={bookId}
-        bookName={book.name}
-        chapterNum={chapterNum}
-        aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
-        initialHighlights={highlightedVerses}
-        initialHighlightIds={highlightIdsByVerse}
-        initialFavorites={favoriteByVerse}
-      />
+      <div className="flex-1 min-h-0 flex flex-col">
+        <ReaderView
+          chapter={chapter}
+          bookId={bookId}
+          bookName={book.name}
+          chapterNum={chapterNum}
+          aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
+          initialHighlights={highlightedVerses}
+          initialHighlightIds={highlightIdsByVerse}
+          initialFavorites={favoriteByVerse}
+        />
+      </div>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function CreateGroupForm() {
       toast.error(result.error);
       return;
     }
-    toast.success("Group created");
+    toast.success("Group created — invite someone on the next screen");
     router.push(`/app/groups/${result.groupId}/members`);
   }
 

@@ -104,7 +104,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
       toast.error(result.error);
       return;
     }
-    toast.success("Meeting created");
+    toast.success("Draft meeting created — opening meeting room");
     router.push(`/app/groups/${groupId}/meetings/${result.meetingId}`);
   }
 
@@ -132,8 +132,11 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
       </div>
 
       <div className="space-y-4">
-        <Label>Passage source</Label>
-        <div className="flex gap-4">
+        <Label>Passage</Label>
+        <p className="text-xs text-stone-500 dark:text-stone-400 -mt-2">
+          Use a curated preset or enter any Bible passage.
+        </p>
+        <div className="flex gap-4 flex-wrap">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -150,7 +153,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
               checked={storySource === "manual_passage"}
               onChange={() => setStorySource("manual_passage")}
             />
-            <span>Manual passage</span>
+            <span>Custom passage</span>
           </label>
         </div>
 
@@ -256,7 +259,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
               checked={facilitatorMode === "manual"}
               onChange={() => setFacilitatorMode("manual")}
             />
-            <span>Choose</span>
+            <span>Pick facilitator</span>
           </label>
         </div>
         {facilitatorMode === "manual" && members.length > 0 && (
@@ -265,7 +268,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
             onChange={(e) => setFacilitatorId(e.target.value)}
             className="w-full h-9 rounded-lg border border-stone-200 dark:border-stone-800 bg-background px-3 text-sm mt-2"
           >
-            <option value="">Select facilitator...</option>
+            <option value="">Choose who’s facilitating…</option>
             {members.map((m) => (
               <option key={m.id} value={m.user_id}>
                 {m.display_name}
@@ -277,7 +280,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
 
       <Button type="submit" disabled={saving}>
         {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
-        Create meeting
+        Continue to meeting room
       </Button>
     </form>
   );

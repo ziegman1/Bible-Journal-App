@@ -8,6 +8,7 @@
     "validate-web": "dotenv -e .env.local -- tsx scripts/validate-web-bible.ts",
     "build": "next build",
     "start": "next start",
+    "deploy": "vercel --prod",
     "lint": "eslint",
     "cap:sync": "npx cap sync",
     "mobile:ios": "npx cap open ios",

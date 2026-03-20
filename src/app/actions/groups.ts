@@ -4,6 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 
+function getPublicSiteBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
+}
+
 export async function createGroup(data: { name: string; description?: string }) {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
@@ -134,12 +142,6 @@ export async function inviteGroupMember(
   email: string,
   inviteeName?: string
 ) {
-  console.error("🔥 SERVER ACTION HIT 🔥");
-  console.error("🔥 ENV CHECK 🔥", {
-    hasResendKey: !!process.env.RESEND_API_KEY,
-    resendKeyLength: process.env.RESEND_API_KEY?.length ?? 0,
-  });
-
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
   const {
@@ -159,13 +161,10 @@ export async function inviteGroupMember(
 
   const emailNorm = email.trim().toLowerCase();
 
-  // Expire any existing pending invite for this email so we can resend
-  await supabase
-    .from("group_invites")
-    .update({ status: "expired" })
-    .eq("group_id", groupId)
-    .eq("email", emailNorm)
-    .eq("status", "pending");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(emailNorm)) {
+    return { error: "Please enter a valid email address" };
+  }
 
   const { data: existingMember } = await supabase
     .from("group_members")
@@ -180,24 +179,39 @@ export async function inviteGroupMember(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
+  const { data: inviterProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const inviterName = inviterProfile?.display_name?.trim() || "A group admin";
+
+  const sentAt = new Date().toISOString();
   const { data: invite, error } = await supabase
     .from("group_invites")
     .insert({
       group_id: groupId,
-      email: email.trim().toLowerCase(),
+      email: emailNorm,
       invitee_name: inviteeName?.trim() || null,
       invited_by_user_id: user.id,
+      invited_by_name: inviterName || null,
       token,
       status: "pending",
       expires_at: expiresAt.toISOString(),
+      last_sent_at: sentAt,
     })
-    .select("id, token, expires_at")
+    .select("id, token, expires_at, last_sent_at")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "This person already has a pending invite" };
+    }
+    return { error: error.message };
+  }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = getPublicSiteBaseUrl();
   const acceptUrl = `${baseUrl}/app/groups/invite/${invite.token}`;
 
   const { data: group } = await supabase
@@ -206,27 +220,15 @@ export async function inviteGroupMember(
     .eq("id", groupId)
     .single();
 
-  const { data: inviterProfile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
-  // TEMP DEBUG: env at action layer before email send. Remove after diagnosis.
-  console.debug("[invite-action] inviteGroupMember before sendGroupInviteEmail:", {
-    hasResendKey: !!process.env.RESEND_API_KEY,
-    resendKeyLength: process.env.RESEND_API_KEY?.length ?? 0,
-    hasFromEmail: !!process.env.RESEND_FROM_EMAIL,
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? null,
-  });
-
   const { sendGroupInviteEmail } = await import("@/lib/email");
   const emailResult = await sendGroupInviteEmail({
-    to: email.trim().toLowerCase(),
+    to: emailNorm,
     inviteeName: inviteeName?.trim() || "",
     groupName: group?.name ?? "the group",
-    inviterName: inviterProfile?.display_name ?? "A group admin",
+    inviterName,
+    inviterEmail: user.email ?? undefined,
     acceptUrl,
+    expiresAt: invite.expires_at,
   });
 
   if (!emailResult.success) {
@@ -235,8 +237,10 @@ export async function inviteGroupMember(
     return {
       success: true,
       inviteId: invite.id,
+      token: invite.token,
       acceptUrl,
       expiresAt: invite.expires_at,
+      lastSentAt: invite.last_sent_at,
       emailSent: false,
       emailError: emailResult.error,
     };
@@ -247,27 +251,38 @@ export async function inviteGroupMember(
   return {
     success: true,
     inviteId: invite.id,
+    token: invite.token,
     acceptUrl,
     expiresAt: invite.expires_at,
+    lastSentAt: invite.last_sent_at,
     emailSent: true,
   };
 }
 
 const ACCEPT_ERROR_MESSAGES: Record<string, string> = {
   NOT_AUTHENTICATED: "Please sign in to accept this invitation.",
-  INVALID_TOKEN: "Invalid or expired invite link.",
-  ALREADY_ACCEPTED: "This invite has already been used.",
-  EXPIRED: "This invite has expired.",
-  EMAIL_MISMATCH: "This invite was sent to a different email address.",
+  INVALID_TOKEN: "This invite link is invalid or no longer available.",
+  ALREADY_ACCEPTED: "This invite was already used. If you expected to join, contact your group admin.",
+  EXPIRED: "This invite has expired. Ask your group admin for a new invite.",
+  EMAIL_MISMATCH: "EMAIL_MISMATCH", // replaced with message that includes invited email
   ALREADY_MEMBER: "You are already a member of this group.",
+  CANCELLED: "This invite was cancelled by the group admin.",
   NEED_NAME: "NEED_NAME",
 };
+
+export type AcceptGroupInviteResult =
+  | { success: true; groupId: string; alreadyAccepted?: boolean }
+  | {
+      error: string;
+      code?: string;
+      invitedEmail?: string;
+    };
 
 export async function acceptGroupInvite(
   token: string,
   firstName?: string,
   lastName?: string
-) {
+): Promise<AcceptGroupInviteResult> {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
   const {
@@ -282,21 +297,187 @@ export async function acceptGroupInvite(
   });
 
   if (error) return { error: error.message };
-  const res = result as { success?: boolean; group_id?: string; error?: string } | null;
-  if (!res) return { error: "Invalid or expired invite" };
+  const res = result as {
+    success?: boolean;
+    group_id?: string;
+    error?: string;
+    invited_email?: string;
+    already_accepted?: boolean;
+    already_member?: boolean;
+  } | null;
+  if (!res) return { error: "Invalid or expired invite", code: "INVALID_TOKEN" };
 
   if (res.error) {
+    if (res.error === "EMAIL_MISMATCH" && res.invited_email) {
+      return {
+        error: `This invite was sent to ${res.invited_email}. Sign out and sign in with that email to accept.`,
+        code: "EMAIL_MISMATCH",
+        invitedEmail: res.invited_email,
+      };
+    }
     const msg = ACCEPT_ERROR_MESSAGES[res.error] ?? res.error;
-    return { error: msg };
+    return { error: msg, code: res.error };
   }
 
   if (res.success && res.group_id) {
     revalidatePath("/app/groups");
     revalidatePath(`/app/groups/${res.group_id}`);
-    return { success: true, groupId: res.group_id };
+    return {
+      success: true,
+      groupId: res.group_id,
+      alreadyAccepted: !!(res.already_accepted || res.already_member),
+    };
   }
 
-  return { error: "Invalid or expired invite" };
+  return { error: "Invalid or expired invite", code: "INVALID_TOKEN" };
+}
+
+export async function cancelGroupInvite(groupId: string, inviteId: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "admin") {
+    return { error: "Only group admins can cancel invites" };
+  }
+
+  const { data: updated, error } = await supabase
+    .from("group_invites")
+    .update({ status: "cancelled" })
+    .eq("id", inviteId)
+    .eq("group_id", groupId)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!updated) {
+    return { error: "Invite not found or already used" };
+  }
+
+  revalidatePath(`/app/groups/${groupId}`);
+  revalidatePath(`/app/groups/${groupId}/members`);
+  return { success: true };
+}
+
+export async function resendGroupInvite(groupId: string, inviteId: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "admin") {
+    return { error: "Only group admins can resend invites" };
+  }
+
+  const { data: row, error: fetchErr } = await supabase
+    .from("group_invites")
+    .select("*")
+    .eq("id", inviteId)
+    .eq("group_id", groupId)
+    .single();
+
+  if (fetchErr || !row) return { error: "Invite not found" };
+  if (row.status !== "pending") {
+    return { error: "Only pending invites can be resent" };
+  }
+
+  const { data: inviterProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const inviterName = inviterProfile?.display_name?.trim() || "A group admin";
+  const now = new Date();
+  let token = row.token as string;
+  let expiresAt = new Date(row.expires_at as string);
+  let renewed = false;
+
+  if (expiresAt.getTime() <= now.getTime()) {
+    token = randomBytes(32).toString("hex");
+    expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    renewed = true;
+    const { error: upErr } = await supabase
+      .from("group_invites")
+      .update({
+        token,
+        expires_at: expiresAt.toISOString(),
+        last_sent_at: now.toISOString(),
+        invited_by_user_id: user.id,
+        invited_by_name: inviterName || null,
+      })
+      .eq("id", inviteId)
+      .eq("group_id", groupId)
+      .eq("status", "pending");
+
+    if (upErr) return { error: upErr.message };
+  } else {
+    const { error: upErr } = await supabase
+      .from("group_invites")
+      .update({ last_sent_at: now.toISOString() })
+      .eq("id", inviteId)
+      .eq("group_id", groupId)
+      .eq("status", "pending");
+
+    if (upErr) return { error: upErr.message };
+  }
+
+  const baseUrl = getPublicSiteBaseUrl();
+  const acceptUrl = `${baseUrl}/app/groups/invite/${token}`;
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name")
+    .eq("id", groupId)
+    .single();
+
+  const { sendGroupInviteEmail } = await import("@/lib/email");
+  const emailResult = await sendGroupInviteEmail({
+    to: String(row.email).trim().toLowerCase(),
+    inviteeName: (row.invitee_name as string | null)?.trim() || "",
+    groupName: group?.name ?? "the group",
+    inviterName,
+    inviterEmail: user.email ?? undefined,
+    acceptUrl,
+    expiresAt: expiresAt.toISOString(),
+  });
+
+  revalidatePath(`/app/groups/${groupId}`);
+  revalidatePath(`/app/groups/${groupId}/members`);
+
+  return {
+    success: true,
+    emailSent: emailResult.success,
+    emailError: emailResult.success ? undefined : emailResult.error,
+    inviteId,
+    token,
+    expires_at: expiresAt.toISOString(),
+    last_sent_at: now.toISOString(),
+    renewed,
+    acceptUrl,
+    resentToEmail: String(row.email).trim().toLowerCase(),
+  };
 }
 
 export async function getGroupMembers(groupId: string) {

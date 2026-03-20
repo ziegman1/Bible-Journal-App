@@ -40,6 +40,22 @@ export async function updateSession(request: NextRequest) {
 
   const isAppRoute = request.nextUrl.pathname.startsWith("/app");
   const isOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
+  const isInviteAcceptRoute = /^\/app\/groups\/invite\/[^/]+$/.test(
+    request.nextUrl.pathname
+  );
+
+  // Allow unauthenticated access to invite page; set header so app layout can skip auth
+  if (isInviteAcceptRoute) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-invite-route", "1");
+    const inviteResponse = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    supabaseResponse.cookies.getAll().forEach((c) =>
+      inviteResponse.cookies.set(c.name, c.value, { path: "/" })
+    );
+    supabaseResponse = inviteResponse;
+  }
   const isAuthRoute =
     request.nextUrl.pathname === "/login" ||
     request.nextUrl.pathname === "/signup" ||
@@ -59,7 +75,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  if (!user && (isAppRoute || isOnboarding)) {
+  if (!user && (isAppRoute || isOnboarding) && !isInviteAcceptRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", request.nextUrl.pathname);
