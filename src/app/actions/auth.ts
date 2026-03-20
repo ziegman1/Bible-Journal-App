@@ -23,11 +23,19 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    const message =
-      error.message?.toLowerCase().includes("fetch") ||
-      error.message?.toLowerCase().includes("network")
-        ? "Unable to connect. Please check your internet connection and try again."
-        : error.message;
+    const msg = error.message?.toLowerCase() ?? "";
+    let message: string;
+    if (msg.includes("fetch") || msg.includes("network")) {
+      message = "Unable to connect. Please check your internet connection and try again.";
+    } else if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("duplicate")) {
+      message = "An account with this email already exists. Try signing in instead.";
+    } else if (msg.includes("database") || msg.includes("profiles") || msg.includes("relation") || msg.includes("does not exist")) {
+      message = "Database setup issue. The app owner needs to run the SQL migrations in Supabase (see SUPABASE_SETUP.md).";
+    } else if (msg.includes("password") && (msg.includes("weak") || msg.includes("length"))) {
+      message = "Password must be at least 6 characters.";
+    } else {
+      message = error.message ?? "Something went wrong. Please try again.";
+    }
     redirect(`/signup?error=${encodeURIComponent(message)}`);
   }
 

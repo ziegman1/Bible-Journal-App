@@ -14,6 +14,8 @@ import {
   Menu,
   LogOut,
   MessageSquare,
+  BarChart3,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,8 +31,10 @@ const navItems = [
   { href: "/app", label: "Home", icon: Home },
   { href: "/app/read", label: "Read", icon: BookOpen },
   { href: "/app/journal", label: "Journal", icon: BookMarked },
+  { href: "/app/groups", label: "Groups", icon: Users },
   { href: "/app/themes", label: "Themes", icon: Tags },
   { href: "/app/annual-journal", label: "Annual Journey", icon: Calendar },
+  { href: "/app/insights", label: "Insights", icon: BarChart3 },
   { href: "/app/threads", label: "Study Threads", icon: MessageSquare },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];

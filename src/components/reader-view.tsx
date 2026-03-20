@@ -4,10 +4,26 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { AskAIPanel } from "./ask-ai-panel";
 import { VerseActionMenu } from "./verse-action-menu";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
 import { createHighlight, deleteHighlight } from "@/app/actions/highlights";
 import { addFavoritePassage, removeFavoritePassage } from "@/app/actions/favorites";
 import { toast } from "sonner";
 import type { Chapter } from "@/lib/scripture/types";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
 
 interface ReaderViewProps {
   chapter: Chapter;
@@ -30,8 +46,10 @@ export function ReaderView({
   initialHighlightIds = new Map(),
   initialFavorites = new Map(),
 }: ReaderViewProps) {
+  const isMobile = useIsMobile();
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
+  const [anchorVerse, setAnchorVerse] = useState<number | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<"ask" | "reflection">("ask");
   const [highlights, setHighlights] = useState<Set<number>>(initialHighlights);
@@ -53,6 +71,39 @@ export function ReaderView({
   const handleAddReflection = useCallback(() => {
     setPanelMode("reflection");
     setPanelOpen(true);
+  }, []);
+
+  const handleExtendRange = useCallback(
+    (verse: number) => {
+      setSelectedRange((prev) => {
+        const start = prev ? Math.min(prev.start, verse) : verse;
+        const end = prev ? Math.max(prev.end, verse) : verse;
+        return { start, end };
+      });
+      setSelectedVerse(verse);
+      toast.success("Range extended. Shift+click another verse to extend further.");
+    },
+    []
+  );
+
+  const handleCompleteRange = useCallback((verse: number) => {
+    if (anchorVerse === null) return;
+    const start = Math.min(anchorVerse, verse);
+    const end = Math.max(anchorVerse, verse);
+    setSelectedRange({ start, end });
+    setSelectedVerse(verse);
+    setAnchorVerse(null);
+    setPanelMode("reflection");
+    setPanelOpen(true);
+    toast.success(`Selected ${start === end ? "verse" : "verses"} ${start}${start === end ? "" : `–${end}`}`);
+  }, [anchorVerse]);
+
+  const handleStartRangeSelection = useCallback((verse: number) => {
+    setAnchorVerse(verse);
+    setSelectedVerse(verse);
+    setSelectedRange({ start: verse, end: verse });
+    setPanelOpen(false);
+    toast.success("Tap another verse to select range");
   }, []);
 
   useEffect(() => {
@@ -183,14 +234,20 @@ export function ReaderView({
                     chapter={chapterNum}
                     isHighlighted={isHighlighted}
                     isFavorited={isFavorited}
+                    isRangeSelectionMode={anchorVerse !== null}
+                    onExtendRange={handleExtendRange}
+                    onCompleteRange={handleCompleteRange}
+                    onStartRangeSelection={handleStartRangeSelection}
                     onAskAI={() => {
                       setSelectedVerse(v.verse);
                       setSelectedRange({ start: v.verse, end: v.verse });
+                      setAnchorVerse(null);
                       handleAskAI();
                     }}
                     onAddReflection={() => {
                       setSelectedVerse(v.verse);
                       setSelectedRange({ start: v.verse, end: v.verse });
+                      setAnchorVerse(null);
                       handleAddReflection();
                     }}
                     onHighlight={() => handleHighlight(v.verse)}
@@ -234,13 +291,41 @@ export function ReaderView({
             verseStart={selectedRange?.start ?? null}
             verseEnd={selectedRange?.end ?? null}
             reference={passageRef}
-            open={panelOpen}
+            open={isMobile ? false : panelOpen}
             onOpenChange={setPanelOpen}
             aiStyle={aiStyle}
             defaultToReflection={panelMode === "reflection"}
           />
         </div>
       </aside>
+
+      {isMobile && (
+        <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+          <SheetContent
+            side="bottom"
+            className="max-h-[85vh] overflow-y-auto rounded-t-xl"
+            showCloseButton={true}
+          >
+            <div className="pb-8">
+              <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                {panelMode === "reflection" ? "Add reflection" : "Ask AI"} — {passageRef}
+              </h2>
+              <AskAIPanel
+                bookId={bookId}
+                bookName={bookName}
+                chapter={chapterNum}
+                verseStart={selectedRange?.start ?? null}
+                verseEnd={selectedRange?.end ?? null}
+                reference={passageRef}
+                open={true}
+                onOpenChange={setPanelOpen}
+                aiStyle={aiStyle}
+                defaultToReflection={panelMode === "reflection"}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { updateJournalEntry } from "@/app/actions/journal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ export function EntryEditor({
   const [application, setApplication] = useState(initialApplication ?? "");
   const [tags, setTags] = useState(initialTags.join(", "));
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   async function handleSave() {
     setSaving(true);
@@ -56,6 +58,7 @@ export function EntryEditor({
     }
 
     toast.success("Entry updated");
+    router.refresh();
   }
 
   return (
@@ -75,24 +78,13 @@ export function EntryEditor({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reflection">Reflection</Label>
+          <Label htmlFor="reflection">Observation</Label>
           <Textarea
             id="reflection"
             value={reflection}
             onChange={(e) => setReflection(e.target.value)}
-            placeholder="Your thoughts and reflections..."
+            placeholder="What do you observe in this passage?"
             rows={4}
-            className="resize-none font-serif"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="prayer">Prayer</Label>
-          <Textarea
-            id="prayer"
-            value={prayer}
-            onChange={(e) => setPrayer(e.target.value)}
-            placeholder="A prayer inspired by this passage..."
-            rows={3}
             className="resize-none font-serif"
           />
         </div>
@@ -104,6 +96,17 @@ export function EntryEditor({
             onChange={(e) => setApplication(e.target.value)}
             placeholder="How will you apply this?"
             rows={2}
+            className="resize-none font-serif"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="prayer">Prayer</Label>
+          <Textarea
+            id="prayer"
+            value={prayer}
+            onChange={(e) => setPrayer(e.target.value)}
+            placeholder="A prayer inspired by this passage..."
+            rows={3}
             className="resize-none font-serif"
           />
         </div>

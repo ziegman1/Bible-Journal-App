@@ -5,6 +5,12 @@ import { askAIAboutPassage } from "@/lib/ai/client";
 import { getChapter } from "@/lib/scripture/provider";
 import { revalidatePath } from "next/cache";
 
+const AI_DAILY_LIMIT = 25;
+
+function getTodayUTC(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function askPassageQuestion(
   bookId: string,
   bookName: string,
@@ -21,6 +27,22 @@ export async function askPassageQuestion(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
+
+  // Rate limit: 25 AI questions per user per day (UTC)
+  const todayUtc = getTodayUTC();
+  const { data: usage } = await supabase
+    .from("ai_usage")
+    .select("request_count")
+    .eq("user_id", user.id)
+    .eq("usage_date", todayUtc)
+    .single();
+
+  const count = usage?.request_count ?? 0;
+  if (count >= AI_DAILY_LIMIT) {
+    return {
+      error: `You've reached your daily limit of ${AI_DAILY_LIMIT} AI questions. Your limit resets at midnight UTC. Try again tomorrow!`,
+    };
+  }
 
   const chapterData = await getChapter(bookId, chapter);
   if (!chapterData) return { error: "Chapter not found" };
@@ -44,6 +66,12 @@ export async function askPassageQuestion(
   if (!result.success) {
     return { error: result.error };
   }
+
+  // Record usage (only successful AI responses count toward the limit)
+  await supabase.rpc("increment_ai_usage", {
+    p_user_id: user.id,
+    p_usage_date: todayUtc,
+  });
 
   const questionText = question.trim() || "Help me understand this passage.";
   let threadId: string | null = options?.threadId ?? null;

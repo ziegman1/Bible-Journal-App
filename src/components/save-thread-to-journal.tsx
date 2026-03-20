@@ -100,23 +100,12 @@ export function SaveThreadToJournal({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="reflection">Reflection</Label>
+        <Label htmlFor="reflection">Observation</Label>
         <Textarea
           id="reflection"
-          placeholder="Your thoughts and insights..."
+          placeholder="What do you observe in this passage?"
           value={reflection}
           onChange={(e) => setReflection(e.target.value)}
-          rows={2}
-          className="resize-none"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="prayer">Prayer</Label>
-        <Textarea
-          id="prayer"
-          placeholder="A prayer inspired by this passage..."
-          value={prayer}
-          onChange={(e) => setPrayer(e.target.value)}
           rows={2}
           className="resize-none"
         />
@@ -128,6 +117,17 @@ export function SaveThreadToJournal({
           placeholder="How will you apply this?"
           value={application}
           onChange={(e) => setApplication(e.target.value)}
+          rows={2}
+          className="resize-none"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="prayer">Prayer</Label>
+        <Textarea
+          id="prayer"
+          placeholder="A prayer inspired by this passage..."
+          value={prayer}
+          onChange={(e) => setPrayer(e.target.value)}
           rows={2}
           className="resize-none"
         />

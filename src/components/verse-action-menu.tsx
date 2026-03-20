@@ -5,6 +5,7 @@ import {
   BookMarked,
   Highlighter,
   Star,
+  MousePointer2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +27,14 @@ export interface VerseActionMenuProps {
   onAddReflection: () => void;
   onHighlight: () => void;
   onFavorite: () => void;
+  /** When true, next verse tap completes range instead of opening menu */
+  isRangeSelectionMode?: boolean;
+  /** Called when user shift+clicks (desktop) to extend selection */
+  onExtendRange?: (verse: number, e: React.MouseEvent) => void;
+  /** Called when user taps verse in range mode to complete selection */
+  onCompleteRange?: (verse: number) => void;
+  /** Called when user chooses "Select range" to enter range mode (verse is the anchor) */
+  onStartRangeSelection?: (verse: number) => void;
   children: React.ReactNode;
   className?: string;
 }
@@ -39,14 +48,34 @@ export function VerseActionMenu({
   onAddReflection,
   onHighlight,
   onFavorite,
+  isRangeSelectionMode = false,
+  onExtendRange,
+  onCompleteRange,
+  onStartRangeSelection,
   children,
   className,
 }: VerseActionMenuProps) {
+  function handleClickCapture(e: React.MouseEvent) {
+    if (e.shiftKey && onExtendRange) {
+      e.preventDefault();
+      e.stopPropagation();
+      onExtendRange(verse, e);
+      return;
+    }
+    if (isRangeSelectionMode && onCompleteRange) {
+      e.preventDefault();
+      e.stopPropagation();
+      onCompleteRange(verse);
+      return;
+    }
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="w-full text-left [&]:appearance-none [&]:bg-transparent [&]:border-none [&]:p-0 [&]:font-inherit [&]:cursor-pointer">
-        {children}
-      </DropdownMenuTrigger>
+    <span onClickCapture={handleClickCapture} className="inline">
+      <DropdownMenu>
+        <DropdownMenuTrigger className="w-full text-left [&]:appearance-none [&]:bg-transparent [&]:border-none [&]:p-0 [&]:font-inherit [&]:cursor-pointer">
+          {children}
+        </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem
           onClick={(e) => {
@@ -88,7 +117,19 @@ export function VerseActionMenu({
           />
           {isFavorited ? "Remove favorite" : "Favorite"}
         </DropdownMenuItem>
+        {onStartRangeSelection && (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault();
+              onStartRangeSelection(verse);
+            }}
+          >
+            <MousePointer2 className="size-4 shrink-0" />
+            Select range
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
+    </span>
   );
 }

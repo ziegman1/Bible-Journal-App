@@ -1,12 +1,12 @@
 import { getBookById } from "./books";
+import { getChapter as getWebChapter } from "./web";
 import { getMockChapter } from "./mock-data";
 import type { Chapter, ScriptureReference } from "./types";
 import { formatReference } from "./types";
 
 /**
- * Scripture Provider - Abstraction layer for Bible text.
- * Replace the implementation with a licensed Bible API when available.
- * All consumers should use this provider, not mock-data directly.
+ * Scripture Provider - Fetches from Supabase (WEB) with mock fallback.
+ * All consumers should use this provider.
  */
 
 export async function getChapter(bookId: string, chapterNum: number): Promise<Chapter | null> {
@@ -17,8 +17,10 @@ export async function getChapter(bookId: string, chapterNum: number): Promise<Ch
     return null;
   }
 
-  const chapter = getMockChapter(bookId, book.name, chapterNum);
-  return chapter;
+  const chapter = await getWebChapter(book.name, chapterNum);
+  if (chapter) return chapter;
+
+  return getMockChapter(bookId, book.name, chapterNum);
 }
 
 export function formatPassageReference(ref: ScriptureReference): string {

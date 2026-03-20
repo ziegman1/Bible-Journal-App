@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EntryEditor } from "@/components/entry-editor";
+import { EntryShare } from "@/components/entry-share";
 import { EntryDeleteButton } from "@/components/entry-delete-button";
 import { AIResponseSections } from "@/components/ai-response-sections";
 import { MessageSquare } from "lucide-react";
@@ -143,6 +144,19 @@ export default async function JournalEntryPage({ params }: PageProps) {
           initialApplication={entry.application}
           initialTags={tags}
         />
+
+        <div className="rounded-lg border border-stone-200 dark:border-stone-800 p-6 bg-stone-50/30 dark:bg-stone-900/20">
+          <EntryShare
+            reference={entry.reference}
+            entryDate={entry.entry_date}
+            title={entry.title}
+            observation={entry.user_reflection}
+            application={entry.application}
+            prayer={entry.prayer}
+            userQuestion={entry.user_question}
+            tags={tags}
+          />
+        </div>
       </article>
     </div>
   );

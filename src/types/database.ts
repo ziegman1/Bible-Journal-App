@@ -127,3 +127,11 @@ export interface ThreadMessage {
   structured_ai_response: AIResponseJSON | Record<string, unknown> | null;
   created_at: string;
 }
+
+export interface AiUsage {
+  user_id: string;
+  usage_date: string;
+  request_count: number;
+  created_at: string;
+  updated_at: string;
+}

@@ -15,18 +15,31 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, reading_mode, journal_year")
+    .select("display_name, reading_mode, journal_year, onboarding_complete")
     .eq("id", user.id)
     .single();
 
-  const isComplete =
-    profile?.display_name &&
-    profile?.reading_mode &&
-    profile?.journal_year;
+  // Backfill profile for users who signed up before handle_new_user trigger fix
+  if (!profile) {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        display_name: (user.user_metadata?.display_name as string) ?? "Reader",
+      },
+      { onConflict: "id" }
+    );
+    const { data: created } = await supabase
+      .from("profiles")
+      .select("display_name, reading_mode, journal_year, onboarding_complete")
+      .eq("id", user.id)
+      .single();
+    profile = created ?? profile;
+  }
 
-  if (isComplete) {
+  // Only skip onboarding if user explicitly completed it (submitted the form)
+  if (profile?.onboarding_complete) {
     redirect("/app");
   }
 

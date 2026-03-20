@@ -15,7 +15,7 @@
 
 # next.js
 /.next/
-/out/
+# /out/ — kept for Capacitor mobile app (minimal index.html)
 
 # production
 /build

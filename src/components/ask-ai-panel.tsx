@@ -372,27 +372,27 @@ export function AskAIPanel({
             <div className="space-y-2 shrink-0">
               <Label>Quick add (no AI)</Label>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Add reflection, prayer, or application and save without asking AI.
+                Add observation, application, or prayer and save without asking AI.
               </p>
               <div className="space-y-2">
                 <Textarea
-                  placeholder="Your reflection..."
+                  placeholder="Observation..."
                   value={reflection}
                   onChange={(e) => setReflection(e.target.value)}
                   rows={2}
                   className="resize-none"
                 />
                 <Textarea
-                  placeholder="Prayer..."
-                  value={prayer}
-                  onChange={(e) => setPrayer(e.target.value)}
+                  placeholder="Application..."
+                  value={application}
+                  onChange={(e) => setApplication(e.target.value)}
                   rows={1}
                   className="resize-none"
                 />
                 <Textarea
-                  placeholder="Application..."
-                  value={application}
-                  onChange={(e) => setApplication(e.target.value)}
+                  placeholder="Prayer..."
+                  value={prayer}
+                  onChange={(e) => setPrayer(e.target.value)}
                   rows={1}
                   className="resize-none"
                 />
@@ -424,23 +424,23 @@ export function AskAIPanel({
           </p>
           <div className="space-y-2">
             <Textarea
-              placeholder="Your reflection..."
+              placeholder="Observation..."
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
               rows={2}
               className="resize-none"
             />
             <Textarea
-              placeholder="Prayer..."
-              value={prayer}
-              onChange={(e) => setPrayer(e.target.value)}
+              placeholder="Application..."
+              value={application}
+              onChange={(e) => setApplication(e.target.value)}
               rows={1}
               className="resize-none"
             />
             <Textarea
-              placeholder="Application..."
-              value={application}
-              onChange={(e) => setApplication(e.target.value)}
+              placeholder="Prayer..."
+              value={prayer}
+              onChange={(e) => setPrayer(e.target.value)}
               rows={1}
               className="resize-none"
             />
