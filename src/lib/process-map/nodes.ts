@@ -51,7 +51,7 @@ export const PROCESS_NODES: ProcessMapNode[] = [
   { id: "t_chat",     label: "CHAT",                x: 91, y: 71, href: "/app/chat",         size: 38,  type: "chat",        child: true },
   { id: "t_pray",     label: "PRAY",                x: 81, y: 78, href: "/app/prayer",       size: 38,  type: "practice",    child: true },
 
-  { id: "new33",       label: "New 3/3",              x: 70, y: 88, href: "/app/groups/new",   size: 95,  type: "new33"       },
+  { id: "new33",       label: "New 3/3",              x: 70, y: 88, href: "/app/groups/new",   size: 86,  type: "new33"       },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -87,9 +87,7 @@ export const NODE_ANNOTATIONS: Record<string, NodeAnnotation[]> = {
   family: [
     { text: "3 Hour/Wk", type: "plaque", offsetY: 9 },
   ],
-  watch: [
-    { text: "RUN BADWR", type: "plaque", offsetY: 12 },
-  ],
+  watch: [],
 };
 
 export type MapCaption = {
@@ -100,7 +98,6 @@ export type MapCaption = {
 
 export const MAP_CAPTIONS: MapCaption[] = [
   { text: "Others in my 3/3 starting M/A groups", x: 15, y: 97 },
-  { text: "BORN AGAIN DISCIPLE WORTH REPRODUCING", x: 46, y: 90 },
 ];
 
 /** Connection segments [fromId, toId] — same coordinate space as nodes (0–100). */

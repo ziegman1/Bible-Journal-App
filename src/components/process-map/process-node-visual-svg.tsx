@@ -339,25 +339,27 @@ export function ProcessNodeSvgVisual({
             >
               <circle
                 cx={cx}
-                cy={cy - ryE * 0.35}
-                r={Math.max(2.2, Math.min(rxE, ryE) * 0.12)}
+                cy={cy - ryE * 0.36}
+                r={Math.max(2, Math.min(rxE, ryE) * 0.1)}
                 fill="rgba(232,240,255,0.95)"
               />
               <path
                 d={`
-                  M ${cx - rxE * 0.07} ${cy - ryE * 0.20}
-                  C ${cx - rxE * 0.10} ${cy - ryE * 0.12}, ${cx - rxE * 0.14} ${cy - ryE * 0.08}, ${cx - rxE * 0.17} ${cy - ryE * 0.02}
-                  C ${cx - rxE * 0.27} ${cy + ryE * 0.03}, ${cx - rxE * 0.33} ${cy + ryE * 0.12}, ${cx - rxE * 0.24} ${cy + ryE * 0.22}
-                  C ${cx - rxE * 0.20} ${cy + ryE * 0.29}, ${cx - rxE * 0.17} ${cy + ryE * 0.40}, ${cx - rxE * 0.14} ${cy + ryE * 0.56}
-                  C ${cx - rxE * 0.10} ${cy + ryE * 0.70}, ${cx - rxE * 0.20} ${cy + ryE * 0.82}, ${cx - rxE * 0.32} ${cy + ryE * 0.91}
-                  C ${cx - rxE * 0.23} ${cy + ryE * 0.94}, ${cx - rxE * 0.11} ${cy + ryE * 0.94}, ${cx - rxE * 0.02} ${cy + ryE * 0.87}
-                  L ${cx} ${cy + ryE * 0.73}
-                  L ${cx + rxE * 0.02} ${cy + ryE * 0.87}
-                  C ${cx + rxE * 0.11} ${cy + ryE * 0.94}, ${cx + rxE * 0.23} ${cy + ryE * 0.94}, ${cx + rxE * 0.32} ${cy + ryE * 0.91}
-                  C ${cx + rxE * 0.20} ${cy + ryE * 0.82}, ${cx + rxE * 0.10} ${cy + ryE * 0.70}, ${cx + rxE * 0.14} ${cy + ryE * 0.56}
-                  C ${cx + rxE * 0.17} ${cy + ryE * 0.40}, ${cx + rxE * 0.20} ${cy + ryE * 0.29}, ${cx + rxE * 0.24} ${cy + ryE * 0.22}
-                  C ${cx + rxE * 0.33} ${cy + ryE * 0.12}, ${cx + rxE * 0.27} ${cy + ryE * 0.03}, ${cx + rxE * 0.17} ${cy - ryE * 0.02}
-                  C ${cx + rxE * 0.14} ${cy - ryE * 0.08}, ${cx + rxE * 0.10} ${cy - ryE * 0.12}, ${cx + rxE * 0.07} ${cy - ryE * 0.20}
+                  M ${cx - rxE * 0.08} ${cy - ryE * 0.22}
+                  C ${cx - rxE * 0.15} ${cy - ryE * 0.13}, ${cx - rxE * 0.24} ${cy - ryE * 0.08}, ${cx - rxE * 0.35} ${cy - ryE * 0.03}
+                  C ${cx - rxE * 0.43} ${cy + ryE * 0.03}, ${cx - rxE * 0.47} ${cy + ryE * 0.10}, ${cx - rxE * 0.37} ${cy + ryE * 0.16}
+                  C ${cx - rxE * 0.28} ${cy + ryE * 0.21}, ${cx - rxE * 0.20} ${cy + ryE * 0.31}, ${cx - rxE * 0.16} ${cy + ryE * 0.45}
+                  C ${cx - rxE * 0.15} ${cy + ryE * 0.62}, ${cx - rxE * 0.26} ${cy + ryE * 0.78}, ${cx - rxE * 0.36} ${cy + ryE * 0.91}
+                  C ${cx - rxE * 0.28} ${cy + ryE * 0.95}, ${cx - rxE * 0.15} ${cy + ryE * 0.95}, ${cx - rxE * 0.06} ${cy + ryE * 0.88}
+                  L ${cx - rxE * 0.03} ${cy + ryE * 0.75}
+                  L ${cx} ${cy + ryE * 0.92}
+                  L ${cx + rxE * 0.03} ${cy + ryE * 0.75}
+                  C ${cx + rxE * 0.06} ${cy + ryE * 0.88}, ${cx + rxE * 0.15} ${cy + ryE * 0.95}, ${cx + rxE * 0.28} ${cy + ryE * 0.95}
+                  C ${cx + rxE * 0.36} ${cy + ryE * 0.91}, ${cx + rxE * 0.26} ${cy + ryE * 0.78}, ${cx + rxE * 0.15} ${cy + ryE * 0.62}
+                  C ${cx + rxE * 0.16} ${cy + ryE * 0.45}, ${cx + rxE * 0.20} ${cy + ryE * 0.31}, ${cx + rxE * 0.28} ${cy + ryE * 0.21}
+                  C ${cx + rxE * 0.37} ${cy + ryE * 0.16}, ${cx + rxE * 0.47} ${cy + ryE * 0.10}, ${cx + rxE * 0.43} ${cy + ryE * 0.03}
+                  C ${cx + rxE * 0.35} ${cy - ryE * 0.03}, ${cx + rxE * 0.24} ${cy - ryE * 0.08}, ${cx + rxE * 0.15} ${cy - ryE * 0.13}
+                  C ${cx + rxE * 0.12} ${cy - ryE * 0.17}, ${cx + rxE * 0.10} ${cy - ryE * 0.20}, ${cx + rxE * 0.08} ${cy - ryE * 0.22}
                   Z
                 `}
                 fill="rgba(220,232,255,0.92)"
@@ -431,19 +433,19 @@ export function ProcessNodeSvgVisual({
             </g>
             {/* shield projection: soft left defensive field */}
             <ellipse
-              cx={cx - rxE * 0.50}
-              cy={cy + ryE * 0.15}
-              rx={rxE * 0.19}
-              ry={ryE * 0.24}
+              cx={cx - rxE * 0.36}
+              cy={cy + ryE * 0.12}
+              rx={rxE * 0.17}
+              ry={ryE * 0.22}
               fill={`url(#pm-id-shield-${id})`}
               filter={`url(#pm-id-human-soft-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
             <ellipse
-              cx={cx - rxE * 0.57}
-              cy={cy + ryE * 0.15}
-              rx={rxE * 0.16}
-              ry={ryE * 0.21}
+              cx={cx - rxE * 0.40}
+              cy={cy + ryE * 0.12}
+              rx={rxE * 0.14}
+              ry={ryE * 0.19}
               fill="none"
               stroke={`url(#pm-id-shield-rim-${id})`}
               strokeWidth={0.9}
@@ -452,14 +454,22 @@ export function ProcessNodeSvgVisual({
             />
             {/* sword projection: thin angled energy blade */}
             <line
-              x1={cx + rxE * 0.34}
-              y1={cy + ryE * 0.12}
-              x2={cx + rxE * 0.56}
-              y2={cy - ryE * 0.28}
+              x1={cx + rxE * 0.28}
+              y1={cy + ryE * 0.14}
+              x2={cx + rxE * 0.52}
+              y2={cy - ryE * 0.23}
               stroke={`url(#pm-id-sword-${id})`}
               strokeWidth={1.05}
               strokeLinecap="round"
               filter={`url(#pm-id-human-soft-${id})`}
+              style={{ mixBlendMode: "screen" }}
+            />
+            <ellipse
+              cx={cx}
+              cy={cy + ryE * 0.97}
+              rx={rxE * 0.26}
+              ry={ryE * 0.08}
+              fill="rgba(235,226,198,0.22)"
               style={{ mixBlendMode: "screen" }}
             />
             <circle
@@ -965,25 +975,27 @@ export function ProcessNodeSvgVisual({
             <g opacity={0.9} filter={`url(#pm-tr-human-soft-${id})`}>
               <circle
                 cx={cx}
-                cy={cy - ryE * 0.34}
-                r={Math.max(2.2, Math.min(rxE, ryE) * 0.12)}
+                cy={cy - ryE * 0.35}
+                r={Math.max(2, Math.min(rxE, ryE) * 0.095)}
                 fill={`url(#pm-tr-human-${id})`}
               />
               <path
                 d={`
-                  M ${cx - rxE * 0.08} ${cy - ryE * 0.24}
-                  C ${cx - rxE * 0.11} ${cy - ryE * 0.14}, ${cx - rxE * 0.16} ${cy - ryE * 0.10}, ${cx - rxE * 0.20} ${cy - ryE * 0.03}
-                  C ${cx - rxE * 0.31} ${cy + ryE * 0.03}, ${cx - rxE * 0.37} ${cy + ryE * 0.13}, ${cx - rxE * 0.27} ${cy + ryE * 0.24}
-                  C ${cx - rxE * 0.23} ${cy + ryE * 0.33}, ${cx - rxE * 0.20} ${cy + ryE * 0.45}, ${cx - rxE * 0.17} ${cy + ryE * 0.62}
-                  C ${cx - rxE * 0.13} ${cy + ryE * 0.78}, ${cx - rxE * 0.25} ${cy + ryE * 0.92}, ${cx - rxE * 0.39} ${cy + ryE * 1.03}
-                  C ${cx - rxE * 0.29} ${cy + ryE * 1.06}, ${cx - rxE * 0.15} ${cy + ryE * 1.06}, ${cx - rxE * 0.03} ${cy + ryE * 0.97}
-                  L ${cx} ${cy + ryE * 0.80}
-                  L ${cx + rxE * 0.03} ${cy + ryE * 0.97}
-                  C ${cx + rxE * 0.15} ${cy + ryE * 1.06}, ${cx + rxE * 0.29} ${cy + ryE * 1.06}, ${cx + rxE * 0.39} ${cy + ryE * 1.03}
-                  C ${cx + rxE * 0.25} ${cy + ryE * 0.92}, ${cx + rxE * 0.13} ${cy + ryE * 0.78}, ${cx + rxE * 0.17} ${cy + ryE * 0.62}
-                  C ${cx + rxE * 0.20} ${cy + ryE * 0.45}, ${cx + rxE * 0.23} ${cy + ryE * 0.33}, ${cx + rxE * 0.27} ${cy + ryE * 0.24}
-                  C ${cx + rxE * 0.37} ${cy + ryE * 0.13}, ${cx + rxE * 0.31} ${cy + ryE * 0.03}, ${cx + rxE * 0.20} ${cy - ryE * 0.03}
-                  C ${cx + rxE * 0.16} ${cy - ryE * 0.10}, ${cx + rxE * 0.11} ${cy - ryE * 0.14}, ${cx + rxE * 0.08} ${cy - ryE * 0.24}
+                  M ${cx - rxE * 0.09} ${cy - ryE * 0.25}
+                  C ${cx - rxE * 0.16} ${cy - ryE * 0.14}, ${cx - rxE * 0.26} ${cy - ryE * 0.09}, ${cx - rxE * 0.39} ${cy - ryE * 0.03}
+                  C ${cx - rxE * 0.48} ${cy + ryE * 0.02}, ${cx - rxE * 0.53} ${cy + ryE * 0.10}, ${cx - rxE * 0.42} ${cy + ryE * 0.18}
+                  C ${cx - rxE * 0.32} ${cy + ryE * 0.24}, ${cx - rxE * 0.24} ${cy + ryE * 0.35}, ${cx - rxE * 0.18} ${cy + ryE * 0.52}
+                  C ${cx - rxE * 0.16} ${cy + ryE * 0.69}, ${cx - rxE * 0.29} ${cy + ryE * 0.86}, ${cx - rxE * 0.42} ${cy + ryE * 1.01}
+                  C ${cx - rxE * 0.31} ${cy + ryE * 1.05}, ${cx - rxE * 0.17} ${cy + ryE * 1.05}, ${cx - rxE * 0.06} ${cy + ryE * 0.97}
+                  L ${cx - rxE * 0.03} ${cy + ryE * 0.79}
+                  L ${cx} ${cy + ryE * 1.00}
+                  L ${cx + rxE * 0.03} ${cy + ryE * 0.79}
+                  C ${cx + rxE * 0.06} ${cy + ryE * 0.97}, ${cx + rxE * 0.17} ${cy + ryE * 1.05}, ${cx + rxE * 0.31} ${cy + ryE * 1.05}
+                  C ${cx + rxE * 0.42} ${cy + ryE * 1.01}, ${cx + rxE * 0.29} ${cy + ryE * 0.86}, ${cx + rxE * 0.16} ${cy + ryE * 0.69}
+                  C ${cx + rxE * 0.18} ${cy + ryE * 0.52}, ${cx + rxE * 0.24} ${cy + ryE * 0.35}, ${cx + rxE * 0.32} ${cy + ryE * 0.24}
+                  C ${cx + rxE * 0.42} ${cy + ryE * 0.18}, ${cx + rxE * 0.53} ${cy + ryE * 0.10}, ${cx + rxE * 0.48} ${cy + ryE * 0.02}
+                  C ${cx + rxE * 0.39} ${cy - ryE * 0.03}, ${cx + rxE * 0.26} ${cy - ryE * 0.09}, ${cx + rxE * 0.16} ${cy - ryE * 0.14}
+                  C ${cx + rxE * 0.12} ${cy - ryE * 0.18}, ${cx + rxE * 0.10} ${cy - ryE * 0.22}, ${cx + rxE * 0.09} ${cy - ryE * 0.25}
                   Z
                 `}
                 fill={`url(#pm-tr-human-${id})`}
@@ -1057,19 +1069,19 @@ export function ProcessNodeSvgVisual({
             </g>
             {/* shield projection (left): brighter and tighter than ME */}
             <ellipse
-              cx={cx - rxE * 0.52}
-              cy={cy + ryE * 0.16}
-              rx={rxE * 0.2}
-              ry={ryE * 0.25}
+              cx={cx - rxE * 0.38}
+              cy={cy + ryE * 0.14}
+              rx={rxE * 0.18}
+              ry={ryE * 0.23}
               fill={`url(#pm-tr-shield-${id})`}
               filter={`url(#pm-tr-human-soft-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
             <ellipse
-              cx={cx - rxE * 0.60}
-              cy={cy + ryE * 0.16}
-              rx={rxE * 0.17}
-              ry={ryE * 0.22}
+              cx={cx - rxE * 0.43}
+              cy={cy + ryE * 0.14}
+              rx={rxE * 0.15}
+              ry={ryE * 0.2}
               fill="none"
               stroke={`url(#pm-tr-shield-rim-${id})`}
               strokeWidth={1.1}
@@ -1077,13 +1089,21 @@ export function ProcessNodeSvgVisual({
               style={{ mixBlendMode: "screen" }}
             />
             <rect
-              x={cx + rxE * 0.42}
-              y={cy - ryE * 0.34}
+              x={cx + rxE * 0.34}
+              y={cy - ryE * 0.30}
               width={1.5}
               height={ryE * 0.78}
               fill={`url(#pm-tr-human-beam-${id})`}
               opacity={0.86}
-              transform={`rotate(12 ${cx + rxE * 0.42} ${cy - ryE * 0.34})`}
+              transform={`rotate(16 ${cx + rxE * 0.34} ${cy - ryE * 0.30})`}
+              style={{ mixBlendMode: "screen" }}
+            />
+            <ellipse
+              cx={cx}
+              cy={cy + ryE * 1.04}
+              rx={rxE * 0.3}
+              ry={ryE * 0.09}
+              fill="rgba(180,255,214,0.30)"
               style={{ mixBlendMode: "screen" }}
             />
             <ellipse

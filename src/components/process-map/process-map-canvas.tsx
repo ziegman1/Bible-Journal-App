@@ -1589,7 +1589,27 @@ function ProcessMapPlaque({
 function ProcessMapChrome() {
   return (
     <>
-      <ProcessMapPlaque text="Discipleship Process" x={76} y={4} variant="title" />
+      <div
+        className="pointer-events-none absolute z-30"
+        style={{
+          left: "69.5%",
+          top: "4%",
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <span
+          className="inline-flex items-center whitespace-nowrap font-semibold uppercase"
+          style={{
+            fontSize: 16,
+            letterSpacing: "0.12em",
+            color: "rgba(226,232,240,0.94)",
+            textShadow: "0 1px 3px rgba(0,0,0,0.42)",
+          }}
+        >
+          Be a Disciple Worth Reproducing
+        </span>
+      </div>
+      <ProcessMapPlaque text="Discipleship Process" x={46} y={96} variant="title" />
       <ProcessMapPlaque
         lines={["My story, C2J, SHEMA,", "PRAYER WALK"]}
         x={54}
