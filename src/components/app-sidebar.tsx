@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Settings, MessageCircle, Users } from "lucide-react";
+import { Home, BookOpen, Settings, MessageCircle, Users, Waypoints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -17,20 +17,26 @@ import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
 const navItems = [
   { href: "/app", label: "Home", icon: Home },
   { href: "/app/read", label: "Read", icon: BookOpen },
+  { href: "/app/process-map", label: "Discipleship Process", icon: Waypoints },
   { href: "/app/groups", label: "3/3rds Groups", icon: Users },
   { href: "/app/chat", label: "CHAT", icon: MessageCircle },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
+
+function isItemActive(pathname: string, href: string): boolean {
+  if (href === "/app") return pathname === "/app";
+  if (href === "/app/process-map") {
+    return pathname.startsWith("/app/process-map") || pathname.startsWith("/app/pathway");
+  }
+  return pathname.startsWith(href);
+}
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
     <>
       {navItems.slice(0, 2).map((item) => {
         const Icon = item.icon;
-        const isActive =
-          item.href === "/app"
-            ? pathname === "/app"
-            : pathname.startsWith(item.href);
+        const isActive = isItemActive(pathname, item.href);
         return (
           <Link
             key={item.href}
@@ -51,10 +57,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
       <SoapsHubSidebarNav pathname={pathname} onNavigate={onNavigate} />
       {navItems.slice(2).map((item) => {
         const Icon = item.icon;
-        const isActive =
-          item.href === "/app"
-            ? pathname === "/app"
-            : pathname.startsWith(item.href);
+        const isActive = isItemActive(pathname, item.href);
         return (
           <Link
             key={item.href}
