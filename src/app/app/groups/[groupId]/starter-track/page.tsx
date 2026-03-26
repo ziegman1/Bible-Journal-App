@@ -122,7 +122,7 @@ export default async function StarterTrackHubPage({ params }: PageProps) {
 
       {enrollment && (phase === "active" || phase === "completed") && (
         <>
-          <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30 p-4 text-sm">
+          <div className="rounded-xl border border-border bg-card p-4 text-sm">
             <p className="font-medium text-stone-800 dark:text-stone-200">Progress</p>
             <p className="text-stone-600 dark:text-stone-400 mt-1">
               {phase === "completed"
@@ -130,7 +130,7 @@ export default async function StarterTrackHubPage({ params }: PageProps) {
                 : `Weeks finished: ${wc} of 8. Current focus: Week ${wc + 1}.`}
             </p>
             {enrollment.vision_statement && (
-              <div className="mt-3 pt-3 border-t border-stone-200 dark:border-stone-700">
+              <div className="mt-3 pt-3 border-t border-border">
                 <p className="text-xs font-medium text-stone-500 uppercase tracking-wide">
                   Group vision
                 </p>
@@ -159,8 +159,8 @@ export default async function StarterTrackHubPage({ params }: PageProps) {
 
                 const rowClass = `flex items-start gap-3 rounded-xl border p-4 ${
                   locked
-                    ? "border-stone-100 dark:border-stone-800/50 opacity-60"
-                    : "border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-900/40 transition-colors"
+                    ? "border-border/50 opacity-60"
+                    : "border-border hover:bg-muted/70 dark:hover:bg-muted/30 transition-colors"
                 } ${current ? "ring-1 ring-amber-400/60 dark:ring-amber-600/40" : ""}`;
 
                 return (

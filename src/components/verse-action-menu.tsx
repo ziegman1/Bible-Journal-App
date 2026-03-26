@@ -89,7 +89,7 @@ export function VerseActionMenu({
     <span ref={containerRef} onClickCapture={handleClickCapture} className="inline-block w-full">
       <span className="cursor-pointer">{children}</span>
       {open && (
-        <div className="flex flex-wrap items-center gap-1 mt-1 mb-2 py-1.5 px-2 rounded-lg bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-sm">
+        <div className="flex flex-wrap items-center gap-1 mt-1 mb-2 py-1.5 px-2 rounded-lg bg-stone-100 dark:bg-stone-800/80 border border-border shadow-sm">
           <Button
             variant="ghost"
             size="sm"
@@ -114,7 +114,7 @@ export function VerseActionMenu({
             }}
           >
             <BookMarked className="size-3.5 shrink-0 mr-1" />
-            Reflection
+            SOAPS
           </Button>
           <Button
             variant="ghost"

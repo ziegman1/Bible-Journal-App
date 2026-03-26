@@ -235,7 +235,7 @@ export function GroupInviteManager({
     .slice(0, 25);
 
   return (
-    <div className="space-y-6 rounded-xl border border-stone-200 dark:border-stone-800 p-6 bg-stone-50/30 dark:bg-stone-900/20">
+    <div className="space-y-6 rounded-xl border border-border p-6 bg-muted/80 dark:bg-muted/40">
       <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300">
         Invite by email
       </h2>
@@ -320,7 +320,7 @@ export function GroupInviteManager({
               return (
                 <li
                   key={inv.id}
-                  className="rounded-lg border border-stone-200 dark:border-stone-700 bg-white/60 dark:bg-stone-900/40 p-3 space-y-2"
+                  className="rounded-lg border border-border bg-white/60 dark:bg-stone-900/40 p-3 space-y-2"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                     <div className="min-w-0">

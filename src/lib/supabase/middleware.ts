@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
 
   const isAppRoute = request.nextUrl.pathname.startsWith("/app");
   const isOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
-  const isInviteAcceptRoute = /^\/app\/groups\/invite\/[^/]+$/.test(
+  // Optional trailing slash so layout still gets x-invite-route after redirects / copy-paste
+  const isInviteAcceptRoute = /^\/app\/groups\/invite\/[^/]+\/?$/.test(
     request.nextUrl.pathname
   );
 
@@ -55,6 +56,23 @@ export async function updateSession(request: NextRequest) {
       inviteResponse.cookies.set(c.name, c.value, { path: "/" })
     );
     supabaseResponse = inviteResponse;
+  }
+
+  const isFacilitatorPresentRoute =
+    /^\/app\/groups\/[^/]+\/meetings\/[^/]+\/present(?:\/|$)/.test(
+      request.nextUrl.pathname
+    );
+
+  if (isFacilitatorPresentRoute) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-facilitator-present", "1");
+    const presentResponse = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    supabaseResponse.cookies.getAll().forEach((c) =>
+      presentResponse.cookies.set(c.name, c.value, { path: "/" })
+    );
+    supabaseResponse = presentResponse;
   }
   const isAuthRoute =
     request.nextUrl.pathname === "/login" ||

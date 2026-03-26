@@ -25,7 +25,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const range = (params.range as InsightsDateRange) ?? "last30";
+  const range = (params.range as InsightsDateRange) ?? "thisYear";
   const bounds = getDateBounds(range, params.start ?? undefined, params.end ?? undefined);
 
   const [summary, cachedResult] = await Promise.all([
@@ -37,15 +37,16 @@ export default async function InsightsPage({ searchParams }: PageProps) {
     cachedResult && "summary" in cachedResult ? cachedResult.summary : null;
 
   return (
-    <div className="min-h-screen bg-stone-50/30 dark:bg-stone-950/30">
+    <div className="min-h-screen bg-background">
       <div className="p-6 max-w-4xl mx-auto space-y-8">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
+            <h1 className="text-2xl font-serif font-light text-foreground">
               Insights
             </h1>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-              A reflection on your journaling journey
+            <p className="text-sm text-muted-foreground mt-1">
+              A reflection on your journaling journey. Counts use each entry&apos;s
+              date; widen the range or choose All time if a section looks empty.
             </p>
           </div>
           <InsightsDateRangeSelect />

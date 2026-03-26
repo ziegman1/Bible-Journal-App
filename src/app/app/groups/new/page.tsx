@@ -18,7 +18,7 @@ export default async function CreateGroupPage() {
           href="/app/groups"
           className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
         >
-          ← Back to groups
+          ← 3/3rds Groups
         </Link>
       </div>
 

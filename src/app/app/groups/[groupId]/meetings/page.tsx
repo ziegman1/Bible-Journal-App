@@ -26,6 +26,13 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
     notFound();
   }
 
+  const gPending = (
+    groupResult.group as { onboarding_pending?: boolean | null }
+  ).onboarding_pending;
+  if (gPending === true) {
+    redirect(`/app/groups/${groupId}/onboarding`);
+  }
+
   const meetingsResult = await listGroupMeetings(groupId);
   const meetings = meetingsResult.meetings ?? [];
 
@@ -55,7 +62,7 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
       </div>
 
       {meetings.length === 0 ? (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-12 text-center bg-stone-50/50 dark:bg-stone-900/30">
+        <div className="rounded-xl border border-border p-12 text-center bg-card">
           <p className="text-stone-600 dark:text-stone-400 mb-4">
             No meetings yet. Start one from here or from your group workspace.
           </p>
@@ -78,7 +85,7 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
               <li key={m.id}>
                 <Link
                   href={`/app/groups/${groupId}/meetings/${m.id}`}
-                  className="block rounded-xl border border-stone-200 dark:border-stone-800 p-6 hover:bg-stone-50 dark:hover:bg-stone-900/30 transition-colors"
+                  className="block rounded-xl border border-border p-6 hover:bg-muted/70 dark:hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>

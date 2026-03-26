@@ -10,6 +10,8 @@ export default async function AppLayout({
 }) {
   const headersList = await headers();
   const isInviteRoute = headersList.get("x-invite-route") === "1";
+  const isFacilitatorPresent =
+    headersList.get("x-facilitator-present") === "1";
 
   const supabase = await createClient();
   if (!supabase) {
@@ -19,13 +21,10 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Invite acceptance page allows unauthenticated access; middleware sets x-invite-route
-  if (!user && !isInviteRoute) {
-    redirect("/login");
-  }
-
-  if (isInviteRoute && !user) {
-    return <div className="min-h-screen bg-stone-50 dark:bg-stone-950">{children}</div>;
+  // Invite link: minimal shell for everyone; skip onboarding until after accept.
+  // Otherwise new users who sign in hit /onboarding before acceptGroupInvite runs.
+  if (isInviteRoute) {
+    return <div className="min-h-screen bg-background">{children}</div>;
   }
 
   if (!user) {
@@ -59,6 +58,10 @@ export default async function AppLayout({
 
   if (needsOnboarding) {
     redirect("/onboarding");
+  }
+
+  if (isFacilitatorPresent) {
+    return <>{children}</>;
   }
 
   return (

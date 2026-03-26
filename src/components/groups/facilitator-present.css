@@ -1,0 +1,184 @@
+/**
+ * Facilitator / TV presentation mode — imported only from facilitator-meeting-view.
+ * Subtle slide entry + stage frame; respects reduced motion.
+ */
+
+/* Fullscreen API: fill the display with the same room-facing background */
+.facilitator-fullscreen-root:fullscreen {
+  min-height: 100%;
+  background-color: #1c252e;
+}
+
+.facilitator-fullscreen-root:-webkit-full-screen {
+  min-height: 100%;
+  background-color: #1c252e;
+}
+
+@keyframes facilitator-slide-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.facilitator-slide-in {
+  animation: facilitator-slide-enter 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facilitator-slide-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Single composed “slide” surface for the room */
+.facilitator-slide-stage {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow:
+    0 0 0 1px rgba(131, 176, 218, 0.1),
+    0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  padding: clamp(1.25rem, 3.5vw, 2.75rem);
+}
+
+@media (min-width: 640px) {
+  .facilitator-slide-stage {
+    padding: clamp(1.75rem, 4vw, 3.25rem);
+  }
+}
+
+/* Passage slides: maximize room for scripture; full text + optional second column */
+.facilitator-slide-stage:has(.facilitator-passage-reading) {
+  justify-content: flex-start;
+  padding: clamp(0.5rem, 1.5vw, 1rem) clamp(0.65rem, 2vw, 1.35rem);
+}
+
+@media (min-width: 640px) {
+  .facilitator-slide-stage:has(.facilitator-passage-reading) {
+    padding: clamp(0.65rem, 1.8vw, 1.15rem) clamp(0.85rem, 2.5vw, 1.75rem);
+  }
+}
+
+.facilitator-passage-verses {
+  font-size: clamp(0.9rem, 0.9vw + 0.65rem, 1.55rem);
+  line-height: 1.42;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1024px) {
+  .facilitator-passage-verses {
+    line-height: 1.38;
+  }
+}
+
+/* Obey / Train / Share — fill stage height; cards share remaining space equally */
+.facilitator-slide-stage-ots {
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: clamp(0.45rem, 0.9vh + 0.2rem, 1.1rem)
+    clamp(0.55rem, 1.8vw, 1.25rem);
+}
+
+@media (min-width: 640px) {
+  .facilitator-slide-stage-ots {
+    padding: clamp(0.55rem, 1.1vh + 0.25rem, 1.35rem)
+      clamp(0.75rem, 2.2vw, 1.6rem);
+  }
+}
+
+.facilitator-obey-train-share-slide {
+  display: flex;
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(0.35rem, 1.1vh, 0.85rem);
+  text-align: center;
+}
+
+.facilitator-ots-main-title {
+  flex-shrink: 0;
+  font-size: clamp(1.65rem, 2.4vw + 0.95rem, 3.35rem);
+  font-weight: 600;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.facilitator-ots-cards {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: clamp(0.28rem, 0.85vh, 0.55rem);
+  text-align: left;
+}
+
+.facilitator-ots-card {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  border-left-width: 4px;
+  padding: clamp(0.55rem, 1.2vh + 0.25rem, 1.15rem)
+    clamp(0.5rem, 1.4vw + 0.25rem, 1rem)
+    clamp(0.55rem, 1.2vh + 0.25rem, 1.15rem)
+    clamp(0.45rem, 1.2vw + 0.2rem, 0.85rem);
+}
+
+.facilitator-ots-card-head {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.35rem, 0.8vw, 0.55rem);
+  margin-bottom: clamp(0.1rem, 0.35vh, 0.28rem);
+}
+
+.facilitator-ots-card-head svg {
+  width: clamp(1rem, 1vw + 0.65rem, 1.35rem);
+  height: clamp(1rem, 1vw + 0.65rem, 1.35rem);
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+/* SharePalmsTogetherIcon wraps a span; match Lucide icon footprint */
+.facilitator-ots-card-head .facilitator-ots-share-icon {
+  width: clamp(1rem, 1vw + 0.65rem, 1.35rem);
+  height: clamp(1rem, 1vw + 0.65rem, 1.35rem);
+}
+
+.facilitator-ots-card-title {
+  font-size: clamp(1.05rem, 1.35vw + 0.55rem, 2.35rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.facilitator-ots-card-body {
+  font-size: clamp(0.88rem, 0.95vw + 0.48rem, 1.85rem);
+  font-weight: 500;
+  line-height: 1.28;
+  color: var(--foreground);
+}
+
+.facilitator-ots-footnote {
+  flex-shrink: 0;
+  font-size: clamp(0.75rem, 0.65vw + 0.38rem, 1.2rem);
+  line-height: 1.35;
+  color: var(--muted-foreground);
+  margin-top: clamp(0.1rem, 0.4vh, 0.35rem);
+}

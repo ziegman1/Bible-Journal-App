@@ -36,7 +36,7 @@ export function ThreadCard({ id, reference, title, created_at }: ThreadCardProps
 
   return (
     <>
-      <Card className="group relative hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors">
+      <Card className="group relative hover:bg-muted/60 dark:hover:bg-muted/40 transition-colors">
         <Link href={`/app/thread/${id}`} className="block">
           <CardHeader className="pb-2 pr-12">
             <CardTitle className="text-base font-medium">

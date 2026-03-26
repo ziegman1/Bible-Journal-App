@@ -80,6 +80,17 @@ export async function enrollInStarterTrack(groupId: string) {
   return { success: true };
 }
 
+/** Used after onboarding: enroll if missing; duplicate row is OK. */
+export async function ensureStarterTrackEnrollment(groupId: string): Promise<{
+  error?: string;
+}> {
+  const r = await enrollInStarterTrack(groupId);
+  if ("success" in r && r.success) return {};
+  if ("error" in r && r.error?.includes("already enrolled")) return {};
+  if ("error" in r && r.error) return { error: r.error };
+  return {};
+}
+
 export async function completeStarterTrackIntro(groupId: string) {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };

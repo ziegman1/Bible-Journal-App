@@ -35,6 +35,11 @@ export function getDateBounds(
     start.setDate(start.getDate() - 90);
   } else if (range === "thisYear") {
     start = new Date(now.getFullYear(), 0, 1);
+  } else if (range === "allTime") {
+    return {
+      start: "1970-01-01",
+      end: today,
+    };
   } else {
     start = new Date(now);
     start.setDate(start.getDate() - 30);
@@ -45,6 +50,20 @@ export function getDateBounds(
     end: today,
   };
 }
+
+/** Journal row shape for insights (SOAPS columns optional when DB migration not applied) */
+type JournalEntryInsightRow = {
+  id: string;
+  entry_date: string;
+  reference: string;
+  book: string;
+  chapter: number;
+  user_reflection: string | null;
+  prayer: string | null;
+  application: string | null;
+  scripture_text?: string | null;
+  soaps_share?: string | null;
+};
 
 /** Common English stop words for keyword extraction */
 const STOP_WORDS = new Set([
@@ -91,11 +110,15 @@ export async function aggregateInsights(
   const startTs = `${bounds.start}T00:00:00`;
   const endTs = `${bounds.end}T23:59:59`;
 
+  const JOURNAL_INSIGHTS_BASE =
+    "id, entry_date, reference, book, chapter, user_reflection, prayer, application";
+  const JOURNAL_INSIGHTS_EXTENDED = `${JOURNAL_INSIGHTS_BASE}, scripture_text, soaps_share`;
+
   const [
     { count: journalCount },
     { count: threadsCount },
     { count: aiCount },
-    { data: entries },
+    journalRowsResult,
     { data: threads },
     { data: sessions },
     { data: aiResponses },
@@ -120,7 +143,7 @@ export async function aggregateInsights(
       .lte("created_at", endTs),
     supabase
       .from("journal_entries")
-      .select("id, entry_date, reference, book, chapter, user_reflection, prayer, application")
+      .select(JOURNAL_INSIGHTS_EXTENDED)
       .eq("user_id", userId)
       .gte("entry_date", bounds.start)
       .lte("entry_date", bounds.end)
@@ -144,6 +167,20 @@ export async function aggregateInsights(
       .gte("created_at", startTs)
       .lte("created_at", endTs),
   ]);
+
+  let entries: JournalEntryInsightRow[] | null = journalRowsResult.data as
+    | JournalEntryInsightRow[]
+    | null;
+  if (journalRowsResult.error) {
+    const { data: fallback } = await supabase
+      .from("journal_entries")
+      .select(JOURNAL_INSIGHTS_BASE)
+      .eq("user_id", userId)
+      .gte("entry_date", bounds.start)
+      .lte("entry_date", bounds.end)
+      .order("entry_date", { ascending: true });
+    entries = fallback as JournalEntryInsightRow[] | null;
+  }
 
   const entryIds = (entries ?? []).map((e) => e.id);
   let tagRows: { entry_id: string; tags: unknown }[] = [];
@@ -253,10 +290,18 @@ export async function aggregateInsights(
     .map(([label, count]) => ({ label, count }))
     .slice(-12);
 
+  const scriptureTexts = (entries ?? []).map((e) => e.scripture_text ?? null);
   const reflectionTexts = (entries ?? []).map((e) => e.user_reflection);
   const prayerTexts = (entries ?? []).map((e) => e.prayer);
   const applicationTexts = (entries ?? []).map((e) => e.application);
-  const allTexts = [...reflectionTexts, ...prayerTexts, ...applicationTexts];
+  const shareTexts = (entries ?? []).map((e) => e.soaps_share ?? null);
+  const allTexts = [
+    ...scriptureTexts,
+    ...reflectionTexts,
+    ...prayerTexts,
+    ...applicationTexts,
+    ...shareTexts,
+  ];
   const topKeywords = extractKeywords(allTexts, 25);
 
   const threadIds = (threads ?? []).map((t) => t.id);

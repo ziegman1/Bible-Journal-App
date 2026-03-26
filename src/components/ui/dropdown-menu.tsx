@@ -21,7 +21,7 @@ const DropdownMenuContent = React.forwardRef<
       <Menu.Popup
         ref={ref}
         className={cn(
-          "z-50 min-w-[10rem] overflow-hidden rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-1 shadow-lg",
+          "z-50 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-white dark:bg-stone-900 p-1 shadow-lg",
           className
         )}
         {...props}

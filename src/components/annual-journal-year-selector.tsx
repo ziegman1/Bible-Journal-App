@@ -27,7 +27,7 @@ export function AnnualJournalYearSelector({ currentYear }: AnnualJournalYearSele
   const handleChange = (value: string) => {
     const next = new URLSearchParams(searchParams.toString());
     next.set("year", value);
-    router.push(`/app/annual-journal?${next.toString()}`);
+    router.push(`/app/journal?${next.toString()}`);
   };
 
   return (

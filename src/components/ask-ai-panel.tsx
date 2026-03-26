@@ -193,7 +193,7 @@ export function AskAIPanel({
   return (
     <div className="p-4 space-y-4 flex flex-col min-h-0">
       {passageText && (
-        <div className="shrink-0 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-3">
+        <div className="shrink-0 rounded-lg border border-border bg-white dark:bg-stone-900/50 p-3">
           <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
             {reference}
           </h3>
@@ -265,7 +265,7 @@ export function AskAIPanel({
           {response && !hasMessages && (
             <div className="flex-1 overflow-auto min-h-0">
               <div className="space-y-4">
-                <div className="rounded-lg border border-stone-200 dark:border-stone-800 p-4 bg-stone-50/50 dark:bg-stone-900/30">
+                <div className="rounded-lg border border-border p-4 bg-card">
                   <h3 className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-3">
                     AI Insight
                   </h3>

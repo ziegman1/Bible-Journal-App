@@ -44,7 +44,7 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-serif font-light text-center text-stone-800 dark:text-stone-200 mb-8">
           Welcome to Bible Journal

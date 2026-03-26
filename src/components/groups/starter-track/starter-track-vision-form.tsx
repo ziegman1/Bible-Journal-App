@@ -36,7 +36,7 @@ export function StarterTrackVisionForm({ groupId, initialStatement }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div className="rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30 p-4 text-sm text-stone-700 dark:text-stone-300 space-y-2">
+      <div className="rounded-lg border border-border bg-card p-4 text-sm text-stone-700 dark:text-stone-300 space-y-2">
         <p>
           Before Week 1, take time to agree on a short <strong>group vision statement</strong>{" "}
           rooted in Jesus’ heart for multiplying disciples. Use these passages in prayer and

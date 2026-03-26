@@ -55,7 +55,7 @@ export default async function ThemesPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sorted.map(({ tagId, slug, name, count }) => (
             <Link key={tagId} href={`/app/journal?tag=${slug}`}>
-              <Card className="hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors h-full">
+              <Card className="hover:bg-muted/60 dark:hover:bg-muted/40 transition-colors h-full">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-medium">{name}</CardTitle>
                 </CardHeader>

@@ -68,9 +68,13 @@ export interface JournalEntry {
   reference: string;
   title: string | null;
   user_question: string | null;
+  /** SOAPS: verbatim Scripture */
+  scripture_text: string | null;
   user_reflection: string | null;
   prayer: string | null;
   application: string | null;
+  /** SOAPS: Share */
+  soaps_share: string | null;
   ai_response_id: string | null;
   highlight_color: string | null;
   created_at: string;

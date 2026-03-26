@@ -1,0 +1,17 @@
+---
+description: Production deploy only when the user explicitly asks; no automatic deploy after tasks
+alwaysApply: true
+---
+
+# Deploy when commanded
+
+**Do not** run a production deploy after finishing tasks **unless** the user clearly asks you to (e.g. “deploy”, “ship it”, “run deploy”, “push to Vercel”).
+
+When they **do** ask, from repo root:
+
+```bash
+npx tsc --noEmit && npm run deploy
+```
+
+- If `tsc` fails, fix errors first; do not deploy a broken build.
+- For **docs-only** or **migration SQL-only** changes, still skip deploy unless they asked.

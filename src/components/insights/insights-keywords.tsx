@@ -11,7 +11,7 @@ export function InsightsKeywords({ data }: InsightsKeywordsProps) {
 
   if (topKeywords.length === 0) {
     return (
-      <Card className="bg-stone-50/50 dark:bg-stone-900/30 border-stone-200 dark:border-stone-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200 flex items-center gap-2">
             <Sparkles className="size-4" />
@@ -28,7 +28,7 @@ export function InsightsKeywords({ data }: InsightsKeywordsProps) {
   }
 
   return (
-    <Card className="bg-stone-50/50 dark:bg-stone-900/30 border-stone-200 dark:border-stone-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200 flex items-center gap-2">
           <Sparkles className="size-4" />

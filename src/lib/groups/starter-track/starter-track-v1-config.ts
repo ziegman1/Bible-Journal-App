@@ -22,11 +22,16 @@ export const STARTER_TRACK_V1_WEEKS: StarterTrackWeekConfig[] = [
     ],
     practiceSections: [
       {
-        heading: "Practice",
-        body: "Practice telling your story: life before following Jesus, how you became a follower, life after, and invite a response. Keep it brief (about 3 minutes or less). Practice with someone in your group.",
-      },
-      {
-        body: "Choose five people to tell this week. Pray and ask God to show you who those five should be.",
+        heading: "Practice — tell your story",
+        body: `Practice telling your story. Include:
+• Life before Jesus
+• How you met Jesus
+• Life after Jesus
+• Invite a response
+
+Keep it under about 3 minutes. Practice with your group.
+
+Choose five people to tell this week. Pray and ask God to show you who those five should be.`,
       },
     ],
   },

@@ -10,7 +10,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
   const { overview } = data;
 
   return (
-    <Card className="bg-stone-50/50 dark:bg-stone-900/30 border-stone-200 dark:border-stone-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200">
           Overview
@@ -18,7 +18,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-white dark:bg-stone-900/50 p-4">
             <BookMarked className="size-5 text-amber-600 dark:text-amber-500" />
             <div>
               <p className="text-2xl font-light text-stone-800 dark:text-stone-200">
@@ -29,7 +29,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-white dark:bg-stone-900/50 p-4">
             <MessageSquare className="size-5 text-amber-600 dark:text-amber-500" />
             <div>
               <p className="text-2xl font-light text-stone-800 dark:text-stone-200">
@@ -40,7 +40,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-white dark:bg-stone-900/50 p-4">
             <MessageCircle className="size-5 text-amber-600 dark:text-amber-500" />
             <div>
               <p className="text-2xl font-light text-stone-800 dark:text-stone-200">
@@ -51,7 +51,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-white dark:bg-stone-900/50 p-4">
             <BookOpen className="size-5 text-amber-600 dark:text-amber-500" />
             <div>
               <p className="text-2xl font-light text-stone-800 dark:text-stone-200">

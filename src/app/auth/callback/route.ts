@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -17,11 +18,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/setup", request.url));
   }
 
-  // Use production URL if callback landed on localhost (wrong link in email)
-  const baseUrl =
-    origin.includes("localhost") && process.env.NEXT_PUBLIC_SITE_URL
-      ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
-      : origin;
+  // Email link may wrongly point at localhost; still redirect session to the real deployed site
+  let isLocalOrigin = false;
+  try {
+    const host = new URL(origin).hostname;
+    isLocalOrigin = host === "localhost" || host === "127.0.0.1";
+  } catch {
+    /* keep false */
+  }
+  const baseUrl = isLocalOrigin ? getPublicSiteBaseUrl() : origin.replace(/\/$/, "");
 
   const cookieStore = await cookies();
 

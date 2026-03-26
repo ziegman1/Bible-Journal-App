@@ -195,7 +195,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
               <select
                 value={book}
                 onChange={(e) => setBook(e.target.value)}
-                className="w-full h-9 rounded-lg border border-stone-200 dark:border-stone-800 bg-background px-3 text-sm"
+                className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 <option value="">Select...</option>
                 {BIBLE_BOOKS.map((b) => (
@@ -266,7 +266,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
           <select
             value={facilitatorId}
             onChange={(e) => setFacilitatorId(e.target.value)}
-            className="w-full h-9 rounded-lg border border-stone-200 dark:border-stone-800 bg-background px-3 text-sm mt-2"
+            className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm mt-2"
           >
             <option value="">Choose who’s facilitating…</option>
             {members.map((m) => (

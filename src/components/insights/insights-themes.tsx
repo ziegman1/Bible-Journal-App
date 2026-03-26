@@ -12,7 +12,7 @@ export function InsightsThemes({ data }: InsightsThemesProps) {
 
   if (topTags.length === 0) {
     return (
-      <Card className="bg-stone-50/50 dark:bg-stone-900/30 border-stone-200 dark:border-stone-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200 flex items-center gap-2">
             <Tags className="size-4" />
@@ -29,7 +29,7 @@ export function InsightsThemes({ data }: InsightsThemesProps) {
   }
 
   return (
-    <Card className="bg-stone-50/50 dark:bg-stone-900/30 border-stone-200 dark:border-stone-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200 flex items-center gap-2">
           <Tags className="size-4" />
@@ -42,7 +42,7 @@ export function InsightsThemes({ data }: InsightsThemesProps) {
             <Link
               key={t.slug}
               href={`/app/journal?tag=${t.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/50 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white dark:bg-stone-900/50 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             >
               <span>{t.name}</span>
               <span className="text-xs text-stone-500 dark:text-stone-400">

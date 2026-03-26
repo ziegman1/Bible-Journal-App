@@ -4,9 +4,17 @@ import { sanitizeSearchQuery } from "@/lib/search";
 import { JournalFilterProvider } from "@/components/journal-filter-context";
 import { JournalTimeline } from "@/components/journal-timeline";
 import { JournalFilters } from "@/components/journal-filters";
+import { SoapsPageSubnav } from "@/components/soaps-page-subnav";
+import { AnnualJourneySection } from "@/components/annual-journey-section";
 
 interface PageProps {
-  searchParams: Promise<{ book?: string; tag?: string; month?: string; q?: string }>;
+  searchParams: Promise<{
+    book?: string;
+    tag?: string;
+    month?: string;
+    q?: string;
+    year?: string;
+  }>;
 }
 
 export default async function JournalPage({ searchParams }: PageProps) {
@@ -18,6 +26,13 @@ export default async function JournalPage({ searchParams }: PageProps) {
   if (!user) return null;
 
   const params = await searchParams;
+  const journeyYearRaw = params.year
+    ? parseInt(params.year, 10)
+    : new Date().getFullYear();
+  const journeyYear = Number.isFinite(journeyYearRaw)
+    ? journeyYearRaw
+    : new Date().getFullYear();
+
   const bookFilter = params.book;
   const tagFilter = params.tag;
   const monthFilter = params.month;
@@ -33,9 +48,11 @@ export default async function JournalPage({ searchParams }: PageProps) {
       reference,
       title,
       user_question,
+      scripture_text,
       user_reflection,
       prayer,
       application,
+      soaps_share,
       created_at,
       ai_response_id,
       study_thread_id
@@ -56,7 +73,7 @@ export default async function JournalPage({ searchParams }: PageProps) {
   }
   if (searchQuery) {
     query = query.or(
-      `title.ilike.%${searchQuery}%,user_question.ilike.%${searchQuery}%,user_reflection.ilike.%${searchQuery}%,prayer.ilike.%${searchQuery}%,application.ilike.%${searchQuery}%`
+      `title.ilike.%${searchQuery}%,user_question.ilike.%${searchQuery}%,scripture_text.ilike.%${searchQuery}%,user_reflection.ilike.%${searchQuery}%,prayer.ilike.%${searchQuery}%,application.ilike.%${searchQuery}%,soaps_share.ilike.%${searchQuery}%`
     );
   }
 
@@ -114,14 +131,20 @@ export default async function JournalPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <header>
-        <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
-          Journal
-        </h1>
-        <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">
-          Your spiritual diary — reflections, prayers, and insights from Scripture
-        </p>
+      <header className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
+            SOAPS
+          </h1>
+          <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">
+            Your spiritual diary — Scripture, observation, application, prayer, and share
+          </p>
+        </div>
+        <SoapsPageSubnav />
       </header>
+
+      <AnnualJourneySection year={journeyYear} />
+
       <JournalFilterProvider>
         <JournalFilters
           books={uniqueBooks}

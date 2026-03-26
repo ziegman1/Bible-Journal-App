@@ -14,13 +14,14 @@ const LABELS: Record<InsightsDateRange, string> = {
   last30: "Last 30 days",
   last90: "Last 90 days",
   thisYear: "This year",
+  allTime: "All time",
   custom: "Custom range",
 };
 
 export function InsightsDateRangeSelect() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const range = (searchParams.get("range") as InsightsDateRange) ?? "last30";
+  const range = (searchParams.get("range") as InsightsDateRange) ?? "thisYear";
 
   function handleChange(value: InsightsDateRange | string | null) {
     if (!value || value === "custom") return;
@@ -35,13 +36,14 @@ export function InsightsDateRangeSelect() {
 
   return (
     <Select value={range} onValueChange={handleChange}>
-      <SelectTrigger className="w-[180px] bg-stone-50 dark:bg-stone-900/50 border-stone-200 dark:border-stone-800">
+      <SelectTrigger className="w-[180px] bg-background border-border">
         <SelectValue placeholder="Select range" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="last30">{LABELS.last30}</SelectItem>
         <SelectItem value="last90">{LABELS.last90}</SelectItem>
         <SelectItem value="thisYear">{LABELS.thisYear}</SelectItem>
+        <SelectItem value="allTime">{LABELS.allTime}</SelectItem>
       </SelectContent>
     </Select>
   );

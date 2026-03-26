@@ -16,7 +16,7 @@ export default function AppError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6 bg-stone-50 dark:bg-stone-950">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6 bg-background">
       <h1 className="text-xl font-serif text-stone-800 dark:text-stone-200">
         Something went wrong
       </h1>

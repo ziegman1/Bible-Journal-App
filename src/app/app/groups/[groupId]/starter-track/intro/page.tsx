@@ -53,7 +53,7 @@ export default async function StarterTrackIntroPage({ params }: PageProps) {
 
       <StarterTrackIntroContent />
 
-      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
         {enrollment.intro_completed_at ? (
           <Link href={`/app/groups/${groupId}/starter-track/vision`}>
             <Button size="lg">

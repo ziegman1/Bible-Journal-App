@@ -15,8 +15,8 @@ export function ThreadMessage({ message, threadReference }: ThreadMessageProps) 
 
   return (
     <div
-      className={`py-4 border-b border-stone-100 dark:border-stone-800/50 last:border-0 ${
-        isUser ? "" : "bg-stone-50/50 dark:bg-stone-900/30 -mx-4 px-4"
+      className={`py-4 border-b border-border/50 last:border-0 ${
+        isUser ? "" : "bg-card -mx-4 px-4"
       }`}
     >
       <div className="flex gap-3">

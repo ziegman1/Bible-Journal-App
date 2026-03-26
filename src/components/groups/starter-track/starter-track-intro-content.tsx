@@ -40,6 +40,13 @@ export function StarterTrackIntroContent() {
             <h3 className="font-medium text-stone-900 dark:text-stone-100">
               Check-up <span className="text-amber-700 dark:text-amber-300">(never skip)</span>
             </h3>
+            <p>
+              In the <strong>first</strong> Starter Track meeting there is no prior week
+              to review, so the app shows a short teaching on obedience and mutual
+              accountability instead. Starting in <strong>week 2</strong>, Check-up lists
+              what each person committed last week (obey · share) from Look Forward so you
+              can follow up together.
+            </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>How have you obeyed what you’ve learned?</li>
               <li>Who have you trained in what you’ve learned?</li>
@@ -51,12 +58,21 @@ export function StarterTrackIntroContent() {
               Vision <span className="text-amber-700 dark:text-amber-300">(never skip)</span>
             </h3>
             <p>
-              Share Scripture, a personal story, a slogan, or a song to encourage
-              one another to share Jesus, start new groups, and help others do the
-              same.
+              <strong>Before</strong> you begin the Starter Track, your group writes a{" "}
+              <strong>group vision statement</strong> on the Starter Track hub—rooted in
+              God&apos;s Word and focused on multiplication (making disciples who make
+              disciples). Use the suggested passages below as you shape that statement
+              together.
+            </p>
+            <p>
+              <strong>Each week</strong> during the Starter Track, in the Vision portion
+              of Look Back, you&apos;ll <strong>read that same vision statement out loud
+              together</strong> as a recurring reminder of why your group exists. You can
+              still add brief personal encouragement about multiplication when you meet
+              (optional notes in the app).
             </p>
             <p className="font-medium text-stone-800 dark:text-stone-200">
-              Suggested verses for shaping group vision:
+              Suggested verses for shaping your group vision statement:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               {STARTER_TRACK_VISION_VERSES.map((v) => (

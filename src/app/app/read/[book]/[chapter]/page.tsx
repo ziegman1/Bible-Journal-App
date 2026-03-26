@@ -1,20 +1,23 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getChapter } from "@/lib/scripture/provider";
 import { getBookById } from "@/lib/scripture/books";
-import { ReaderView } from "@/components/reader-view";
-import { SaveReadingSession } from "@/components/save-reading-session";
-import { ChapterSelector } from "@/components/chapter-selector";
+import { ReaderView, type ReaderChapterNavLink } from "@/components/reader-view";
 import { listHighlights } from "@/app/actions/highlights";
 import { listFavoritePassages } from "@/app/actions/favorites";
 
 interface PageProps {
   params: Promise<{ book: string; chapter: string }>;
+  searchParams: Promise<{ resume?: string }>;
 }
 
-export default async function ChapterPage({ params }: PageProps) {
+export default async function ChapterPage({ params, searchParams }: PageProps) {
   const { book: bookId, chapter: chapterStr } = await params;
+  const { resume: resumeParam } = await searchParams;
+  const resumeScroll =
+    resumeParam === "1" ||
+    resumeParam === "true" ||
+    resumeParam === "yes";
   const chapterNum = parseInt(chapterStr, 10);
   if (isNaN(chapterNum) || chapterNum < 1) notFound();
 
@@ -48,73 +51,31 @@ export default async function ChapterPage({ params }: PageProps) {
     }
   });
 
-  const prevChapter =
+  const prevChapter: ReaderChapterNavLink | null =
     chapterNum > 1
       ? { href: `/app/read/${bookId}/${chapterNum - 1}`, label: `${book.name} ${chapterNum - 1}` }
       : null;
-  const nextChapter =
+  const nextChapter: ReaderChapterNavLink | null =
     chapterNum < book.chapterCount
       ? { href: `/app/read/${bookId}/${chapterNum + 1}`, label: `${book.name} ${chapterNum + 1}` }
       : null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <SaveReadingSession
-        book={book.name}
-        chapter={chapterNum}
-        verseStart={null}
-        verseEnd={null}
-        reference={`${book.name} ${chapterNum}`}
+      <ReaderView
+        chapter={chapter}
+        bookId={bookId}
+        bookName={book.name}
+        chapterNum={chapterNum}
+        chapterCount={book.chapterCount}
+        resumeScroll={resumeScroll}
+        prevChapterNav={prevChapter}
+        nextChapterNav={nextChapter}
+        aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
+        initialHighlights={highlightedVerses}
+        initialHighlightIds={highlightIdsByVerse}
+        initialFavorites={favoriteByVerse}
       />
-      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4 flex items-center justify-between flex-wrap gap-2 shrink-0">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/app/read"
-            className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-          >
-            ← Books
-          </Link>
-          <h1 className="text-lg font-serif font-light text-stone-800 dark:text-stone-200">
-            {book.name} {chapterNum}
-          </h1>
-          <ChapterSelector
-            bookId={bookId}
-            bookName={book.name}
-            currentChapter={chapterNum}
-            chapterCount={book.chapterCount}
-          />
-        </div>
-        <div className="flex gap-2">
-          {prevChapter && (
-            <Link
-              href={prevChapter.href}
-              className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-            >
-              ← Prev
-            </Link>
-          )}
-          {nextChapter && (
-            <Link
-              href={nextChapter.href}
-              className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-            >
-              Next →
-            </Link>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 flex flex-col">
-        <ReaderView
-          chapter={chapter}
-          bookId={bookId}
-          bookName={book.name}
-          chapterNum={chapterNum}
-          aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
-          initialHighlights={highlightedVerses}
-          initialHighlightIds={highlightIdsByVerse}
-          initialFavorites={favoriteByVerse}
-        />
-      </div>
     </div>
   );
 }

@@ -31,7 +31,9 @@ export default async function GroupMembersPage({
     notFound();
   }
 
-  if (groupResult.role !== "admin") {
+  const groupKind = (groupResult.group as { group_kind?: string | null }).group_kind;
+  const isChatGroup = groupKind === "chat";
+  if (!isChatGroup && groupResult.role !== "admin") {
     redirect(`/app/groups/${groupId}`);
   }
 
@@ -53,7 +55,11 @@ export default async function GroupMembersPage({
     <div className="p-6 max-w-2xl mx-auto space-y-8">
       <div>
         <Link
-          href={`/app/groups/${groupId}`}
+          href={
+            isChatGroup
+              ? `/app/chat/groups/${groupId}/manage`
+              : `/app/groups/${groupId}`
+          }
           className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
         >
           ← Back to {groupResult.group.name}
@@ -65,9 +71,13 @@ export default async function GroupMembersPage({
           {members.length < 2 ? "Invite members to the group" : "Manage members"}
         </h1>
         <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">
-          {members.length < 2
-            ? "A group must have at least 2 members to start meetings. Invite someone to join."
-            : "Invite others and manage group membership."}
+          {isChatGroup
+            ? members.length < 2
+              ? "CHAT groups work best with 2–3 people. Invite someone by email; you can resend or share the link by text."
+              : "Invite up to three people total (members plus pending invites). Agree on reading and meeting time from Manage group once everyone has joined."
+            : members.length < 2
+              ? "A group must have at least 2 members to start meetings. Invite someone to join."
+              : "Invite others and manage group membership."}
         </p>
       </header>
 

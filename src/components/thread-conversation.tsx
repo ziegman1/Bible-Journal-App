@@ -100,7 +100,7 @@ export function ThreadConversation({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-0 divide-y divide-stone-100 dark:divide-stone-800/50 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-950/50">
+      <div className="space-y-0 divide-y divide-stone-100 dark:divide-stone-800/50 rounded-xl border border-border overflow-hidden bg-white dark:bg-stone-950/50">
         {isEmpty ? (
           <div className="px-6 py-12 text-center">
             <p className="text-stone-500 dark:text-stone-400 font-serif">

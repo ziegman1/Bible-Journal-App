@@ -10,9 +10,11 @@ interface JournalEntryWithAI {
   reference: string;
   title?: string | null;
   user_question: string | null;
+  scripture_text: string | null;
   user_reflection: string | null;
   prayer: string | null;
   application: string | null;
+  soaps_share: string | null;
   created_at: string;
   ai_response_id?: string | null;
   study_thread_id?: string | null;
@@ -45,7 +47,7 @@ export function JournalTimeline({ entries, hasFilters }: JournalTimelineProps) {
 
   if (entries.length === 0 && !isPending) {
     return (
-      <div className="text-center py-16 px-4 rounded-lg border border-dashed border-stone-200 dark:border-stone-800">
+      <div className="text-center py-16 px-4 rounded-lg border border-dashed border-border">
         {hasFilters ? (
           <>
             <p className="text-stone-500 dark:text-stone-400 font-serif">
@@ -88,7 +90,7 @@ export function JournalTimeline({ entries, hasFilters }: JournalTimelineProps) {
         const aiSummary = entry.ai_response?.summary;
         return (
           <Link key={entry.id} href={`/app/journal/${entry.id}`}>
-            <article className="block rounded-lg border border-stone-200 dark:border-stone-800 p-5 hover:bg-stone-50/50 dark:hover:bg-stone-900/30 transition-colors">
+            <article className="block rounded-lg border border-border p-5 hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors">
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
                 <time className="text-xs text-stone-500 dark:text-stone-400">
                   {formatDate(entry.entry_date)}
@@ -112,18 +114,20 @@ export function JournalTimeline({ entries, hasFilters }: JournalTimelineProps) {
                     {truncate(aiSummary, 150)}
                   </p>
                 )}
-                {entry.user_reflection && (
+                {(entry.scripture_text || entry.user_reflection) && (
                   <p>
-                    {truncate(entry.user_reflection, 100)}
+                    {truncate(entry.scripture_text || entry.user_reflection, 100)}
                   </p>
                 )}
-                {(entry.prayer || entry.application) && (
-                  <p className="text-xs">
-                    {entry.prayer && "Prayer"}
-                    {entry.prayer && entry.application && " · "}
-                    {entry.application && "Application"}
-                  </p>
-                )}
+                {(() => {
+                  const bits: string[] = [];
+                  if (entry.prayer) bits.push("Prayer");
+                  if (entry.application) bits.push("Application");
+                  if (entry.soaps_share) bits.push("Share");
+                  return bits.length > 0 ? (
+                    <p className="text-xs">{bits.join(" · ")}</p>
+                  ) : null;
+                })()}
               </div>
             </article>
           </Link>

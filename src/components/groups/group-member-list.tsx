@@ -53,7 +53,7 @@ export function GroupMemberList({
         {members.map((m) => (
           <li
             key={m.id}
-            className="flex items-center justify-between rounded-lg border border-stone-200 dark:border-stone-800 p-4"
+            className="flex items-center justify-between rounded-lg border border-border p-4"
           >
             <div>
               <p className="font-medium text-stone-800 dark:text-stone-200">

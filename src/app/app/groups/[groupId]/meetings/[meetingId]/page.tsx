@@ -58,18 +58,29 @@ export default async function MeetingPage({ params }: PageProps) {
     <LiveMeetingView
       meeting={result.meeting}
       participants={result.participants ?? []}
+      memberDisplayNames={result.memberDisplayNames ?? {}}
+      groupMemberRole={
+        result.role === "admin" || result.role === "member"
+          ? result.role
+          : "member"
+      }
       groupId={groupId}
       meetingId={meetingId}
       currentUserId={user.id}
       priorCommitments={result.priorCommitments ?? null}
+      starterTrackLookBack={result.starterTrackLookBack ?? null}
       lookback={result.lookback ?? []}
       lookforward={result.lookforward ?? []}
-      observations={result.observations ?? []}
+      passageObservations={result.observations ?? []}
       retell={result.retell ?? null}
       practice={result.practice ?? []}
       priorFollowups={result.priorFollowups ?? []}
+      accountabilityCheckupLines={result.accountabilityCheckupLines ?? []}
+      commitmentCheckoffs={result.commitmentCheckoffs ?? []}
       passageVerses={passageVerses}
       passageRef={passage ? `${passage.book} ${passage.chapter}:${passage.verse_start}${passage.verse_start !== passage.verse_end ? `-${passage.verse_end}` : ""}` : null}
+      presenterStateRow={result.presenterState ?? null}
+      starterTrackMeetingOrdinal={result.starterTrackMeetingOrdinal ?? null}
     />
   );
 }

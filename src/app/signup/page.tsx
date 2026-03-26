@@ -12,7 +12,7 @@ export default async function SignUpPage({
 }) {
   const params = await searchParams;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">

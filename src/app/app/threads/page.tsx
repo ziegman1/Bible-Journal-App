@@ -16,7 +16,7 @@ export default async function ThreadsPage() {
       </p>
 
       {threads.length === 0 ? (
-        <div className="text-center py-16 px-4 rounded-lg border border-dashed border-stone-200 dark:border-stone-800">
+        <div className="text-center py-16 px-4 rounded-lg border border-dashed border-border">
           <MessageSquare className="size-12 mx-auto text-stone-300 dark:text-stone-600 mb-4" />
           <p className="text-stone-500 dark:text-stone-400">No study threads yet.</p>
           <p className="text-stone-400 dark:text-stone-500 text-sm mt-2">

@@ -86,7 +86,7 @@ export function SaveThreadToJournal({
   }
 
   return (
-    <div className="rounded-lg border border-stone-200 dark:border-stone-800 p-4 space-y-4 bg-stone-50/50 dark:bg-stone-900/30">
+    <div className="rounded-lg border border-border p-4 space-y-4 bg-card">
       <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
         Save this study to your journal
       </h3>

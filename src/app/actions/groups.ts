@@ -3,13 +3,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
+import { ensureStarterTrackEnrollment } from "@/app/actions/group-starter-track";
+import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
+import { inviteTokenMeta, logGroupInvite } from "@/lib/group-invite-log";
 
-function getPublicSiteBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
+/** PostgREST sometimes returns a scalar UUID as a one-element array. */
+function normalizeRpcUuid(data: unknown): string | null {
+  if (data == null) return null;
+  if (typeof data === "string" && data.length > 0) return data;
+  if (Array.isArray(data) && data[0] != null) {
+    const s = String(data[0]);
+    return s.length > 0 ? s : null;
+  }
+  return null;
 }
 
 export async function createGroup(data: { name: string; description?: string }) {
@@ -20,12 +26,13 @@ export async function createGroup(data: { name: string; description?: string }) 
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: groupId, error } = await supabase.rpc("create_group_public", {
+  const { data: rawId, error } = await supabase.rpc("create_group_public", {
     p_name: data.name.trim(),
     p_description: data.description?.trim() || null,
   });
 
   if (error) return { error: error.message };
+  const groupId = normalizeRpcUuid(rawId);
   if (!groupId) return { error: "Failed to create group" };
 
   const { data: profile } = await supabase
@@ -49,10 +56,11 @@ export async function createGroup(data: { name: string; description?: string }) 
     .eq("user_id", user.id);
 
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
   return { success: true, groupId };
 }
 
-export async function listGroupsForUser() {
+export async function createChatGroup(data: { name: string; description?: string }) {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
   const {
@@ -60,10 +68,194 @@ export async function listGroupsForUser() {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: memberships, error } = await supabase
+  const { data: rawId, error } = await supabase.rpc("create_chat_group_public", {
+    p_name: data.name.trim(),
+    p_description: data.description?.trim() || null,
+  });
+
+  if (error) {
+    const hint =
+      error.message?.toLowerCase().includes("create_chat_group_public") ||
+      error.message?.toLowerCase().includes("does not exist")
+        ? " Ask the app owner to run Supabase migration 035_chat_groups.sql."
+        : "";
+    return { error: `${error.message}${hint}` };
+  }
+  const groupId = normalizeRpcUuid(rawId);
+  if (!groupId) return { error: "Failed to create CHAT group (invalid response from server)." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const displayName = profile?.display_name?.trim() || "";
+  const [firstName, ...lastParts] = displayName ? displayName.split(/\s+/) : ["", ""];
+  const lastName = lastParts.join(" ") || null;
+
+  await supabase
     .from("group_members")
-    .select(
-      `
+    .update({
+      first_name: firstName || null,
+      last_name: lastName || null,
+      email: (user.email ?? "").toLowerCase() || null,
+    })
+    .eq("group_id", groupId)
+    .eq("user_id", user.id);
+
+  revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
+  revalidatePath("/app/chat");
+  return { success: true as const, groupId: groupId as string };
+}
+
+export type StartChatGroupWithInviteResult =
+  | { error: string; groupId?: string; inviteFailed?: true }
+  | {
+      success: true;
+      groupId: string;
+      inviteId: string;
+      token: string;
+      acceptUrl: string;
+      expiresAt: string;
+      lastSentAt: string;
+      emailSent: boolean;
+      emailError?: string;
+    };
+
+/** Create a CHAT group (max 3) and send the first email invite. */
+export async function startChatGroupWithInvite(data: {
+  groupName: string;
+  inviteeEmail: string;
+  inviteeName?: string;
+}): Promise<StartChatGroupWithInviteResult> {
+  const created = await createChatGroup({ name: data.groupName });
+  if ("error" in created) {
+    return { error: created.error ?? "Failed to create CHAT group" };
+  }
+  const invite = await inviteGroupMember(
+    created.groupId,
+    data.inviteeEmail,
+    data.inviteeName
+  );
+  if ("error" in invite) {
+    return {
+      error: invite.error ?? "Could not send invite",
+      groupId: created.groupId,
+      inviteFailed: true as const,
+    };
+  }
+  revalidatePath("/app/chat");
+  return {
+    success: true as const,
+    groupId: created.groupId,
+    inviteId: invite.inviteId,
+    token: invite.token,
+    acceptUrl: invite.acceptUrl,
+    expiresAt: invite.expiresAt,
+    lastSentAt: invite.lastSentAt,
+    emailSent: invite.emailSent,
+    emailError: invite.emailError,
+  };
+}
+
+export async function saveGroupOnboardingChoice(
+  groupId: string,
+  choice: "starter_track" | "experienced"
+) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error: rpcError } = await supabase.rpc("complete_group_onboarding_public", {
+    p_group_id: groupId,
+    p_path: choice,
+  });
+
+  if (rpcError) return { error: rpcError.message };
+
+  const { data: g } = await supabase
+    .from("groups")
+    .select("onboarding_path")
+    .eq("id", groupId)
+    .single();
+
+  if (g?.onboarding_path === "starter_track") {
+    const en = await ensureStarterTrackEnrollment(groupId);
+    if (en.error) return { error: en.error };
+  }
+
+  revalidatePath(`/app/groups/${groupId}`);
+  revalidatePath(`/app/groups/${groupId}/onboarding`);
+  revalidatePath(`/app/groups/${groupId}/starter-track`);
+
+  return {
+    success: true as const,
+    redirectTo:
+      choice === "starter_track"
+        ? `/app/groups/${groupId}/starter-track/intro`
+        : `/app/groups/${groupId}`,
+  };
+}
+
+export type ListedGroup = {
+  id: string;
+  name: string;
+  description?: string | null;
+  membershipRole: string;
+  joinedAt: string;
+  archivedAt: string | null;
+  /** Admin or original creator — can archive / delete from card menu. */
+  canManageGroup: boolean;
+  /** `chat` = CHAT accountability (max 3); `thirds` = 3/3rds workspace */
+  groupKind: "thirds" | "chat";
+};
+
+/** Active groups (default) or archived-only for `/app/groups/archived`. */
+export async function listGroupsForUser(options?: {
+  archived?: boolean;
+  /** `thirds` = 3/3rds list only; `chat` = CHAT only; default `all` */
+  groupKind?: "thirds" | "chat" | "all";
+}) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const wantArchived = options?.archived === true;
+
+  type GRow = {
+    id: string;
+    name: string;
+    description?: string | null;
+    admin_user_id?: string;
+    archived_at?: string | null;
+    group_kind?: string | null;
+  };
+
+  const selectWithArchive = `
+      id,
+      role,
+      joined_at,
+      groups (
+        id,
+        name,
+        description,
+        admin_user_id,
+        archived_at,
+        group_kind,
+        created_at,
+        updated_at
+      )
+    `;
+
+  const selectWithoutArchive = `
       id,
       role,
       joined_at,
@@ -75,27 +267,107 @@ export async function listGroupsForUser() {
         created_at,
         updated_at
       )
-    `
-    )
+    `;
+
+  const selectWithArchiveNoKind = `
+      id,
+      role,
+      joined_at,
+      groups (
+        id,
+        name,
+        description,
+        admin_user_id,
+        archived_at,
+        created_at,
+        updated_at
+      )
+    `;
+
+  type MembershipRow = {
+    id: string;
+    role: string;
+    joined_at: string;
+    groups: GRow | GRow[] | null;
+  };
+
+  let memberships: MembershipRow[] = [];
+
+  const first = await supabase
+    .from("group_members")
+    .select(selectWithArchive)
     .eq("user_id", user.id)
     .order("joined_at", { ascending: false });
 
-  if (error) return { error: error.message };
+  if (first.error) {
+    const msg = first.error.message.toLowerCase();
+    if (msg.includes("group_kind")) {
+      const nk = await supabase
+        .from("group_members")
+        .select(selectWithArchiveNoKind)
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false });
+      if (!nk.error) memberships = (nk.data ?? []) as MembershipRow[];
+    }
+    if (memberships.length === 0) {
+      const maybeNoArchiveColumn =
+        msg.includes("archived_at") ||
+        msg.includes("column") ||
+        msg.includes("schema cache");
+      if (maybeNoArchiveColumn) {
+        const second = await supabase
+          .from("group_members")
+          .select(selectWithoutArchive)
+          .eq("user_id", user.id)
+          .order("joined_at", { ascending: false });
+        if (second.error) return { error: second.error.message };
+        memberships = (second.data ?? []) as MembershipRow[];
+      } else {
+        return { error: first.error.message };
+      }
+    }
+  } else {
+    memberships = (first.data ?? []) as MembershipRow[];
+  }
 
-  const groups = (memberships ?? []).map((m) => {
-    const raw = m.groups as { id: string; name: string; description?: string | null } | { id: string; name: string; description?: string | null }[] | null;
-    const g = Array.isArray(raw) ? raw[0] : raw;
-    if (!g) return null;
-    return {
-      id: g.id,
-      name: g.name,
-      description: g.description,
-      membershipRole: m.role,
-      joinedAt: m.joined_at,
-    };
-  }).filter(Boolean) as { id: string; name: string; description?: string | null; membershipRole: string; joinedAt: string }[];
+  const mapped = (memberships ?? [])
+    .map((m) => {
+      const raw = m.groups as GRow | GRow[] | null;
+      const g = Array.isArray(raw) ? raw[0] : raw;
+      if (!g) return null;
+      const archivedAt = g.archived_at ?? null;
+      const isArchived = archivedAt != null;
+      if (wantArchived !== isArchived) return null;
 
-  return { groups };
+      const canManageGroup =
+        m.role === "admin" ||
+        Boolean(g.admin_user_id && g.admin_user_id === user.id);
+
+      const groupKind: "thirds" | "chat" =
+        g.group_kind === "chat" ? "chat" : "thirds";
+
+      return {
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        membershipRole: m.role,
+        joinedAt: m.joined_at,
+        archivedAt,
+        canManageGroup,
+        groupKind,
+      };
+    })
+    .filter(Boolean) as ListedGroup[];
+
+  const kindFilter = options?.groupKind ?? "all";
+  let filtered = mapped;
+  if (kindFilter === "thirds") {
+    filtered = mapped.filter((g) => g.groupKind === "thirds");
+  } else if (kindFilter === "chat") {
+    filtered = mapped.filter((g) => g.groupKind === "chat");
+  }
+
+  return { groups: filtered };
 }
 
 export async function getGroup(groupId: string) {
@@ -124,6 +396,137 @@ export async function getGroup(groupId: string) {
   if (!membership) return { error: "Not a member of this group" };
 
   return { group, role: membership.role };
+}
+
+async function assertCanManageGroup(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  groupId: string,
+  userId: string
+): Promise<{ ok: true } | { error: string }> {
+  const { data: group, error: gErr } = await supabase
+    .from("groups")
+    .select("admin_user_id")
+    .eq("id", groupId)
+    .single();
+
+  if (gErr || !group) return { error: "Group not found" };
+
+  const { data: membership, error: memErr } = await supabase
+    .from("group_members")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .single();
+
+  if (memErr || !membership) return { error: "Not a member of this group" };
+
+  const isCreator = group.admin_user_id === userId;
+  const isAdmin = membership.role === "admin";
+  if (!isAdmin && !isCreator) {
+    return { error: "Only a group admin or the creator can do this." };
+  }
+  return { ok: true };
+}
+
+export async function updateGroupName(groupId: string, name: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const gate = await assertCanManageGroup(supabase, groupId, user.id);
+  if ("error" in gate) return gate;
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Name is required" };
+  if (trimmed.length > 120) {
+    return { error: "Keep the name under 120 characters." };
+  }
+
+  const { error } = await supabase
+    .from("groups")
+    .update({ name: trimmed, updated_at: new Date().toISOString() })
+    .eq("id", groupId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/app/groups/${groupId}`);
+  revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
+  revalidatePath("/app/chat");
+  return { success: true as const };
+}
+
+/** Admins or original creator may delete (matches RLS). */
+export async function deleteGroup(groupId: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const gate = await assertCanManageGroup(supabase, groupId, user.id);
+  if ("error" in gate) return gate;
+
+  const { error: delErr } = await supabase.from("groups").delete().eq("id", groupId);
+
+  if (delErr) return { error: delErr.message };
+
+  revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
+  revalidatePath(`/app/groups/${groupId}`);
+  return { success: true as const };
+}
+
+export async function archiveGroup(groupId: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const gate = await assertCanManageGroup(supabase, groupId, user.id);
+  if ("error" in gate) return gate;
+
+  const { error } = await supabase
+    .from("groups")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", groupId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
+  revalidatePath(`/app/groups/${groupId}`);
+  return { success: true as const };
+}
+
+export async function unarchiveGroup(groupId: string) {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const gate = await assertCanManageGroup(supabase, groupId, user.id);
+  if ("error" in gate) return gate;
+
+  const { error } = await supabase
+    .from("groups")
+    .update({ archived_at: null })
+    .eq("id", groupId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/groups");
+  revalidatePath("/app/groups/archived");
+  revalidatePath(`/app/groups/${groupId}`);
+  return { success: true as const };
 }
 
 export async function inviteGroupMemberFormAction(
@@ -156,8 +559,38 @@ export async function inviteGroupMember(
     .eq("user_id", user.id)
     .single();
 
-  if (!membership || membership.role !== "admin")
+  if (!membership) return { error: "Not a member of this group" };
+
+  const { data: groupMeta } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .single();
+
+  const isChat = groupMeta?.group_kind === "chat";
+  if (!isChat && membership.role !== "admin") {
     return { error: "Only group admins can invite members" };
+  }
+
+  if (isChat) {
+    const { count: memCount } = await supabase
+      .from("group_members")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId);
+    const { count: pendCount } = await supabase
+      .from("group_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId)
+      .eq("status", "pending");
+    const m = memCount ?? 0;
+    const p = pendCount ?? 0;
+    if (m + p >= 3) {
+      return {
+        error:
+          "This CHAT group already has three spots filled (members plus pending invites). Cancel a pending invite or wait until someone joins.",
+      };
+    }
+  }
 
   const emailNorm = email.trim().toLowerCase();
 
@@ -216,9 +649,11 @@ export async function inviteGroupMember(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("name")
+    .select("name, group_kind")
     .eq("id", groupId)
     .single();
+
+  const inviteKind = group?.group_kind === "chat" ? "chat" : "thirds";
 
   const { sendGroupInviteEmail } = await import("@/lib/email");
   const emailResult = await sendGroupInviteEmail({
@@ -229,6 +664,7 @@ export async function inviteGroupMember(
     inviterEmail: user.email ?? undefined,
     acceptUrl,
     expiresAt: invite.expires_at,
+    inviteKind,
   });
 
   if (!emailResult.success) {
@@ -268,6 +704,8 @@ const ACCEPT_ERROR_MESSAGES: Record<string, string> = {
   ALREADY_MEMBER: "You are already a member of this group.",
   CANCELLED: "This invite was cancelled by the group admin.",
   NEED_NAME: "NEED_NAME",
+  CHAT_GROUP_FULL:
+    "This CHAT group already has three members. Ask your friend to start a new group or free a spot.",
 };
 
 export type AcceptGroupInviteResult =
@@ -278,57 +716,122 @@ export type AcceptGroupInviteResult =
       invitedEmail?: string;
     };
 
+function normalizeAcceptInviteRpcPayload(result: unknown): Record<string, unknown> | null {
+  if (result == null) return null;
+  if (typeof result === "string") {
+    try {
+      const parsed = JSON.parse(result) as unknown;
+      return normalizeAcceptInviteRpcPayload(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(result)) {
+    return normalizeAcceptInviteRpcPayload(result[0]);
+  }
+  if (typeof result === "object") {
+    return result as Record<string, unknown>;
+  }
+  return null;
+}
+
 export async function acceptGroupInvite(
   token: string,
   firstName?: string,
   lastName?: string
 ): Promise<AcceptGroupInviteResult> {
+  const trimmed = typeof token === "string" ? token.trim() : "";
+  if (!trimmed || trimmed.length > 200 || !/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    logGroupInvite("accept_invalid_token_shape", inviteTokenMeta(trimmed || "(empty)"));
+    return { error: ACCEPT_ERROR_MESSAGES.INVALID_TOKEN, code: "INVALID_TOKEN" };
+  }
+
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase not configured" };
+  if (!supabase) {
+    logGroupInvite("accept_no_supabase", inviteTokenMeta(trimmed));
+    return { error: "Supabase not configured" };
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) {
+    logGroupInvite("accept_not_authenticated", inviteTokenMeta(trimmed));
+    return { error: "Not authenticated", code: "NOT_AUTHENTICATED" };
+  }
 
   const { data: result, error } = await supabase.rpc("accept_group_invite_public", {
-    p_token: token.trim(),
+    p_token: trimmed,
     p_first_name: firstName?.trim() || null,
     p_last_name: lastName?.trim() || null,
   });
 
-  if (error) return { error: error.message };
-  const res = result as {
-    success?: boolean;
-    group_id?: string;
-    error?: string;
-    invited_email?: string;
-    already_accepted?: boolean;
-    already_member?: boolean;
-  } | null;
-  if (!res) return { error: "Invalid or expired invite", code: "INVALID_TOKEN" };
-
-  if (res.error) {
-    if (res.error === "EMAIL_MISMATCH" && res.invited_email) {
-      return {
-        error: `This invite was sent to ${res.invited_email}. Sign out and sign in with that email to accept.`,
-        code: "EMAIL_MISMATCH",
-        invitedEmail: res.invited_email,
-      };
-    }
-    const msg = ACCEPT_ERROR_MESSAGES[res.error] ?? res.error;
-    return { error: msg, code: res.error };
+  if (error) {
+    logGroupInvite("accept_rpc_error", {
+      ...inviteTokenMeta(trimmed),
+      userId: user.id,
+      message: error.message,
+      code: error.code,
+    });
+    return {
+      error: error.message || "Could not process this invite. Please try again.",
+      code: "RPC_ERROR",
+    };
   }
 
-  if (res.success && res.group_id) {
+  const res = normalizeAcceptInviteRpcPayload(result);
+  if (!res) {
+    logGroupInvite("accept_rpc_null_payload", {
+      ...inviteTokenMeta(trimmed),
+      userId: user.id,
+    });
+    return { error: "Invalid or expired invite", code: "INVALID_TOKEN" };
+  }
+
+  const errCode =
+    typeof res.error === "string" ? res.error : undefined;
+  const invitedEmail =
+    typeof res.invited_email === "string" ? res.invited_email : undefined;
+  const groupId = typeof res.group_id === "string" ? res.group_id : undefined;
+  const success = res.success === true;
+
+  if (errCode) {
+    logGroupInvite("accept_invite_rejected", {
+      ...inviteTokenMeta(trimmed),
+      userId: user.id,
+      reason: errCode,
+    });
+    if (errCode === "EMAIL_MISMATCH" && invitedEmail) {
+      return {
+        error: `This invite was sent to ${invitedEmail}. Sign out and sign in with that email to accept.`,
+        code: "EMAIL_MISMATCH",
+        invitedEmail,
+      };
+    }
+    const msg = ACCEPT_ERROR_MESSAGES[errCode] ?? errCode;
+    return { error: msg, code: errCode };
+  }
+
+  if (success && groupId) {
     revalidatePath("/app/groups");
-    revalidatePath(`/app/groups/${res.group_id}`);
+    revalidatePath(`/app/groups/${groupId}`);
+    logGroupInvite("accept_success", {
+      ...inviteTokenMeta(trimmed),
+      userId: user.id,
+      groupId,
+      alreadyAccepted: !!(res.already_accepted || res.already_member),
+    });
     return {
       success: true,
-      groupId: res.group_id,
+      groupId,
       alreadyAccepted: !!(res.already_accepted || res.already_member),
     };
   }
 
+  logGroupInvite("accept_unexpected_payload", {
+    ...inviteTokenMeta(trimmed),
+    userId: user.id,
+    keys: Object.keys(res),
+  });
   return { error: "Invalid or expired invite", code: "INVALID_TOKEN" };
 }
 
@@ -347,7 +850,14 @@ export async function cancelGroupInvite(groupId: string, inviteId: string) {
     .eq("user_id", user.id)
     .single();
 
-  if (!membership || membership.role !== "admin") {
+  const { data: gCancel } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .single();
+  const chatCancel = gCancel?.group_kind === "chat";
+
+  if (!membership || (!chatCancel && membership.role !== "admin")) {
     return { error: "Only group admins can cancel invites" };
   }
 
@@ -385,7 +895,14 @@ export async function resendGroupInvite(groupId: string, inviteId: string) {
     .eq("user_id", user.id)
     .single();
 
-  if (!membership || membership.role !== "admin") {
+  const { data: gResend } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .single();
+  const chatResend = gResend?.group_kind === "chat";
+
+  if (!membership || (!chatResend && membership.role !== "admin")) {
     return { error: "Only group admins can resend invites" };
   }
 
@@ -448,9 +965,11 @@ export async function resendGroupInvite(groupId: string, inviteId: string) {
 
   const { data: group } = await supabase
     .from("groups")
-    .select("name")
+    .select("name, group_kind")
     .eq("id", groupId)
     .single();
+
+  const inviteKindResend = group?.group_kind === "chat" ? "chat" : "thirds";
 
   const { sendGroupInviteEmail } = await import("@/lib/email");
   const emailResult = await sendGroupInviteEmail({
@@ -461,6 +980,7 @@ export async function resendGroupInvite(groupId: string, inviteId: string) {
     inviterEmail: user.email ?? undefined,
     acceptUrl,
     expiresAt: expiresAt.toISOString(),
+    inviteKind: inviteKindResend,
   });
 
   revalidatePath(`/app/groups/${groupId}`);
@@ -536,8 +1056,16 @@ export async function getGroupInvites(groupId: string) {
     .eq("user_id", user.id)
     .single();
 
-  if (!membership || membership.role !== "admin")
+  const { data: gInv } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .single();
+  const chatInv = gInv?.group_kind === "chat";
+
+  if (!membership || (!chatInv && membership.role !== "admin")) {
     return { error: "Only admins can view invites" };
+  }
 
   const { data: invites, error } = await supabase
     .from("group_invites")

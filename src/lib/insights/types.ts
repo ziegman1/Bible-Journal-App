@@ -3,6 +3,7 @@ export type InsightsDateRange =
   | "last30"
   | "last90"
   | "thisYear"
+  | "allTime"
   | "custom";
 
 /** Parsed date range for queries */

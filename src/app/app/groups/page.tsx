@@ -5,7 +5,7 @@ import { listGroupsForUser } from "@/app/actions/groups";
 import { listGroupMeetings } from "@/app/actions/meetings";
 import { GroupCard } from "@/components/groups/group-card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -15,7 +15,7 @@ export default async function GroupsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const result = await listGroupsForUser();
+  const result = await listGroupsForUser({ groupKind: "thirds" });
   if (result.error) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
@@ -41,28 +41,41 @@ export default async function GroupsPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
           3/3rds Groups
         </h1>
-        <Link href="/app/groups/new">
-          <Button>
-            <Plus className="size-4 mr-2" />
-            Create Group
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/app/groups/archived">
+            <Button variant="outline" size="sm">
+              <Archive className="size-4 mr-2" />
+              Archived 3/3rds
+            </Button>
+          </Link>
+          <Link href="/app/groups/new">
+            <Button>
+              <Plus className="size-4 mr-2" />
+              Create Group
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <p className="text-stone-600 dark:text-stone-400 text-sm">
-        Form and participate in disciple-making groups. Walk through the 3/3rds
-        process together—Look Back, Look Up, Look Forward. Open a group for its
-        workspace: next steps, meetings, and (for admins) invites.
+        These workspaces use Look Back, Look Up, and Look Forward in meetings.{" "}
+        <strong>CHAT accountability groups</strong> live on the{" "}
+        <Link href="/app/chat" className="font-medium text-stone-800 underline underline-offset-2 dark:text-stone-200">
+          CHAT
+        </Link>{" "}
+        page. If you’re a <strong>group admin</strong> or the <strong>creator</strong>,
+        use the <span className="whitespace-nowrap">⋯</span> menu on a card to archive or
+        delete.
       </p>
 
       {groupsWithMeetings.length === 0 ? (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-12 text-center bg-stone-50/50 dark:bg-stone-900/30">
+        <div className="rounded-xl border border-border p-12 text-center bg-card">
           <p className="text-stone-600 dark:text-stone-400 mb-4">
-            You are not in any groups yet.
+            You are not in any 3/3rds groups yet.
           </p>
           <Link href="/app/groups/new">
             <Button>
@@ -83,6 +96,15 @@ export default async function GroupsPage() {
           ))}
         </div>
       )}
+
+      {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID ? (
+        <p
+          className="text-[10px] text-stone-400 dark:text-stone-500 pt-4 border-t border-border font-mono"
+          title="If this is empty on logosflow.app but shows an id on biblejournalapp.vercel.app, the custom domain is pointed at a different deployment."
+        >
+          Deploy: {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID}
+        </p>
+      ) : null}
     </div>
   );
 }

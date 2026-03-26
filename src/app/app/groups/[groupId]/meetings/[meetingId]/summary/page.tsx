@@ -3,7 +3,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMeetingDetail } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
+import { GenerateMeetingSummaryButton } from "@/components/groups/meeting-summary-generate-button";
+import { MarkMeetingCompleteButton } from "@/components/groups/mark-meeting-complete-button";
 import { ArrowLeft, FileText } from "lucide-react";
+import {
+  lookbackItemsFromRows,
+  lookforwardItemsFromRows,
+  observationsForSummaryFromRows,
+} from "@/lib/groups/meeting-summary-from-responses";
 
 interface PageProps {
   params: Promise<{ groupId: string; meetingId: string }>;
@@ -24,11 +31,18 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
 
   const { data: summary } = await supabase
     .from("meeting_summaries")
-    .select("summary_json, prayer_summary")
+    .select("meeting_id")
     .eq("meeting_id", meetingId)
-    .single();
+    .maybeSingle();
 
   const meeting = result.meeting;
+
+  /** Full group roster from getMeetingDetail (normalized ids + RLS-safe names). */
+  const nameCtx = {
+    memberDisplayNames: result.memberDisplayNames ?? {},
+    participants: result.participants ?? [],
+  };
+
   const passage =
     meeting.story_source_type === "preset_story" && meeting.preset_stories
       ? (meeting.preset_stories as { title: string; book: string; chapter: number; verse_start: number; verse_end: number })
@@ -42,45 +56,68 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
           }
         : null;
 
-  const sj = summary?.summary_json as {
-    passage?: { title: string };
-    lookback?: { user: string; pastoralCare?: string; accountability?: string; visionCasting?: string }[];
-    lookforward?: { user: string; obedience: string; sharing: string }[];
-    prayer_summary?: string;
-  } | null;
+  let lookbackForDisplay: ReturnType<typeof lookbackItemsFromRows> = [];
+  let lookUpObservations: ReturnType<typeof observationsForSummaryFromRows> =
+    [];
+  let lookforwardForDisplay: ReturnType<typeof lookforwardItemsFromRows> = [];
+
+  if (summary) {
+    const [
+      { data: lookbackRows },
+      { data: lookforwardRows },
+      { data: observationRows },
+    ] = await Promise.all([
+      supabase.from("lookback_responses").select("*").eq("meeting_id", meetingId),
+      supabase.from("lookforward_responses").select("*").eq("meeting_id", meetingId),
+      supabase.from("passage_observations").select("*").eq("meeting_id", meetingId),
+    ]);
+
+    lookbackForDisplay = lookbackItemsFromRows(lookbackRows ?? [], nameCtx);
+    lookUpObservations = observationsForSummaryFromRows(
+      observationRows ?? [],
+      nameCtx
+    );
+    lookforwardForDisplay = lookforwardItemsFromRows(
+      lookforwardRows ?? [],
+      nameCtx
+    );
+  }
+
+  /** Canvas from global --background; cards stay white + gray borders */
+  const shellClass = "min-h-full pb-10";
+  const innerClass = "mx-auto max-w-2xl space-y-8 px-4 py-6 sm:px-6";
+  const navLinkClass =
+    "text-sm text-muted-foreground hover:text-foreground hover:underline";
+  const cardBase =
+    "rounded-xl border border-border bg-card p-6 shadow-sm sm:p-7";
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-8">
+    <div className={shellClass}>
+      <div className={innerClass}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href={`/app/groups/${groupId}/meetings/${meetingId}`}
-            className="text-sm text-stone-600 dark:text-stone-400 hover:underline flex items-center gap-1"
+            className={`${navLinkClass} flex items-center gap-1`}
           >
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-4 shrink-0" />
             Back to meeting
           </Link>
-          <Link
-            href={`/app/groups/${groupId}`}
-            className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-          >
+          <Link href={`/app/groups/${groupId}`} className={navLinkClass}>
             Group workspace
           </Link>
-          <Link
-            href={`/app/groups/${groupId}/meetings`}
-            className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-          >
+          <Link href={`/app/groups/${groupId}/meetings`} className={navLinkClass}>
             All meetings
           </Link>
         </div>
       </div>
 
       <header>
-        <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200 flex items-center gap-2">
-          <FileText className="size-5" />
+        <h1 className="flex items-center gap-2 font-serif text-2xl font-light text-foreground">
+          <FileText className="size-5 text-muted-foreground" />
           Meeting summary
         </h1>
-        <p className="text-stone-600 dark:text-stone-400 mt-1">
+        <p className="mt-1 text-muted-foreground">
           {meeting.title ||
             new Date(meeting.meeting_date).toLocaleDateString(undefined, {
               weekday: "long",
@@ -92,95 +129,161 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
       </header>
 
       {!summary ? (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-800 p-8 text-center bg-stone-50/50 dark:bg-stone-900/30">
-          <p className="text-stone-600 dark:text-stone-400 mb-4">
-            No summary yet. End the meeting from the meeting room (tap{" "}
-            <strong>End meeting</strong>) to generate one.
+        <div className={`${cardBase} p-8 text-center space-y-4`}>
+          <p className="text-muted-foreground">
+            No summary yet. Generate one from the responses saved in this meeting
+            (Look Back, Look Forward, etc.).
           </p>
-          <Link href={`/app/groups/${groupId}/meetings/${meetingId}`}>
-            <Button>Back to meeting</Button>
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <GenerateMeetingSummaryButton meetingId={meetingId} />
+            <Link href={`/app/groups/${groupId}/meetings/${meetingId}`}>
+              <Button variant="outline">Back to meeting</Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
           {passage && (
-            <section className="rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-              <h2 className="text-sm font-medium text-stone-500 dark:text-stone-400 mb-2">
+            <section
+              className={`${cardBase} border-l-4 border-l-[#1c252e]`}
+            >
+              <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Passage
               </h2>
-              <p className="font-medium text-stone-800 dark:text-stone-200">
+              <p className="font-medium text-foreground">
                 {passage.title}
               </p>
             </section>
           )}
 
-          {sj?.lookback && sj.lookback.length > 0 && (
-            <section className="rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-              <h2 className="text-sm font-medium text-stone-500 dark:text-stone-400 mb-4">
+          {lookbackForDisplay.length > 0 && (
+            <section
+              className={`${cardBase} border-l-4 border-l-[#83b0da]`}
+            >
+              <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Look Back
               </h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Check-in, accountability, vision, and pastoral care / prayer
+                needs from Look Back.
+              </p>
               <ul className="space-y-4">
-                {sj.lookback.map((r, i) => (
-                  <li key={i} className="border-l-2 border-stone-200 dark:border-stone-700 pl-4">
-                    <p className="font-medium text-stone-800 dark:text-stone-200">
-                      {r.user}
+                {lookbackForDisplay.map((r, i) => {
+                  const acc = r.accountability && String(r.accountability).trim();
+                  const vis =
+                    r.visionCasting && String(r.visionCasting).trim();
+                  const pastoral =
+                    r.pastoralCare && String(r.pastoralCare).trim();
+
+                  return (
+                    <li key={i} className="border-l-2 border-border pl-4">
+                      <p className="font-medium text-foreground">{r.user}</p>
+                      {pastoral ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground/80">
+                            Pastoral care & prayer:{" "}
+                          </span>
+                          <span className="whitespace-pre-wrap">{pastoral}</span>
+                        </p>
+                      ) : null}
+                      {acc ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Accountability / check-in:{" "}
+                          <span className="whitespace-pre-wrap">{r.accountability}</span>
+                        </p>
+                      ) : null}
+                      {vis ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Vision:{" "}
+                          <span className="whitespace-pre-wrap">{r.visionCasting}</span>
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {lookUpObservations.length > 0 && (
+            <section
+              className={`${cardBase} border-l-4 border-l-[#1c252e]`}
+            >
+              <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                Look Up
+              </h2>
+              <ul className="space-y-4">
+                {lookUpObservations.map((o, i) => (
+                  <li
+                    key={i}
+                    className="space-y-1 border-l-2 border-border pl-4"
+                  >
+                    <p className="font-medium text-foreground">{o.user}</p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {o.typeLabel}
                     </p>
-                    {r.pastoralCare && (
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-                        {r.pastoralCare}
+                    {o.verseRef ? (
+                      <p className="text-xs font-semibold text-[#83b0da]">
+                        {o.verseRef}
                       </p>
-                    )}
-                    {r.accountability && (
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-                        Accountability: {r.accountability}
-                      </p>
-                    )}
-                    {r.visionCasting && (
-                      <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-                        Vision: {r.visionCasting}
-                      </p>
-                    )}
+                    ) : null}
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {o.note}
+                    </p>
                   </li>
                 ))}
               </ul>
             </section>
           )}
 
-          {sj?.lookforward && sj.lookforward.length > 0 && (
-            <section className="rounded-xl border border-stone-200 dark:border-stone-800 p-6">
-              <h2 className="text-sm font-medium text-stone-500 dark:text-stone-400 mb-4">
+          {lookforwardForDisplay.length > 0 && (
+            <section
+              className={`${cardBase} border-l-4 border-l-[#edb73e]`}
+            >
+              <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Look Forward — Commitments
               </h2>
               <ul className="space-y-4">
-                {sj.lookforward.map((r, i) => (
-                  <li key={i} className="border-l-2 border-amber-200 dark:border-amber-800 pl-4">
-                    <p className="font-medium text-stone-800 dark:text-stone-200">
-                      {r.user}
+                {lookforwardForDisplay.map((r, i) => (
+                  <li
+                    key={i}
+                    className="border-l-2 border-[#edb73e]/50 pl-4"
+                  >
+                    <p className="font-medium text-foreground">{r.user}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Obey: {r.obedience ?? "—"}
                     </p>
-                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-                      Obedience: {r.obedience}
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Share: {r.sharing ?? "—"}
                     </p>
-                    <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-                      Sharing: {r.sharing}
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Train: {r.train?.trim() || "—"}
                     </p>
                   </li>
                 ))}
               </ul>
-            </section>
-          )}
-
-          {summary.prayer_summary && (
-            <section className="rounded-xl border border-stone-200 dark:border-stone-800 p-6 bg-rose-50/30 dark:bg-rose-900/10">
-              <h2 className="text-sm font-medium text-stone-500 dark:text-stone-400 mb-4">
-                Prayer
-              </h2>
-              <p className="text-stone-700 dark:text-stone-300 whitespace-pre-wrap">
-                {summary.prayer_summary}
-              </p>
             </section>
           )}
         </div>
       )}
+
+      <section
+        className={`${cardBase} mt-8 border-dashed border-border/80 bg-muted/20`}
+        aria-label="Meeting completion"
+      >
+        <MarkMeetingCompleteButton
+          meetingId={meetingId}
+          groupId={groupId}
+          initialStatus={
+            meeting.status === "completed"
+              ? "completed"
+              : meeting.status === "draft"
+                ? "draft"
+                : "active"
+          }
+        />
+      </section>
+      </div>
     </div>
   );
 }

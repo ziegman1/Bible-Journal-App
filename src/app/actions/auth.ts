@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export async function signUp(formData: FormData) {
   const displayName = formData.get("displayName") as string;
   const redirectTo = formData.get("redirectTo") as string | null;
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = getPublicSiteBaseUrl();
   const callbackUrl =
     redirectTo && (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
       ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
@@ -43,11 +44,27 @@ export async function signUp(formData: FormData) {
     } else {
       message = error.message ?? "Something went wrong. Please try again.";
     }
-    redirect(`/signup?error=${encodeURIComponent(message)}`);
+    const q = new URLSearchParams({ error: message });
+    if (
+      redirectTo &&
+      (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
+    ) {
+      q.set("redirectTo", redirectTo);
+    }
+    redirect(`/signup?${q.toString()}`);
   }
 
   revalidatePath("/", "layout");
-  redirect("/login?message=Check your email to confirm your account");
+  const loginQ = new URLSearchParams({
+    message: "Check your email to confirm your account",
+  });
+  if (
+    redirectTo &&
+    (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
+  ) {
+    loginQ.set("redirectTo", redirectTo);
+  }
+  redirect(`/login?${loginQ.toString()}`);
 }
 
 export async function signIn(formData: FormData) {
@@ -67,7 +84,14 @@ export async function signIn(formData: FormData) {
       error.message?.toLowerCase().includes("network")
         ? "Unable to connect. Please check your internet connection and try again."
         : error.message;
-    redirect(`/login?error=${encodeURIComponent(message)}`);
+    const q = new URLSearchParams({ error: message });
+    if (
+      redirectTo &&
+      (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
+    ) {
+      q.set("redirectTo", redirectTo);
+    }
+    redirect(`/login?${q.toString()}`);
   }
 
   revalidatePath("/", "layout");
@@ -85,7 +109,7 @@ export async function resetPassword(formData: FormData) {
   const email = formData.get("email") as string;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=/app`,
+    redirectTo: `${getPublicSiteBaseUrl()}/auth/callback?next=/app`,
   });
 
   if (error) {

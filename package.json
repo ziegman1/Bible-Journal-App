@@ -6,6 +6,7 @@
     "dev": "next dev",
     "import-web": "dotenv -e .env.local -- tsx scripts/import-web-bible.ts",
     "validate-web": "dotenv -e .env.local -- tsx scripts/validate-web-bible.ts",
+    "verify-auth-env": "tsx scripts/verify-auth-site-config.ts",
     "build": "next build",
     "start": "next start",
     "deploy": "vercel --prod",

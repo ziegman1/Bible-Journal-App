@@ -24,12 +24,23 @@ export default async function NewMeetingPage({ params }: PageProps) {
     notFound();
   }
 
+  const gPending = (
+    groupResult.group as { onboarding_pending?: boolean | null }
+  ).onboarding_pending;
+  if (gPending === true) {
+    redirect(`/app/groups/${groupId}/onboarding`);
+  }
+
   const membersResult = await getGroupMembers(groupId);
   const members = membersResult.members ?? [];
 
   if (members.length < 2) {
     redirect(`/app/groups/${groupId}/members?needMembers=1`);
   }
+
+  const onboardingPath = (
+    groupResult.group as { onboarding_path?: string | null }
+  ).onboarding_path;
 
   return (
     <div className="p-6 max-w-xl mx-auto space-y-8">
@@ -54,10 +65,15 @@ export default async function NewMeetingPage({ params }: PageProps) {
           Start a new meeting
         </h1>
         <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">
-          Choose a passage or preset story. We’ll open a <strong>draft</strong>{" "}
-          meeting—when your group is together, tap <strong>Start meeting</strong>{" "}
-          in the meeting room.
+          Choose a passage or preset story. We&apos;ll open a <strong>draft</strong>{" "}
+          meeting you can use with your group in the meeting room.
         </p>
+        {onboardingPath === "experienced" && (
+          <p className="text-sm text-stone-700 dark:text-stone-300 mt-3 rounded-lg border border-border bg-muted px-3 py-2">
+            Your group chose to use <strong>story sets</strong> (preset series like Foundations,
+            Gospel, Mission) and custom passages—pick any option below.
+          </p>
+        )}
       </div>
 
       <MeetingSetupForm groupId={groupId} members={members} />

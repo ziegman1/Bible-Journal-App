@@ -157,7 +157,7 @@ export default async function StarterTrackWeekPage({ params }: PageProps) {
             <figcaption className="text-xs text-stone-500">
               Attendance / believing / baptized counts
             </figcaption>
-            <div className="relative w-full max-w-md rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden bg-white">
+            <div className="relative w-full max-w-md rounded-lg border border-border overflow-hidden bg-white">
               <Image
                 src={cfg.assetPaths.metricsDiagram}
                 alt="Template: stick figure, cross, and water symbols with three blanks for numbers"
@@ -171,7 +171,7 @@ export default async function StarterTrackWeekPage({ params }: PageProps) {
             <figcaption className="text-xs text-stone-500">
               Church circle — place symbols inside or outside
             </figcaption>
-            <div className="relative w-full max-w-lg rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden bg-white">
+            <div className="relative w-full max-w-lg rounded-lg border border-border overflow-hidden bg-white">
               <Image
                 src={cfg.assetPaths.churchCircleDiagram}
                 alt="Circle diagram with symbols for fellowship, giving, communion, baptism, prayer, leaders, Bible, praise, and evangelism"
@@ -184,7 +184,7 @@ export default async function StarterTrackWeekPage({ params }: PageProps) {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
         {!locked && canMeet && isCurrent && (
           <StartStarterWeekMeetingButton groupId={groupId} week={weekNum} />
         )}

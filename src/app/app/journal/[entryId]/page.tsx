@@ -2,28 +2,34 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EntryEditor } from "@/components/entry-editor";
-import { EntryShare } from "@/components/entry-share";
 import { EntryDeleteButton } from "@/components/entry-delete-button";
 import { AIResponseSections } from "@/components/ai-response-sections";
+import { isMissingSoapsColumnsPostgrestError } from "@/lib/journal/soaps-column-error";
 import { MessageSquare } from "lucide-react";
 
-interface PageProps {
-  params: Promise<{ entryId: string }>;
-}
+const JOURNAL_ENTRY_SELECT_EXTENDED = `
+      id,
+      entry_date,
+      year,
+      reference,
+      book,
+      chapter,
+      verse_start,
+      verse_end,
+      user_question,
+      scripture_text,
+      user_reflection,
+      prayer,
+      application,
+      soaps_share,
+      title,
+      ai_response_id,
+      study_thread_id,
+      created_at,
+      updated_at
+    `;
 
-export default async function JournalEntryPage({ params }: PageProps) {
-  const { entryId } = await params;
-  const supabase = await createClient();
-  if (!supabase) redirect("/setup");
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: entry } = await supabase
-    .from("journal_entries")
-    .select(
-      `
+const JOURNAL_ENTRY_SELECT_BASE = `
       id,
       entry_date,
       year,
@@ -41,11 +47,63 @@ export default async function JournalEntryPage({ params }: PageProps) {
       study_thread_id,
       created_at,
       updated_at
-    `
-    )
+    `;
+
+type JournalEntryPageRow = {
+  id: string;
+  entry_date: string;
+  year: number;
+  reference: string;
+  book: string;
+  chapter: number;
+  verse_start: number | null;
+  verse_end: number | null;
+  user_question: string | null;
+  user_reflection: string | null;
+  prayer: string | null;
+  application: string | null;
+  title: string | null;
+  ai_response_id: string | null;
+  study_thread_id: string | null;
+  created_at: string;
+  updated_at: string;
+  scripture_text?: string | null;
+  soaps_share?: string | null;
+};
+
+interface PageProps {
+  params: Promise<{ entryId: string }>;
+}
+
+export default async function JournalEntryPage({ params }: PageProps) {
+  const { entryId } = await params;
+  const supabase = await createClient();
+  if (!supabase) redirect("/setup");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  let { data: entryRaw, error: entryError } = await supabase
+    .from("journal_entries")
+    .select(JOURNAL_ENTRY_SELECT_EXTENDED)
     .eq("id", entryId)
     .eq("user_id", user.id)
     .single();
+
+  let entry: JournalEntryPageRow | null = entryRaw as JournalEntryPageRow | null;
+
+  if (entryError && isMissingSoapsColumnsPostgrestError(entryError.message)) {
+    const { data: legacy } = await supabase
+      .from("journal_entries")
+      .select(JOURNAL_ENTRY_SELECT_BASE)
+      .eq("id", entryId)
+      .eq("user_id", user.id)
+      .single();
+    entry = legacy as JournalEntryPageRow | null;
+  } else if (entryError || !entryRaw) {
+    entry = null;
+  }
 
   if (!entry) notFound();
 
@@ -77,7 +135,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
           href="/app/journal"
           className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
         >
-          ← Back to journal
+          ← Back to SOAPS
         </Link>
         <EntryDeleteButton entryId={entry.id} />
       </div>
@@ -138,25 +196,17 @@ export default async function JournalEntryPage({ params }: PageProps) {
 
         <EntryEditor
           entryId={entry.id}
+          reference={entry.reference}
+          entryDate={entry.entry_date}
           initialTitle={entry.title}
+          initialScripture={entry.scripture_text ?? null}
           initialReflection={entry.user_reflection}
           initialPrayer={entry.prayer}
           initialApplication={entry.application}
+          initialSoapsShare={entry.soaps_share ?? null}
           initialTags={tags}
+          userQuestion={entry.user_question}
         />
-
-        <div className="rounded-lg border border-stone-200 dark:border-stone-800 p-6 bg-stone-50/30 dark:bg-stone-900/20">
-          <EntryShare
-            reference={entry.reference}
-            entryDate={entry.entry_date}
-            title={entry.title}
-            observation={entry.user_reflection}
-            application={entry.application}
-            prayer={entry.prayer}
-            userQuestion={entry.user_question}
-            tags={tags}
-          />
-        </div>
       </article>
     </div>
   );
