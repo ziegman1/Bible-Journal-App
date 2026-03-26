@@ -177,7 +177,7 @@ function NodeArmorPlaque({
   const bottom = Math.max(1, nodeHeight * 0.01);
   const plaqueRadius = 999;
   const labelLines = isIdentity
-    ? ["ME", "BADWR"]
+    ? ["ME", "DISCIPLE"]
     : isTransformed
       ? ["TRANSFORMED", "PERSON"]
       : [label];
@@ -349,6 +349,36 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
         fontSize={fontSize}
         hasHref={!!href}
       />
+      {(type === "identity" || type === "transformed") && (
+        <span
+          className="pointer-events-none absolute z-20 left-1/2 -translate-x-1/2 text-center uppercase"
+          style={{
+            top: type === "identity" ? "12%" : "11%",
+            lineHeight: 1.02,
+          }}
+        >
+          <span
+            className="block font-extrabold"
+            style={{
+              fontSize: type === "identity" ? 13 : 12.5,
+              letterSpacing: "0.1em",
+              background:
+                type === "identity"
+                  ? "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,236,195,0.95) 52%, rgba(210,178,118,0.92) 100%)"
+                  : "linear-gradient(180deg, rgba(246,255,250,0.98) 0%, rgba(210,255,228,0.95) 52%, rgba(102,214,150,0.92) 100%)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              textShadow:
+                type === "identity"
+                  ? "0 1px 2px rgba(0,0,0,0.55), 0 0 8px rgba(255,214,150,0.32)"
+                  : "0 1px 2px rgba(0,0,0,0.55), 0 0 8px rgba(134,239,172,0.34)",
+            }}
+          >
+            BADWR
+          </span>
+        </span>
+      )}
       {(type === "identity" || type === "transformed") && (
         <NodeArmorPlaque
           label={label}

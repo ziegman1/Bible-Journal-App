@@ -254,6 +254,7 @@ function FlowEnergyPulses({
   durSec,
   staggerSec,
   radius,
+  count = 3,
 }: {
   pathId: string;
   d: string;
@@ -261,26 +262,43 @@ function FlowEnergyPulses({
   durSec: number;
   staggerSec: number;
   radius: number;
+  count?: number;
 }) {
+  const pulses = Array.from({ length: Math.max(2, Math.min(4, count)) }, (_, idx) => {
+    const speedVariance = ((idx % 3) - 1) * 0.12; // -12%, 0%, +12%
+    const opacityVariance = 0.84 + idx * 0.06;
+    const beginJitter = idx * staggerSec + ((idx % 2) * 0.35);
+    return {
+      dur: durSec * (1 + speedVariance),
+      begin: beginJitter,
+      opacity: Math.min(1, opacityVariance),
+      rx: radius * (1.35 - idx * 0.1),
+      ry: radius * (0.72 - idx * 0.08),
+    };
+  });
   return (
     <>
       <path id={pathId} d={d} fill="none" stroke="none" />
-      <circle r={radius} fill={fill} opacity={0.22} filter="url(#pm-flow-pulse-glow)">
-        <animateMotion dur={`${durSec}s`} repeatCount="indefinite" rotate="auto" calcMode="linear">
-          <mpath href={`#${pathId}`} />
-        </animateMotion>
-      </circle>
-      <circle r={radius * 0.72} fill={fill} opacity={0.12}>
-        <animateMotion
-          dur={`${durSec}s`}
-          repeatCount="indefinite"
-          rotate="auto"
-          calcMode="linear"
-          begin={`${staggerSec}s`}
+      {pulses.map((p, idx) => (
+        <ellipse
+          key={`${pathId}-pulse-${idx}`}
+          rx={Math.max(0.08, p.rx)}
+          ry={Math.max(0.06, p.ry)}
+          fill={fill}
+          opacity={p.opacity}
+          filter="url(#pm-flow-pulse-glow)"
         >
-          <mpath href={`#${pathId}`} />
-        </animateMotion>
-      </circle>
+          <animateMotion
+            dur={`${p.dur}s`}
+            repeatCount="indefinite"
+            rotate="auto"
+            calcMode="linear"
+            begin={`${p.begin}s`}
+          >
+            <mpath href={`#${pathId}`} />
+          </animateMotion>
+        </ellipse>
+      ))}
     </>
   );
 }
@@ -340,17 +358,17 @@ function isTransformedPracticeElectrodeEdge(from: string, to: string): boolean {
 const ELECTRODE_GREEN_OUTER = "rgba(52, 211, 153, 0.48)";
 const ELECTRODE_GREEN_MAIN = "rgb(34, 197, 94)";
 const ELECTRODE_GREEN_CORE = "rgb(220, 252, 231)";
-const ELECTRODE_STROKE_PX = 7.5;
-const ELECTRODE_HALO_PX = 13.5;
-const ELECTRODE_CORE_PX = 1.69;
+const ELECTRODE_STROKE_PX = 5.25;
+const ELECTRODE_HALO_PX = 9.45;
+const ELECTRODE_CORE_PX = 1.18;
 
 /* ME-card matched electrodes (warm parchment/bronze energy) */
 const HUB_EDGE_BLUE = "rgb(194, 170, 128)";
 const HUB_EDGE_GLOW_OUTER = "rgba(220, 198, 156, 0.42)";
 const HUB_EDGE_CORE = "rgb(248, 238, 218)";
-const HUB_EDGE_STROKE_PX = 7.5;
-const HUB_EDGE_HALO_PX = 13.5;
-const HUB_EDGE_CORE_PX = 1.69;
+const HUB_EDGE_STROKE_PX = 5.25;
+const HUB_EDGE_HALO_PX = 9.45;
+const HUB_EDGE_CORE_PX = 1.18;
 
 /** Me → My 3/3 Family — thick gold flow toward community node */
 function isMeToFamilyEdge(from: string, to: string): boolean {
@@ -595,7 +613,7 @@ function ProcessMapConnections() {
           <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" />
         </filter>
         <filter id="pm-flow-pulse-glow" x="-350%" y="-350%" width="800%" height="800%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.26" />
         </filter>
         <filter id="pm-flow-aura-blur" x="-45%" y="-45%" width="190%" height="190%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="1.05" />
@@ -695,6 +713,7 @@ function ProcessMapConnections() {
                 durSec={23}
                 staggerSec={11.5}
                 radius={0.3}
+                count={4}
               />
             </g>
           );
@@ -719,9 +738,9 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={gradUrl}
-                strokeWidth={0.38}
+                strokeWidth={0.35}
                 strokeLinecap="round"
-                opacity={0.52}
+                opacity={0.56}
               />
               <path
                 d={flowD}
@@ -731,37 +750,20 @@ function ProcessMapConnections() {
                 strokeLinecap="round"
                 opacity={0.72}
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={gradUrl}
-                strokeWidth={0.2}
-                strokeLinecap="round"
-                opacity={0.38}
-                strokeDasharray="0.85 0.55"
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to="2.8"
-                  dur="14s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(190,250,215,0.9)"
-                durSec={26}
-                staggerSec={13}
+                durSec={4.6}
+                staggerSec={1.15}
                 radius={0.21}
+                count={3}
               />
             </g>
           );
         }
 
         if (isMeToFamilyEdge(from, to)) {
-          const dashCycle = 36;
           const tid = taperMaskId(from, to);
           return (
             <g key={`${from}-${to}`}>
@@ -791,44 +793,26 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={FAMILY_EDGE_GOLD}
-                strokeWidth={FAMILY_EDGE_STROKE_PX}
+                strokeWidth={0.35}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={0.92 * meOutDim}
+                opacity={0.58 * meOutDim}
                 filter="url(#pm-amber-edge-glow)"
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={FAMILY_EDGE_HIGHLIGHT}
-                strokeWidth={4}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.88 * meOutDim}
-                strokeDasharray={`${dashCycle * 0.45} ${dashCycle * 0.55}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to={`-${dashCycle}`}
-                  dur="5.5s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(255,236,180,0.95)"
-                durSec={pulseDur}
-                staggerSec={pulseStagger}
+                durSec={4.8}
+                staggerSec={1.2}
                 radius={0.32}
+                count={4}
               />
             </g>
           );
         }
 
         if (isFlowToWatchPhaseEdge(from, to)) {
-          const dashCycle = 36;
           const tid = taperMaskId(from, to);
           const transformedRelationBoost = from === "transformed" ? 1.18 : 1;
           const edgeAlpha = meOutDim * transformedRelationBoost;
@@ -860,37 +844,20 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={WATCH_EDGE_BLUE}
-                strokeWidth={WATCH_EDGE_STROKE_PX}
+                strokeWidth={0.35}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={0.92 * edgeAlpha}
+                opacity={0.58 * edgeAlpha}
                 filter="url(#pm-hub-blue-glow)"
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={WATCH_EDGE_HIGHLIGHT}
-                strokeWidth={4}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.88 * edgeAlpha}
-                strokeDasharray={`${dashCycle * 0.45} ${dashCycle * 0.55}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to={`-${dashCycle}`}
-                  dur="5.5s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(199,220,255,0.95)"
-                durSec={pulseDur}
-                staggerSec={pulseStagger}
+                durSec={4.4}
+                staggerSec={1.05}
                 radius={0.3}
+                count={4}
               />
               {from === "transformed" && (
                 <>
@@ -914,7 +881,6 @@ function ProcessMapConnections() {
         }
 
         if (isMeToModelEdge(from, to)) {
-          const dashCycle = 36;
           const tid = taperMaskId(from, to);
           return (
             <g key={`${from}-${to}`}>
@@ -944,44 +910,26 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={MODEL_EDGE_MAIN}
-                strokeWidth={MODEL_EDGE_STROKE_PX}
+                strokeWidth={0.35}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={0.92 * meOutDim}
+                opacity={0.56 * meOutDim}
                 filter="url(#pm-rose-edge-glow)"
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={MODEL_EDGE_HIGHLIGHT}
-                strokeWidth={4}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.88 * meOutDim}
-                strokeDasharray={`${dashCycle * 0.45} ${dashCycle * 0.55}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to={`-${dashCycle}`}
-                  dur="5.5s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(255,210,235,0.95)"
-                durSec={pulseDur}
-                staggerSec={pulseStagger}
+                durSec={4.6}
+                staggerSec={1.15}
                 radius={0.3}
+                count={4}
               />
             </g>
           );
         }
 
         if (isModelToTransformedEdge(from, to)) {
-          const dashCycle = 36;
           const tid = taperMaskId(from, to);
           return (
             <g key={`${from}-${to}`}>
@@ -1011,37 +959,20 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={ASSIST_TO_TP_MAIN}
-                strokeWidth={ASSIST_TO_TP_STROKE_PX}
+                strokeWidth={0.35}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={0.98}
+                opacity={0.58}
                 filter="url(#pm-rose-edge-glow)"
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={ASSIST_TO_TP_HIGHLIGHT}
-                strokeWidth={4}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.94}
-                strokeDasharray={`${dashCycle * 0.45} ${dashCycle * 0.55}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to={`-${dashCycle}`}
-                  dur="5.5s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(255,200,220,0.95)"
-                durSec={pulseDur}
-                staggerSec={pulseStagger}
+                durSec={4.2}
+                staggerSec={1.0}
                 radius={0.3}
+                count={4}
               />
               <circle
                 cx={b.x}
@@ -1061,7 +992,6 @@ function ProcessMapConnections() {
         }
 
         if (isTransformedToNew33Edge(from, to)) {
-          const dashCycle = 36;
           const tid = taperMaskId(from, to);
           return (
             <g key={`${from}-${to}`}>
@@ -1091,37 +1021,20 @@ function ProcessMapConnections() {
                 d={flowD}
                 fill="none"
                 stroke={NEW33_EDGE_GREEN}
-                strokeWidth={NEW33_EDGE_STROKE_PX}
+                strokeWidth={0.35}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={0.92}
+                opacity={0.56}
                 filter="url(#pm-green-edge-glow)"
               />
-              <path
-                d={flowD}
-                fill="none"
-                stroke={NEW33_EDGE_HIGHLIGHT}
-                strokeWidth={4}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-                opacity={0.88}
-                strokeDasharray={`${dashCycle * 0.45} ${dashCycle * 0.55}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from="0"
-                  to={`-${dashCycle}`}
-                  dur="5.5s"
-                  repeatCount="indefinite"
-                />
-              </path>
               <FlowEnergyPulses
                 pathId={pathId}
                 d={flowD}
                 fill="rgba(200,255,220,0.95)"
-                durSec={pulseDur}
-                staggerSec={pulseStagger}
+                durSec={4.8}
+                staggerSec={1.2}
                 radius={0.3}
+                count={4}
               />
             </g>
           );
@@ -1139,7 +1052,7 @@ function ProcessMapConnections() {
                   d={boltD}
                   fill="none"
                   stroke={HUB_EDGE_GLOW_OUTER}
-                  strokeWidth={HUB_EDGE_HALO_PX + 4}
+                  strokeWidth={HUB_EDGE_HALO_PX + 2.8}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -1192,6 +1105,7 @@ function ProcessMapConnections() {
                 durSec={21}
                 staggerSec={10.5}
                 radius={0.34}
+                count={4}
               />
             </g>
           );
@@ -1215,9 +1129,9 @@ function ProcessMapConnections() {
               d={flowD}
               fill="none"
               stroke={gradUrl}
-              strokeWidth={0.56}
+              strokeWidth={0.35}
               strokeLinecap="round"
-              opacity={0.58}
+              opacity={0.56}
             />
             <path
               d={flowD}
@@ -1227,30 +1141,14 @@ function ProcessMapConnections() {
               strokeLinecap="round"
               opacity={0.78}
             />
-            <path
-              d={flowD}
-              fill="none"
-              stroke={gradUrl}
-              strokeWidth={0.32}
-              strokeLinecap="round"
-              opacity={0.45}
-              strokeDasharray="1.15 0.65"
-            >
-              <animate
-                attributeName="stroke-dashoffset"
-                from="0"
-                to="3.6"
-                dur="16s"
-                repeatCount="indefinite"
-              />
-            </path>
             <FlowEnergyPulses
               pathId={pathId}
               d={flowD}
               fill="rgba(230,238,255,0.92)"
-              durSec={pulseDur + 2}
-              staggerSec={(pulseDur + 2) * 0.5}
+              durSec={4.9}
+              staggerSec={1.2}
               radius={0.27}
+              count={3}
             />
           </g>
         );

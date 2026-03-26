@@ -225,14 +225,24 @@ export function ProcessNodeSvgVisual({
               <stop offset="45%" stopColor="rgba(235,226,198,0.62)" />
               <stop offset="100%" stopColor="rgba(235,226,198,0)" />
             </radialGradient>
+            <radialGradient id={`pm-id-human-top-${id}`} cx="50%" cy="24%" r="32%">
+              <stop offset="0%" stopColor="rgba(255,244,216,0.42)" />
+              <stop offset="100%" stopColor="rgba(255,244,216,0)" />
+            </radialGradient>
+            <radialGradient id={`pm-id-orb-${id}`} cx="50%" cy="60%" r="62%">
+              <stop offset="0%" stopColor="rgba(236,232,220,0.04)" />
+              <stop offset="22%" stopColor="rgba(226,214,186,0.06)" />
+              <stop offset="52%" stopColor="rgba(220,206,172,0.24)" />
+              <stop offset="100%" stopColor="rgba(220,206,172,0)" />
+            </radialGradient>
             <linearGradient id={`pm-id-plate-${id}`} x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="rgba(250,242,222,0.36)" />
-              <stop offset="45%" stopColor="rgba(232,216,184,0.26)" />
-              <stop offset="100%" stopColor="rgba(184,162,124,0.14)" />
+              <stop offset="0%" stopColor="rgba(112,90,58,0.62)" />
+              <stop offset="45%" stopColor="rgba(86,66,40,0.58)" />
+              <stop offset="100%" stopColor="rgba(42,30,18,0.46)" />
             </linearGradient>
             <radialGradient id={`pm-id-plate-core-${id}`} cx="50%" cy="45%" r="62%">
-              <stop offset="0%" stopColor="rgba(255,244,216,0.38)" />
-              <stop offset="100%" stopColor="rgba(255,244,216,0)" />
+              <stop offset="0%" stopColor="rgba(154,124,82,0.44)" />
+              <stop offset="100%" stopColor="rgba(154,124,82,0)" />
             </radialGradient>
             <linearGradient id={`pm-id-shoulder-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(246,236,210,0.35)" />
@@ -256,6 +266,15 @@ export function ProcessNodeSvgVisual({
             </linearGradient>
             <filter id={`pm-id-human-soft-${id}`} x="-35%" y="-35%" width="170%" height="170%">
               <feGaussianBlur stdDeviation="0.7" />
+            </filter>
+            <filter id={`pm-id-orb-soft-${id}`} x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="10.8" />
+            </filter>
+            <filter id={`pm-id-emblem-shadow-${id}`} x="-35%" y="-35%" width="170%" height="170%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.2" floodColor="rgba(0,0,0,0.35)" />
+            </filter>
+            <filter id={`pm-id-head-shadow-${id}`} x="-60%" y="-60%" width="220%" height="220%">
+              <feDropShadow dx="0" dy="1" stdDeviation="0.9" floodColor="rgba(0,0,0,0.35)" />
             </filter>
             <filter id={filtId} x="-25%" y="-25%" width="150%" height="150%">
               <feDropShadow
@@ -321,163 +340,122 @@ export function ProcessNodeSvgVisual({
               fill={`url(#pm-id-swirl-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
-            {/* integrated light-warrior: symbolic geometry, soft projections */}
+            {/* identity orb energy behind emblem */}
             <ellipse
               cx={cx}
-              cy={cy + ryE * 0.08}
-              rx={rxE * 0.45}
-              ry={ryE * 0.52}
-              fill={`url(#pm-id-human-core-${id})`}
-              opacity={0.56}
+              cy={cy + ryE * 0.24}
+              rx={rxE * 0.39}
+              ry={ryE * 0.3}
+              fill={`url(#pm-id-orb-${id})`}
+              opacity={0.16}
+              filter={`url(#pm-id-orb-soft-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
+            {/* identity armor-core emblem: soft, slightly asymmetric, low-opacity */}
             <g
               opacity={0.48}
               mask={`url(#pm-id-human-mask-${id})`}
-              filter={`url(#pm-id-human-soft-${id})`}
+              filter={`url(#pm-id-emblem-shadow-${id})`}
               style={{ mixBlendMode: "screen" }}
             >
-              <circle
-                cx={cx}
-                cy={cy - ryE * 0.36}
-                r={Math.max(2, Math.min(rxE, ryE) * 0.1)}
-                fill="rgba(232,240,255,0.95)"
-              />
               <path
                 d={`
-                  M ${cx - rxE * 0.08} ${cy - ryE * 0.22}
-                  C ${cx - rxE * 0.15} ${cy - ryE * 0.13}, ${cx - rxE * 0.24} ${cy - ryE * 0.08}, ${cx - rxE * 0.35} ${cy - ryE * 0.03}
-                  C ${cx - rxE * 0.43} ${cy + ryE * 0.03}, ${cx - rxE * 0.47} ${cy + ryE * 0.10}, ${cx - rxE * 0.37} ${cy + ryE * 0.16}
-                  C ${cx - rxE * 0.28} ${cy + ryE * 0.21}, ${cx - rxE * 0.20} ${cy + ryE * 0.31}, ${cx - rxE * 0.16} ${cy + ryE * 0.45}
-                  C ${cx - rxE * 0.15} ${cy + ryE * 0.62}, ${cx - rxE * 0.26} ${cy + ryE * 0.78}, ${cx - rxE * 0.36} ${cy + ryE * 0.91}
-                  C ${cx - rxE * 0.28} ${cy + ryE * 0.95}, ${cx - rxE * 0.15} ${cy + ryE * 0.95}, ${cx - rxE * 0.06} ${cy + ryE * 0.88}
-                  L ${cx - rxE * 0.03} ${cy + ryE * 0.75}
-                  L ${cx} ${cy + ryE * 0.92}
-                  L ${cx + rxE * 0.03} ${cy + ryE * 0.75}
-                  C ${cx + rxE * 0.06} ${cy + ryE * 0.88}, ${cx + rxE * 0.15} ${cy + ryE * 0.95}, ${cx + rxE * 0.28} ${cy + ryE * 0.95}
-                  C ${cx + rxE * 0.36} ${cy + ryE * 0.91}, ${cx + rxE * 0.26} ${cy + ryE * 0.78}, ${cx + rxE * 0.15} ${cy + ryE * 0.62}
-                  C ${cx + rxE * 0.16} ${cy + ryE * 0.45}, ${cx + rxE * 0.20} ${cy + ryE * 0.31}, ${cx + rxE * 0.28} ${cy + ryE * 0.21}
-                  C ${cx + rxE * 0.37} ${cy + ryE * 0.16}, ${cx + rxE * 0.47} ${cy + ryE * 0.10}, ${cx + rxE * 0.43} ${cy + ryE * 0.03}
-                  C ${cx + rxE * 0.35} ${cy - ryE * 0.03}, ${cx + rxE * 0.24} ${cy - ryE * 0.08}, ${cx + rxE * 0.15} ${cy - ryE * 0.13}
-                  C ${cx + rxE * 0.12} ${cy - ryE * 0.17}, ${cx + rxE * 0.10} ${cy - ryE * 0.20}, ${cx + rxE * 0.08} ${cy - ryE * 0.22}
+                  M ${cx - rxE * 0.40} ${cy - ryE * 0.18}
+                  L ${cx + rxE * 0.40} ${cy - ryE * 0.18}
+                  L ${cx + rxE * 0.26} ${cy - ryE * 0.00}
+                  L ${cx - rxE * 0.26} ${cy - ryE * 0.00}
                   Z
                 `}
-                fill="rgba(220,232,255,0.92)"
+                fill={`url(#pm-id-shoulder-${id})`}
+                stroke="rgba(255,255,255,0.12)"
+                strokeWidth={1}
               />
-              {/* armor cues: chest plate + shoulder pads + soft segment seams */}
+              <circle
+                cx={cx}
+                cy={cy - ryE * 0.20}
+                r={Math.max(1.7, Math.min(rxE, ryE) * 0.052)}
+                fill="rgba(246,238,220,0.34)"
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth={0.85}
+                filter={`url(#pm-id-emblem-shadow-${id})`}
+                style={{ mixBlendMode: "screen" }}
+              />
               <path
                 d={`
-                  M ${cx - rxE * 0.20} ${cy - ryE * 0.01}
-                  L ${cx + rxE * 0.20} ${cy - ryE * 0.01}
-                  L ${cx + rxE * 0.14} ${cy + ryE * 0.28}
-                  L ${cx - rxE * 0.14} ${cy + ryE * 0.28}
+                  M ${cx - rxE * 0.22} ${cy - ryE * 0.02}
+                  L ${cx + rxE * 0.22} ${cy - ryE * 0.02}
+                  L ${cx + rxE * 0.16} ${cy + ryE * 0.28}
+                  L ${cx} ${cy + ryE * 0.42}
+                  L ${cx - rxE * 0.16} ${cy + ryE * 0.28}
                   Z
                 `}
                 fill={`url(#pm-id-plate-${id})`}
+                stroke="rgba(255,255,255,0.12)"
+                strokeWidth={1}
               />
               <path
                 d={`
-                  M ${cx - rxE * 0.18} ${cy + ryE * 0.00}
-                  L ${cx + rxE * 0.18} ${cy + ryE * 0.00}
-                  L ${cx + rxE * 0.13} ${cy + ryE * 0.30}
-                  L ${cx - rxE * 0.13} ${cy + ryE * 0.30}
+                  M ${cx - rxE * 0.16} ${cy + ryE * 0.02}
+                  L ${cx + rxE * 0.16} ${cy + ryE * 0.02}
+                  L ${cx + rxE * 0.11} ${cy + ryE * 0.23}
+                  L ${cx} ${cy + ryE * 0.32}
+                  L ${cx - rxE * 0.11} ${cy + ryE * 0.23}
                   Z
                 `}
                 fill={`url(#pm-id-plate-core-${id})`}
-              />
-              <line
-                x1={cx - rxE * 0.14}
-                y1={cy + ryE * 0.01}
-                x2={cx + rxE * 0.14}
-                y2={cy + ryE * 0.01}
-                stroke="rgba(255,245,220,0.24)"
+                stroke="rgba(255,255,255,0.1)"
                 strokeWidth={0.9}
-                strokeLinecap="round"
+              />
+              <circle
+                cx={cx}
+                cy={cy + ryE * 0.16}
+                r={Math.max(2.2, Math.min(rxE, ryE) * 0.09)}
+                fill={`url(#pm-id-human-core-${id})`}
+              />
+              <circle
+                cx={cx}
+                cy={cy + ryE * 0.16}
+                r={Math.max(4.2, Math.min(rxE, ryE) * 0.16)}
+                fill="none"
+                stroke="rgba(255,245,220,0.34)"
+                strokeWidth={1.2}
               />
               <path
                 d={`
-                  M ${cx - rxE * 0.27} ${cy - ryE * 0.02}
-                  Q ${cx - rxE * 0.35} ${cy + ryE * 0.06} ${cx - rxE * 0.21} ${cy + ryE * 0.12}
-                  Q ${cx - rxE * 0.17} ${cy + ryE * 0.03} ${cx - rxE * 0.27} ${cy - ryE * 0.02}
+                  M ${cx - rxE * 0.08} ${cy + ryE * 0.16}
+                  L ${cx} ${cy + ryE * 0.07}
+                  L ${cx + rxE * 0.08} ${cy + ryE * 0.16}
+                  L ${cx} ${cy + ryE * 0.25}
                   Z
                 `}
-                fill={`url(#pm-id-shoulder-${id})`}
-              />
-              <path
-                d={`
-                  M ${cx + rxE * 0.27} ${cy - ryE * 0.02}
-                  Q ${cx + rxE * 0.35} ${cy + ryE * 0.06} ${cx + rxE * 0.21} ${cy + ryE * 0.12}
-                  Q ${cx + rxE * 0.17} ${cy + ryE * 0.03} ${cx + rxE * 0.27} ${cy - ryE * 0.02}
-                  Z
-                `}
-                fill={`url(#pm-id-shoulder-${id})`}
-              />
-              <line
-                x1={cx}
-                y1={cy + ryE * 0.00}
-                x2={cx}
-                y2={cy + ryE * 0.30}
-                stroke="rgba(245,250,255,0.2)"
-                strokeWidth={0.9}
-                strokeLinecap="round"
-              />
-              <line
-                x1={cx - rxE * 0.08}
-                y1={cy + ryE * 0.13}
-                x2={cx + rxE * 0.08}
-                y2={cy + ryE * 0.13}
-                stroke="rgba(245,250,255,0.16)"
-                strokeWidth={0.8}
-                strokeLinecap="round"
+                fill="rgba(255,244,216,0.30)"
+                style={{ mixBlendMode: "screen" }}
               />
             </g>
-            {/* shield projection: soft left defensive field */}
             <ellipse
-              cx={cx - rxE * 0.36}
-              cy={cy + ryE * 0.12}
-              rx={rxE * 0.17}
-              ry={ryE * 0.22}
-              fill={`url(#pm-id-shield-${id})`}
-              filter={`url(#pm-id-human-soft-${id})`}
-              style={{ mixBlendMode: "screen" }}
-            />
-            <ellipse
-              cx={cx - rxE * 0.40}
-              cy={cy + ryE * 0.12}
-              rx={rxE * 0.14}
-              ry={ryE * 0.19}
+              cx={cx}
+              cy={cy + ryE * 0.11}
+              rx={rxE * 0.24}
+              ry={ryE * 0.18}
               fill="none"
-              stroke={`url(#pm-id-shield-rim-${id})`}
+              stroke="rgba(255,244,216,0.16)"
               strokeWidth={0.9}
-              style={{ mixBlendMode: "screen" }}
-              opacity={0.55}
-            />
-            {/* sword projection: thin angled energy blade */}
-            <line
-              x1={cx + rxE * 0.28}
-              y1={cy + ryE * 0.14}
-              x2={cx + rxE * 0.52}
-              y2={cy - ryE * 0.23}
-              stroke={`url(#pm-id-sword-${id})`}
-              strokeWidth={1.05}
-              strokeLinecap="round"
-              filter={`url(#pm-id-human-soft-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
             <ellipse
               cx={cx}
-              cy={cy + ryE * 0.97}
-              rx={rxE * 0.26}
-              ry={ryE * 0.08}
-              fill="rgba(235,226,198,0.22)"
+              cy={cy - ryE * 0.26}
+              rx={rxE * 0.36}
+              ry={ryE * 0.24}
+              fill={`url(#pm-id-human-top-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
             <circle
               cx={cx}
-              cy={cy + ryE * 0.14}
-              r={Math.max(2.6, Math.min(rxE, ryE) * 0.2)}
+              cy={cy + ryE * 0.10}
+              r={Math.max(1.8, Math.min(rxE, ryE) * 0.11)}
               fill={`url(#pm-id-chest-${id})`}
-              opacity={0.7}
+              opacity={0.24}
             />
           </g>
           <rect
@@ -849,10 +827,10 @@ export function ProcessNodeSvgVisual({
               />
             </clipPath>
             <linearGradient id={surfId} x1="14%" y1="10%" x2="86%" y2="92%">
-              <stop offset="0%" stopColor="#a8ecc4" />
-              <stop offset="30%" stopColor="#3da86a" />
-              <stop offset="70%" stopColor="#145a32" />
-              <stop offset="100%" stopColor="#0a2816" />
+              <stop offset="0%" stopColor="#84c89f" />
+              <stop offset="30%" stopColor="#2f8252" />
+              <stop offset="70%" stopColor="#11482a" />
+              <stop offset="100%" stopColor="#081f11" />
             </linearGradient>
             <linearGradient id={veilId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
@@ -860,8 +838,8 @@ export function ProcessNodeSvgVisual({
               <stop offset="100%" stopColor="rgba(0,0,0,0.4)" />
             </linearGradient>
             <radialGradient id={glowId} cx="50%" cy="38%" r="68%">
-              <stop offset="0%" stopColor="rgba(180,255,210,0.55)" />
-              <stop offset="60%" stopColor="rgba(40,160,90,0.12)" />
+              <stop offset="0%" stopColor="rgba(180,255,210,0.42)" />
+              <stop offset="60%" stopColor="rgba(40,160,90,0.08)" />
               <stop offset="100%" stopColor="rgba(0,0,0,0)" />
             </radialGradient>
             <radialGradient id={`pm-tr-aura-${id}`} cx="50%" cy="52%" r="58%">
@@ -878,14 +856,19 @@ export function ProcessNodeSvgVisual({
               <stop offset="46%" stopColor="rgba(180,255,214,0.74)" />
               <stop offset="100%" stopColor="rgba(180,255,214,0)" />
             </radialGradient>
+            <radialGradient id={`pm-tr-orb-${id}`} cx="50%" cy="60%" r="64%">
+              <stop offset="0%" stopColor="rgba(210,236,220,0.08)" />
+              <stop offset="54%" stopColor="rgba(142,210,170,0.24)" />
+              <stop offset="100%" stopColor="rgba(142,210,170,0)" />
+            </radialGradient>
             <linearGradient id={`pm-tr-plate-${id}`} x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="rgba(225,255,236,0.5)" />
-              <stop offset="45%" stopColor="rgba(170,245,206,0.34)" />
-              <stop offset="100%" stopColor="rgba(74,200,136,0.18)" />
+              <stop offset="0%" stopColor="rgba(42,98,64,0.72)" />
+              <stop offset="45%" stopColor="rgba(28,78,48,0.66)" />
+              <stop offset="100%" stopColor="rgba(12,44,26,0.56)" />
             </linearGradient>
             <radialGradient id={`pm-tr-plate-core-${id}`} cx="50%" cy="46%" r="62%">
-              <stop offset="0%" stopColor="rgba(236,255,244,0.5)" />
-              <stop offset="100%" stopColor="rgba(236,255,244,0)" />
+              <stop offset="0%" stopColor="rgba(88,170,118,0.46)" />
+              <stop offset="100%" stopColor="rgba(88,170,118,0)" />
             </radialGradient>
             <linearGradient id={`pm-tr-shoulder-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(220,255,236,0.46)" />
@@ -913,6 +896,12 @@ export function ProcessNodeSvgVisual({
             </radialGradient>
             <filter id={`pm-tr-human-soft-${id}`} x="-35%" y="-35%" width="170%" height="170%">
               <feGaussianBlur stdDeviation="0.55" />
+            </filter>
+            <filter id={`pm-tr-orb-soft-${id}`} x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="11.4" />
+            </filter>
+            <filter id={`pm-tr-emblem-shadow-${id}`} x="-35%" y="-35%" width="170%" height="170%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodColor="rgba(0,0,0,0.36)" />
             </filter>
             <filter id={filtId} x="-35%" y="-35%" width="170%" height="170%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b" />
@@ -962,148 +951,100 @@ export function ProcessNodeSvgVisual({
               fill={`url(#pm-tr-aura-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
-            {/* transformed light-warrior: clearer symmetry and stronger definition */}
+            {/* transformed orb energy behind emblem */}
             <ellipse
               cx={cx}
-              cy={cy + ryE * 0.08}
-              rx={rxE * 0.43}
-              ry={ryE * 0.55}
-              fill={`url(#pm-tr-human-core-${id})`}
-              opacity={0.72}
+              cy={cy + ryE * 0.29}
+              rx={rxE * 0.41}
+              ry={ryE * 0.31}
+              fill={`url(#pm-tr-orb-${id})`}
+              opacity={0.17}
+              filter={`url(#pm-tr-orb-soft-${id})`}
               style={{ mixBlendMode: "screen" }}
             />
-            <g opacity={0.9} filter={`url(#pm-tr-human-soft-${id})`}>
-              <circle
-                cx={cx}
-                cy={cy - ryE * 0.35}
-                r={Math.max(2, Math.min(rxE, ryE) * 0.095)}
-                fill={`url(#pm-tr-human-${id})`}
-              />
+            {/* transformed armor-core emblem: sharper, brighter, highly symmetric */}
+            <g opacity={0.58} filter={`url(#pm-tr-emblem-shadow-${id})`}>
               <path
                 d={`
-                  M ${cx - rxE * 0.09} ${cy - ryE * 0.25}
-                  C ${cx - rxE * 0.16} ${cy - ryE * 0.14}, ${cx - rxE * 0.26} ${cy - ryE * 0.09}, ${cx - rxE * 0.39} ${cy - ryE * 0.03}
-                  C ${cx - rxE * 0.48} ${cy + ryE * 0.02}, ${cx - rxE * 0.53} ${cy + ryE * 0.10}, ${cx - rxE * 0.42} ${cy + ryE * 0.18}
-                  C ${cx - rxE * 0.32} ${cy + ryE * 0.24}, ${cx - rxE * 0.24} ${cy + ryE * 0.35}, ${cx - rxE * 0.18} ${cy + ryE * 0.52}
-                  C ${cx - rxE * 0.16} ${cy + ryE * 0.69}, ${cx - rxE * 0.29} ${cy + ryE * 0.86}, ${cx - rxE * 0.42} ${cy + ryE * 1.01}
-                  C ${cx - rxE * 0.31} ${cy + ryE * 1.05}, ${cx - rxE * 0.17} ${cy + ryE * 1.05}, ${cx - rxE * 0.06} ${cy + ryE * 0.97}
-                  L ${cx - rxE * 0.03} ${cy + ryE * 0.79}
-                  L ${cx} ${cy + ryE * 1.00}
-                  L ${cx + rxE * 0.03} ${cy + ryE * 0.79}
-                  C ${cx + rxE * 0.06} ${cy + ryE * 0.97}, ${cx + rxE * 0.17} ${cy + ryE * 1.05}, ${cx + rxE * 0.31} ${cy + ryE * 1.05}
-                  C ${cx + rxE * 0.42} ${cy + ryE * 1.01}, ${cx + rxE * 0.29} ${cy + ryE * 0.86}, ${cx + rxE * 0.16} ${cy + ryE * 0.69}
-                  C ${cx + rxE * 0.18} ${cy + ryE * 0.52}, ${cx + rxE * 0.24} ${cy + ryE * 0.35}, ${cx + rxE * 0.32} ${cy + ryE * 0.24}
-                  C ${cx + rxE * 0.42} ${cy + ryE * 0.18}, ${cx + rxE * 0.53} ${cy + ryE * 0.10}, ${cx + rxE * 0.48} ${cy + ryE * 0.02}
-                  C ${cx + rxE * 0.39} ${cy - ryE * 0.03}, ${cx + rxE * 0.26} ${cy - ryE * 0.09}, ${cx + rxE * 0.16} ${cy - ryE * 0.14}
-                  C ${cx + rxE * 0.12} ${cy - ryE * 0.18}, ${cx + rxE * 0.10} ${cy - ryE * 0.22}, ${cx + rxE * 0.09} ${cy - ryE * 0.25}
+                  M ${cx - rxE * 0.40} ${cy - ryE * 0.18}
+                  L ${cx + rxE * 0.40} ${cy - ryE * 0.18}
+                  L ${cx + rxE * 0.26} ${cy - ryE * 0.00}
+                  L ${cx - rxE * 0.26} ${cy - ryE * 0.00}
                   Z
                 `}
-                fill={`url(#pm-tr-human-${id})`}
+                fill={`url(#pm-tr-shoulder-${id})`}
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth={1}
               />
-              {/* abstract armor cues */}
+              <circle
+                cx={cx}
+                cy={cy - ryE * 0.20}
+                r={Math.max(1.7, Math.min(rxE, ryE) * 0.052)}
+                fill="rgba(212,255,230,0.34)"
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth={0.85}
+                style={{ mixBlendMode: "screen" }}
+              />
               <path
                 d={`
                   M ${cx - rxE * 0.22} ${cy - ryE * 0.02}
                   L ${cx + rxE * 0.22} ${cy - ryE * 0.02}
-                  L ${cx + rxE * 0.15} ${cy + ryE * 0.31}
-                  L ${cx - rxE * 0.15} ${cy + ryE * 0.31}
+                  L ${cx + rxE * 0.16} ${cy + ryE * 0.28}
+                  L ${cx} ${cy + ryE * 0.42}
+                  L ${cx - rxE * 0.16} ${cy + ryE * 0.28}
                   Z
                 `}
                 fill={`url(#pm-tr-plate-${id})`}
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth={1}
               />
               <path
                 d={`
-                  M ${cx - rxE * 0.20} ${cy + ryE * 0.01}
-                  L ${cx + rxE * 0.20} ${cy + ryE * 0.01}
-                  L ${cx + rxE * 0.14} ${cy + ryE * 0.29}
-                  L ${cx - rxE * 0.14} ${cy + ryE * 0.29}
+                  M ${cx - rxE * 0.16} ${cy + ryE * 0.02}
+                  L ${cx + rxE * 0.16} ${cy + ryE * 0.02}
+                  L ${cx + rxE * 0.11} ${cy + ryE * 0.23}
+                  L ${cx} ${cy + ryE * 0.32}
+                  L ${cx - rxE * 0.11} ${cy + ryE * 0.23}
                   Z
                 `}
                 fill={`url(#pm-tr-plate-core-${id})`}
-              />
-              <line
-                x1={cx - rxE * 0.15}
-                y1={cy}
-                x2={cx + rxE * 0.15}
-                y2={cy}
-                stroke="rgba(236,255,244,0.36)"
-                strokeWidth={1}
-                strokeLinecap="round"
-              />
-              <path
-                d={`
-                  M ${cx - rxE * 0.29} ${cy - ryE * 0.02}
-                  Q ${cx - rxE * 0.38} ${cy + ryE * 0.07} ${cx - rxE * 0.23} ${cy + ryE * 0.13}
-                  Q ${cx - rxE * 0.18} ${cy + ryE * 0.03} ${cx - rxE * 0.29} ${cy - ryE * 0.02}
-                  Z
-                `}
-                fill={`url(#pm-tr-shoulder-${id})`}
-              />
-              <path
-                d={`
-                  M ${cx + rxE * 0.29} ${cy - ryE * 0.02}
-                  Q ${cx + rxE * 0.38} ${cy + ryE * 0.07} ${cx + rxE * 0.23} ${cy + ryE * 0.13}
-                  Q ${cx + rxE * 0.18} ${cy + ryE * 0.03} ${cx + rxE * 0.29} ${cy - ryE * 0.02}
-                  Z
-                `}
-                fill={`url(#pm-tr-shoulder-${id})`}
-              />
-              <line
-                x1={cx}
-                y1={cy + ryE * 0.0}
-                x2={cx}
-                y2={cy + ryE * 0.34}
-                stroke="rgba(220,255,236,0.34)"
-                strokeWidth={1}
-                strokeLinecap="round"
-              />
-              <line
-                x1={cx - rxE * 0.09}
-                y1={cy + ryE * 0.15}
-                x2={cx + rxE * 0.09}
-                y2={cy + ryE * 0.15}
-                stroke="rgba(220,255,236,0.26)"
+                stroke="rgba(255,255,255,0.11)"
                 strokeWidth={0.9}
-                strokeLinecap="round"
+              />
+              <circle
+                cx={cx}
+                cy={cy + ryE * 0.16}
+                r={Math.max(2.6, Math.min(rxE, ryE) * 0.11)}
+                fill={`url(#pm-tr-human-core-${id})`}
+              />
+              <circle
+                cx={cx}
+                cy={cy + ryE * 0.16}
+                r={Math.max(4.2, Math.min(rxE, ryE) * 0.16)}
+                fill="none"
+                stroke="rgba(220,255,236,0.48)"
+                strokeWidth={1.2}
+              />
+              <path
+                d={`
+                  M ${cx - rxE * 0.08} ${cy + ryE * 0.16}
+                  L ${cx} ${cy + ryE * 0.07}
+                  L ${cx + rxE * 0.08} ${cy + ryE * 0.16}
+                  L ${cx} ${cy + ryE * 0.25}
+                  Z
+                `}
+                fill={`url(#pm-tr-human-beam-${id})`}
+                style={{ mixBlendMode: "screen" }}
               />
             </g>
-            {/* shield projection (left): brighter and tighter than ME */}
-            <ellipse
-              cx={cx - rxE * 0.38}
-              cy={cy + ryE * 0.14}
-              rx={rxE * 0.18}
-              ry={ryE * 0.23}
-              fill={`url(#pm-tr-shield-${id})`}
-              filter={`url(#pm-tr-human-soft-${id})`}
-              style={{ mixBlendMode: "screen" }}
-            />
-            <ellipse
-              cx={cx - rxE * 0.43}
-              cy={cy + ryE * 0.14}
-              rx={rxE * 0.15}
-              ry={ryE * 0.2}
-              fill="none"
-              stroke={`url(#pm-tr-shield-rim-${id})`}
-              strokeWidth={1.1}
-              opacity={0.72}
-              style={{ mixBlendMode: "screen" }}
-            />
-            <rect
-              x={cx + rxE * 0.34}
-              y={cy - ryE * 0.30}
-              width={1.5}
-              height={ryE * 0.78}
-              fill={`url(#pm-tr-human-beam-${id})`}
-              opacity={0.86}
-              transform={`rotate(16 ${cx + rxE * 0.34} ${cy - ryE * 0.30})`}
-              style={{ mixBlendMode: "screen" }}
-            />
             <ellipse
               cx={cx}
-              cy={cy + ryE * 1.04}
-              rx={rxE * 0.3}
-              ry={ryE * 0.09}
-              fill="rgba(180,255,214,0.30)"
+              cy={cy + ryE * 0.16}
+              rx={rxE * 0.26}
+              ry={ryE * 0.20}
+              fill="none"
+              stroke="rgba(210,255,228,0.24)"
+              strokeWidth={1}
               style={{ mixBlendMode: "screen" }}
             />
             <ellipse
