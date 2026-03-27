@@ -57,6 +57,7 @@ function buildChatProposalShareText(input: {
   weekdayText: string;
   meetingTimeText: string;
   readingPlan: string;
+  acceptUrl: string;
 }) {
   return [
     `CHAT proposal for ${input.groupName}`,
@@ -64,7 +65,8 @@ function buildChatProposalShareText(input: {
     `When: ${input.weekdayText}${input.meetingTimeText ? ` · ${input.meetingTimeText}` : ""}`,
     `Reading: ${input.readingPlan}`,
     "",
-    "Please review and agree in the app.",
+    "Review and agree here:",
+    input.acceptUrl,
   ].join("\n");
 }
 
@@ -77,6 +79,13 @@ export function ChatGroupPlanSection({
   currentUserId: string;
   workspace: ChatGroupWorkspaceClient;
 }) {
+  const acceptPath = `/app/chat/groups/${groupId}/manage`;
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://badwr.app";
+  const acceptUrl = new URL(acceptPath, origin).toString();
+
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -139,6 +148,7 @@ export function ChatGroupPlanSection({
     weekdayText: draftWeekdayText,
     meetingTimeText: timeText.trim(),
     readingPlan: readingPlan.trim() || "(add reading plan)",
+    acceptUrl,
   });
   const draftSmsHref = `sms:?&body=${encodeURIComponent(draftShareText)}`;
   const canTextDraftProposal = timeText.trim().length > 0 && readingPlan.trim().length > 0;
@@ -149,6 +159,7 @@ export function ChatGroupPlanSection({
         weekdayText: weekdayLabel(workspace.weekdayLabels, workspace.pendingProposal.weekday),
         meetingTimeText: workspace.pendingProposal.meeting_time_text,
         readingPlan: workspace.pendingProposal.reading_plan,
+        acceptUrl,
       })
     : null;
   const pendingSmsHref = pendingShareText
