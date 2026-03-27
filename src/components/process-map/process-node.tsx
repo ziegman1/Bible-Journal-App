@@ -73,10 +73,10 @@ const nodeGlow: Record<ProcessNodeType, GlowTokens> = {
     "0 0 11px 3px rgba(188,116,84,0.18)",
   ),
   transformed: depthStack(
-    "0 0 22px 6px rgba(56,168,96,0.34)",
-    "0 0 34px 11px rgba(74,196,118,0.50)",
-    "0 0 8px 2px rgba(56,168,96,0.14)",
-    "0 0 14px 4px rgba(74,196,118,0.26)",
+    "0 0 22px 6px rgba(148,163,184,0.30)",
+    "0 0 34px 11px rgba(203,213,225,0.46)",
+    "0 0 8px 2px rgba(148,163,184,0.12)",
+    "0 0 14px 4px rgba(203,213,225,0.24)",
   ),
   new33: depthStack(
     "0 0 9px 3px rgba(32,160,96,0.14)",
@@ -184,19 +184,19 @@ function NodeArmorPlaque({
 
   const bg = isIdentity
     ? "linear-gradient(145deg, rgba(196,170,118,0.82) 0%, rgba(116,88,48,0.84) 46%, rgba(46,30,14,0.90) 100%)"
-    : "linear-gradient(145deg, rgba(146,194,164,0.86) 0%, rgba(66,124,90,0.88) 46%, rgba(16,52,34,0.92) 100%)";
+    : "linear-gradient(145deg, rgba(228,232,240,0.86) 0%, rgba(124,136,154,0.88) 46%, rgba(32,40,54,0.92) 100%)";
   const outerGlow = isIdentity
     ? "0 0 8px rgba(214,184,116,0.34), 0 0 16px rgba(214,184,116,0.16)"
-    : "0 0 8px rgba(102,214,150,0.36), 0 0 16px rgba(102,214,150,0.16)";
+    : "0 0 8px rgba(203,213,225,0.34), 0 0 16px rgba(148,163,184,0.18)";
   const rim = isIdentity
     ? "rgba(244,224,176,0.62)"
-    : "rgba(204,245,224,0.68)";
+    : "rgba(232,238,248,0.7)";
   const innerRim = isIdentity
     ? "rgba(244,222,170,0.24)"
-    : "rgba(198,238,214,0.28)";
+    : "rgba(226,232,240,0.3)";
   const innerDarkRim = isIdentity
     ? "rgba(58,40,18,0.44)"
-    : "rgba(14,44,30,0.46)";
+    : "rgba(24,32,46,0.48)";
 
   return (
     <span
@@ -365,14 +365,14 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
               background:
                 type === "identity"
                   ? "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,236,195,0.95) 52%, rgba(210,178,118,0.92) 100%)"
-                  : "linear-gradient(180deg, rgba(246,255,250,0.98) 0%, rgba(210,255,228,0.95) 52%, rgba(102,214,150,0.92) 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
+                  : undefined,
+              WebkitBackgroundClip: type === "identity" ? "text" : undefined,
+              backgroundClip: type === "identity" ? "text" : undefined,
+              color: type === "identity" ? "transparent" : "rgba(236,241,248,0.96)",
               textShadow:
                 type === "identity"
                   ? "0 1px 2px rgba(0,0,0,0.55), 0 0 8px rgba(255,214,150,0.32)"
-                  : "0 1px 2px rgba(0,0,0,0.55), 0 0 8px rgba(134,239,172,0.34)",
+                  : "0 1px 2px rgba(0,0,0,0.55), 0 0 8px rgba(226,232,240,0.30)",
             }}
           >
             BADWR

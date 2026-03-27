@@ -15,8 +15,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bible Journal",
-  description: "Scripture-first journaling platform for your spiritual journey",
+  metadataBase: new URL("https://badwr.app"),
+  title: "BADWR",
+  description: "Be A Disciple Worth Reproducing",
+  openGraph: {
+    url: "https://badwr.app",
+    siteName: "BADWR",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "BADWR",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
+    title: "BADWR",
+    description: "Be A Disciple Worth Reproducing",
+  },
 };
 
 export default function RootLayout({

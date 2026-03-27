@@ -29,9 +29,9 @@ import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
 const navItems = [
   { href: "/app", label: "Home", icon: Home },
   { href: "/app/read", label: "Read", icon: BookOpen },
-  { href: "/app/process-map", label: "Discipleship Process", icon: Waypoints },
   { href: "/app/groups", label: "3/3rds Groups", icon: Users },
   { href: "/app/chat", label: "CHAT", icon: MessageCircle },
+  { href: "/app/process-map", label: "Discipleship Process", icon: Waypoints },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

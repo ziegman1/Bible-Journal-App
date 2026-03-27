@@ -25,14 +25,14 @@ const SVG_PALETTE: Record<ProcessNodeType, SvgPalette> = {
     text: "#faf8f5",
   },
   practice: {
-    g0: "#d3d8e2",
-    g1: "#555d72",
-    stroke: "rgba(70,78,95,0.85)",
+    g0: "#d8d1ee",
+    g1: "#5b4f86",
+    stroke: "rgba(76,66,112,0.85)",
     strokeWidth: 1.75,
     text: "#f8fafc",
-    childG0: "#eef1f6",
-    childG1: "#8a92a8",
-    childStroke: "rgba(90,98,118,0.55)",
+    childG0: "#eee9fb",
+    childG1: "#9a8ec6",
+    childStroke: "rgba(102,92,144,0.55)",
     childText: "#f8fafc",
   },
   chat: {
@@ -68,11 +68,11 @@ const SVG_PALETTE: Record<ProcessNodeType, SvgPalette> = {
     text: "#fff5f0",
   },
   transformed: {
-    g0: "#96e3b6",
-    g1: "#0f5e2f",
-    stroke: "rgba(12,70,36,0.9)",
+    g0: "#d6dee9",
+    g1: "#3a475d",
+    stroke: "rgba(34,44,60,0.9)",
     strokeWidth: 2,
-    text: "#f0fdf4",
+    text: "#f8fafc",
   },
   new33: {
     g0: "#5fce9f",
@@ -497,10 +497,10 @@ export function ProcessNodeSvgVisual({
         <g>
           <defs>
             <linearGradient id={gid} x1="18%" y1="12%" x2="82%" y2="95%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-              <stop offset="18%" stopColor="rgba(210,218,232,0.42)" />
-              <stop offset="45%" stopColor="rgba(100,110,135,0.55)" />
-              <stop offset="100%" stopColor="rgba(35,42,58,0.88)" />
+              <stop offset="0%" stopColor="rgba(255,255,255,0.56)" />
+              <stop offset="18%" stopColor="rgba(225,214,246,0.44)" />
+              <stop offset="45%" stopColor="rgba(126,108,172,0.56)" />
+              <stop offset="100%" stopColor="rgba(50,38,82,0.90)" />
             </linearGradient>
             <radialGradient id={specId} cx="32%" cy="28%" r="48%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
@@ -508,9 +508,9 @@ export function ProcessNodeSvgVisual({
               <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </radialGradient>
             <linearGradient id={edgeId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.65)" />
-              <stop offset="50%" stopColor="rgba(180,190,210,0.25)" />
-              <stop offset="100%" stopColor="rgba(40,48,65,0.5)" />
+              <stop offset="0%" stopColor="rgba(248,242,255,0.66)" />
+              <stop offset="50%" stopColor="rgba(186,170,224,0.27)" />
+              <stop offset="100%" stopColor="rgba(56,42,88,0.52)" />
             </linearGradient>
             <linearGradient id={reflId} x1="50%" y1="15%" x2="78%" y2="55%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
@@ -827,10 +827,10 @@ export function ProcessNodeSvgVisual({
               />
             </clipPath>
             <linearGradient id={surfId} x1="14%" y1="10%" x2="86%" y2="92%">
-              <stop offset="0%" stopColor="#84c89f" />
-              <stop offset="30%" stopColor="#2f8252" />
-              <stop offset="70%" stopColor="#11482a" />
-              <stop offset="100%" stopColor="#081f11" />
+              <stop offset="0%" stopColor="#d9e1ec" />
+              <stop offset="30%" stopColor="#7a8aa1" />
+              <stop offset="70%" stopColor="#3a475d" />
+              <stop offset="100%" stopColor="#141b28" />
             </linearGradient>
             <linearGradient id={veilId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
@@ -838,23 +838,23 @@ export function ProcessNodeSvgVisual({
               <stop offset="100%" stopColor="rgba(0,0,0,0.4)" />
             </linearGradient>
             <radialGradient id={glowId} cx="50%" cy="38%" r="68%">
-              <stop offset="0%" stopColor="rgba(180,255,210,0.42)" />
-              <stop offset="60%" stopColor="rgba(40,160,90,0.08)" />
+              <stop offset="0%" stopColor="rgba(226,232,240,0.38)" />
+              <stop offset="60%" stopColor="rgba(148,163,184,0.08)" />
               <stop offset="100%" stopColor="rgba(0,0,0,0)" />
             </radialGradient>
             <radialGradient id={`pm-tr-aura-${id}`} cx="50%" cy="52%" r="58%">
-              <stop offset="0%" stopColor="rgba(180,255,210,0.38)" />
-              <stop offset="70%" stopColor="rgba(80,210,140,0.12)" />
-              <stop offset="100%" stopColor="rgba(80,210,140,0)" />
+              <stop offset="0%" stopColor="rgba(226,232,240,0.34)" />
+              <stop offset="70%" stopColor="rgba(148,163,184,0.12)" />
+              <stop offset="100%" stopColor="rgba(148,163,184,0)" />
             </radialGradient>
             <linearGradient id={`pm-tr-human-${id}`} x1="28%" y1="18%" x2="74%" y2="90%">
-              <stop offset="0%" stopColor="rgba(220,255,234,0.92)" />
-              <stop offset="100%" stopColor="rgba(120,220,160,0.88)" />
+              <stop offset="0%" stopColor="rgba(244,247,252,0.92)" />
+              <stop offset="100%" stopColor="rgba(188,198,214,0.88)" />
             </linearGradient>
             <radialGradient id={`pm-tr-human-core-${id}`} cx="50%" cy="56%" r="34%">
-              <stop offset="0%" stopColor="rgba(236,255,244,0.98)" />
-              <stop offset="46%" stopColor="rgba(180,255,214,0.74)" />
-              <stop offset="100%" stopColor="rgba(180,255,214,0)" />
+              <stop offset="0%" stopColor="rgba(248,250,252,0.98)" />
+              <stop offset="46%" stopColor="rgba(226,232,240,0.74)" />
+              <stop offset="100%" stopColor="rgba(226,232,240,0)" />
             </radialGradient>
             <radialGradient id={`pm-tr-orb-${id}`} cx="50%" cy="60%" r="64%">
               <stop offset="0%" stopColor="rgba(210,236,220,0.08)" />
@@ -867,8 +867,8 @@ export function ProcessNodeSvgVisual({
               <stop offset="100%" stopColor="rgba(12,44,26,0.56)" />
             </linearGradient>
             <radialGradient id={`pm-tr-plate-core-${id}`} cx="50%" cy="46%" r="62%">
-              <stop offset="0%" stopColor="rgba(88,170,118,0.46)" />
-              <stop offset="100%" stopColor="rgba(88,170,118,0)" />
+              <stop offset="0%" stopColor="rgba(176,188,206,0.46)" />
+              <stop offset="100%" stopColor="rgba(176,188,206,0)" />
             </radialGradient>
             <linearGradient id={`pm-tr-shoulder-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="rgba(220,255,236,0.46)" />
@@ -884,11 +884,11 @@ export function ProcessNodeSvgVisual({
               <stop offset="100%" stopColor="rgba(232,255,244,0)" />
             </linearGradient>
             <linearGradient id={`pm-tr-human-beam-${id}`} x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="rgba(220,255,236,0)" />
-              <stop offset="22%" stopColor="rgba(220,255,236,0.22)" />
-              <stop offset="50%" stopColor="rgba(220,255,236,0.36)" />
-              <stop offset="78%" stopColor="rgba(220,255,236,0.22)" />
-              <stop offset="100%" stopColor="rgba(220,255,236,0)" />
+              <stop offset="0%" stopColor="rgba(226,232,240,0)" />
+              <stop offset="22%" stopColor="rgba(226,232,240,0.22)" />
+              <stop offset="50%" stopColor="rgba(226,232,240,0.36)" />
+              <stop offset="78%" stopColor="rgba(226,232,240,0.22)" />
+              <stop offset="100%" stopColor="rgba(226,232,240,0)" />
             </linearGradient>
             <radialGradient id={`pm-tr-human-top-${id}`} cx="50%" cy="24%" r="32%">
               <stop offset="0%" stopColor="rgba(240,255,246,0.44)" />

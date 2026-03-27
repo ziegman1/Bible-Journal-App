@@ -30,28 +30,28 @@ export type ProcessMapNode = {
 };
 
 export const PROCESS_NODES: ProcessMapNode[] = [
-  { id: "me",          label: "Me / BADWR",          x: 24, y: 40, href: "/app",              size: 112, type: "identity"    },
+  { id: "me",          label: "Me / BADWR",          x: 24, y: 40, href: "/app",              size: 190, type: "identity"    },
 
-  { id: "soap",        label: "SOAP",                x: 9,  y: 15, href: "/app/soaps",        size: 61,  type: "practice"    },
-  { id: "pray",        label: "PRAY",                x: 24, y: 11, href: "/app/prayer",       size: 61,  type: "practice"    },
-  { id: "share",       label: "SHARE",               x: 39, y: 15, href: "/app/share",        size: 61,  type: "practice"    },
+  { id: "soap",        label: "SOAP",                x: 9.4,  y: 13.6, href: "/app/soaps",        size: 103,  type: "practice"    },
+  { id: "pray",        label: "PRAY",                x: 25.6, y: 10.5, href: "/app/prayer",       size: 103,  type: "practice"    },
+  { id: "share",       label: "SHARE",               x: 39.7, y: 17.1, href: "/app/share",        size: 103,  type: "practice"    },
 
-  { id: "chat",        label: "CHAT",                x: 6,  y: 39, href: "/app/chat",         size: 61,  type: "chat"        },
+  { id: "chat",        label: "CHAT",                x: 6.0,  y: 39.4, href: "/app/chat",         size: 103,  type: "chat"        },
 
-  { id: "family",      label: "My 3/3 Family",       x: 15, y: 83, href: "/app/groups",       size: 100, type: "community"   },
+  { id: "family",      label: "My 3/3 Family",       x: 17.1, y: 81.0, href: "/app/groups",       size: 169, type: "community"   },
 
-  { id: "watch",       label: "Watch Phase",          x: 46, y: 74, href: "/app/growth/watch", size: 110, type: "watch"       },
+  { id: "watch",       label: "Watch Phase",          x: 46.2, y: 72.6, href: "/app/growth/watch", size: 186, type: "watch"       },
 
-  { id: "model",       label: "Model / Assist",       x: 53, y: 42, href: "/app/assist",       size: 110, type: "model"       },
+  { id: "model",       label: "Model / Assist",       x: 52.8, y: 42.5, href: "/app/assist",       size: 186, type: "model"       },
 
-  { id: "transformed", label: "Transformed Person",   x: 80, y: 55, href: "/app/growth",       size: 105, type: "transformed" },
+  { id: "transformed", label: "Transformed Person",   x: 78.2, y: 55.6, href: "/app/growth",       size: 155, type: "transformed" },
 
-  { id: "t_soap",     label: "SOAPS",               x: 93, y: 43, href: "/app/soaps",        size: 40,  type: "practice",    child: true },
-  { id: "t_share",    label: "SHARE",               x: 96, y: 56, href: "/app/share",        size: 44,  type: "practice",    child: true },
-  { id: "t_chat",     label: "CHAT",                x: 91, y: 71, href: "/app/chat",         size: 38,  type: "chat",        child: true },
-  { id: "t_pray",     label: "PRAY",                x: 81, y: 78, href: "/app/prayer",       size: 38,  type: "practice",    child: true },
+  { id: "t_soap",     label: "SOAPS",               x: 90.4, y: 43.4, href: "/app/soaps",        size: 68,  type: "practice",    child: true },
+  { id: "t_share",    label: "SHARE",               x: 93.2, y: 55.6, href: "/app/share",        size: 74,  type: "practice",    child: true },
+  { id: "t_chat",     label: "CHAT",                x: 91.1, y: 72.1, href: "/app/chat",         size: 64,  type: "chat",        child: true },
+  { id: "t_pray",     label: "PRAY",                x: 81.5, y: 79.0, href: "/app/prayer",       size: 64,  type: "practice",    child: true },
 
-  { id: "new33",       label: "New 3/3",              x: 70, y: 88, href: "/app/groups/new",   size: 86,  type: "new33"       },
+  { id: "new33",       label: "New 3/3",              x: 68.8, y: 85.7, href: "/app/groups/new",   size: 146,  type: "new33"       },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════

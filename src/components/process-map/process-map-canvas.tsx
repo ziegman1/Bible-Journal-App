@@ -347,7 +347,7 @@ function isDailyPracticeHubEdge(from: string, to: string): boolean {
   return from === "me" && ["soap", "pray", "share", "chat"].includes(to);
 }
 
-/** Transformed Person → SOAPS / CHAT / SHARE / PRAY satellites — green “electrode” bolts */
+/** Transformed Person → SOAPS / CHAT / SHARE / PRAY satellites — silver “electrode” bolts */
 function isTransformedPracticeElectrodeEdge(from: string, to: string): boolean {
   return (
     from === "transformed" &&
@@ -355,9 +355,9 @@ function isTransformedPracticeElectrodeEdge(from: string, to: string): boolean {
   );
 }
 
-const ELECTRODE_GREEN_OUTER = "rgba(52, 211, 153, 0.48)";
-const ELECTRODE_GREEN_MAIN = "rgb(34, 197, 94)";
-const ELECTRODE_GREEN_CORE = "rgb(220, 252, 231)";
+const ELECTRODE_GREEN_OUTER = "rgba(203, 213, 225, 0.48)";
+const ELECTRODE_GREEN_MAIN = "rgb(148, 163, 184)";
+const ELECTRODE_GREEN_CORE = "rgb(241, 245, 249)";
 const ELECTRODE_STROKE_PX = 5.25;
 const ELECTRODE_HALO_PX = 9.45;
 const ELECTRODE_CORE_PX = 1.18;
@@ -650,7 +650,7 @@ function ProcessMapConnections() {
         const tint = edgeTintId(from, to);
         const isChild = to.startsWith("t_");
         const gradUrl = `url(#pm-e-${tint})`;
-        const curveF = isChild ? 0.12 : 0.18;
+        const curveF = isChild ? 0.105 : 0.16;
         const flowD = organicFlowPath(a.x, a.y, b.x, b.y, i, curveF);
         const hubEdge = isDailyPracticeHubEdge(from, to);
         const pulseDur = 19 + (i % 6) * 1.4;
@@ -659,7 +659,7 @@ function ProcessMapConnections() {
         const meOutDim = from === "me" ? 0.78 : 1;
 
         if (isTransformedPracticeElectrodeEdge(from, to)) {
-          const cf = 0.12;
+          const cf = 0.105;
           const electrodeD = electricBoltPath(a.x, a.y, b.x, b.y, i, cf);
           const flickerDur = `${0.11 + (i % 4) * 0.02}s`;
           const tid = taperMaskId(from, to);
@@ -709,7 +709,7 @@ function ProcessMapConnections() {
               <FlowEnergyPulses
                 pathId={pathId}
                 d={electrodeD}
-                fill="rgba(210,255,230,0.95)"
+                fill="rgba(226,232,240,0.95)"
                 durSec={23}
                 staggerSec={11.5}
                 radius={0.3}
@@ -1155,58 +1155,58 @@ function ProcessMapConnections() {
       })}
 
       {/* ── Directional flow arrows ───────────────────────────────────── */}
-      {FLOW_ARROWS.map((arrow) => {
+      {FLOW_ARROWS.map((arrow, ai) => {
         const a = byId.get(arrow.from);
         const b = byId.get(arrow.to);
         if (!a || !b) return null;
 
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const angle = Math.atan2(dy, dx);
-
-        const chevrons: { cx: number; cy: number; ang: number; op: number }[] = [];
-        for (let i = 0; i < arrow.count; i++) {
-          const t = arrow.startT + (arrow.endT - arrow.startT) * (i / Math.max(arrow.count - 1, 1));
-          const cx = a.x + dx * t;
-          const cy = a.y + dy * t;
-          const fade = 1 - Math.abs(t - 0.5) * 0.5;
-          chevrons.push({ cx, cy, ang: angle, op: arrow.opacity * fade });
-        }
-
-        if (arrow.reverse) {
-          const revAngle = angle + Math.PI;
-          const midT = (arrow.startT + arrow.endT) / 2;
-          const offset = (arrow.endT - arrow.startT) * 0.15;
-          for (let i = 0; i < Math.max(arrow.count - 1, 1); i++) {
-            const t = (midT - offset) + (offset * 2) * (i / Math.max(arrow.count - 2, 1));
-            const perpDist = 3.5;
-            const px = -Math.sin(angle) * perpDist;
-            const py = Math.cos(angle) * perpDist;
-            const cx = a.x + dx * t + px;
-            const cy = a.y + dy * t + py;
-            chevrons.push({ cx, cy, ang: revAngle, op: arrow.opacity * 0.35 });
-          }
-        }
+        const curveFactor = 0.16;
+        const { c1x, c1y, c2x, c2y } = curvedControlPoints(
+          a.x,
+          a.y,
+          b.x,
+          b.y,
+          ai,
+          curveFactor,
+        );
+        const t = 0.95;
+        const [cx, cy] = cubicBezierPoint(
+          t,
+          a.x,
+          a.y,
+          c1x,
+          c1y,
+          c2x,
+          c2y,
+          b.x,
+          b.y,
+        );
+        const [tx, ty] = cubicBezierTangent(
+          t,
+          a.x,
+          a.y,
+          c1x,
+          c1y,
+          c2x,
+          c2y,
+          b.x,
+          b.y,
+        );
+        const angle = Math.atan2(ty, tx);
+        const d = chevronPath(cx, cy, angle, arrow.size);
 
         return (
           <g key={`arrow-${arrow.from}-${arrow.to}`}>
-            {chevrons.map((ch, ci) => {
-              const d = chevronPath(ch.cx, ch.cy, ch.ang, arrow.size);
-              return (
-                <g key={ci}>
-                  <path
-                    d={d}
-                    fill={arrow.glowColor}
-                    filter="url(#pm-arrow-glow)"
-                  />
-                  <path
-                    d={d}
-                    fill={arrow.color}
-                    opacity={ch.op}
-                  />
-                </g>
-              );
-            })}
+            <path
+              d={d}
+              fill={arrow.glowColor}
+              filter="url(#pm-arrow-glow)"
+            />
+            <path
+              d={d}
+              fill={arrow.color}
+              opacity={arrow.opacity}
+            />
           </g>
         );
       })}
@@ -1396,7 +1396,7 @@ function ProcessMapPlaque({
       <div
         className="relative"
         style={{
-          padding: isTitle ? "3px" : "2px",
+          padding: isTitle ? "3px" : "2.6px",
           borderRadius: isTitle ? 8 : 6,
           background:
             "linear-gradient(180deg, rgba(55,65,95,0.70) 0%, rgba(28,33,55,0.80) 100%)",
@@ -1414,14 +1414,14 @@ function ProcessMapPlaque({
             rows.length <= 1 && "whitespace-nowrap",
           )}
           style={{
-            borderRadius: isTitle ? 6 : 4,
+            borderRadius: isTitle ? 6 : 5.2,
             background:
               "linear-gradient(180deg, rgba(22,28,48,0.92) 0%, rgba(14,18,34,0.96) 100%)",
             border: "1px solid rgba(100,116,160,0.18)",
-            paddingLeft: isTitle ? 18 : 10,
-            paddingRight: isTitle ? 18 : 10,
-            paddingTop: isTitle ? 7 : rows.length > 1 ? 6 : 4,
-            paddingBottom: isTitle ? 7 : rows.length > 1 ? 6 : 4,
+            paddingLeft: isTitle ? 18 : 13,
+            paddingRight: isTitle ? 18 : 13,
+            paddingTop: isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2,
+            paddingBottom: isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2,
             gap: rows.length > 1 ? 2 : 0,
             boxShadow: [
               "inset 0 1px 0 rgba(148,163,184,0.10)",
@@ -1447,7 +1447,7 @@ function ProcessMapPlaque({
           <span
             className="relative flex flex-col items-center font-bold uppercase leading-tight"
             style={{
-              fontSize: isTitle ? 13 : 9,
+              fontSize: isTitle ? 13 : 11.7,
               letterSpacing: isTitle ? "0.14em" : "0.08em",
               color: isTitle
                 ? "rgba(203,213,225,0.90)"
@@ -1498,7 +1498,7 @@ function ProcessMapChrome() {
         <span
           className="inline-flex items-center whitespace-nowrap font-semibold uppercase"
           style={{
-            fontSize: 16,
+            fontSize: 21,
             letterSpacing: "0.12em",
             color: "rgba(226,232,240,0.94)",
             textShadow: "0 1px 3px rgba(0,0,0,0.42)",
@@ -2030,7 +2030,7 @@ function ProcessMapBackground() {
 export function ProcessMapCanvas() {
   return (
     <div
-      className="relative mx-auto w-full max-w-[1200px] overflow-hidden rounded-xl border border-white/[0.06]"
+      className="relative mx-auto w-full max-w-[980px] overflow-hidden rounded-xl border border-white/[0.06]"
       style={{ aspectRatio: "16 / 10" }}
     >
       <ProcessMapBackground />
