@@ -52,6 +52,22 @@ function weekdayLabel(labels: readonly string[], n: number | null | undefined) {
   return labels[n] ?? "—";
 }
 
+function buildChatProposalShareText(input: {
+  groupName: string;
+  weekdayText: string;
+  meetingTimeText: string;
+  readingPlan: string;
+}) {
+  return [
+    `CHAT proposal for ${input.groupName}`,
+    "",
+    `When: ${input.weekdayText}${input.meetingTimeText ? ` · ${input.meetingTimeText}` : ""}`,
+    `Reading: ${input.readingPlan}`,
+    "",
+    "Please review and agree in the app.",
+  ].join("\n");
+}
+
 export function ChatGroupPlanSection({
   groupId,
   currentUserId,
@@ -116,6 +132,28 @@ export function ChatGroupPlanSection({
       router.refresh();
     });
   };
+
+  const draftWeekdayText = weekdayLabel(workspace.weekdayLabels, Number.parseInt(weekday, 10));
+  const draftShareText = buildChatProposalShareText({
+    groupName: workspace.group.name,
+    weekdayText: draftWeekdayText,
+    meetingTimeText: timeText.trim(),
+    readingPlan: readingPlan.trim() || "(add reading plan)",
+  });
+  const draftSmsHref = `sms:?&body=${encodeURIComponent(draftShareText)}`;
+  const canTextDraftProposal = timeText.trim().length > 0 && readingPlan.trim().length > 0;
+
+  const pendingShareText = workspace.pendingProposal
+    ? buildChatProposalShareText({
+        groupName: workspace.group.name,
+        weekdayText: weekdayLabel(workspace.weekdayLabels, workspace.pendingProposal.weekday),
+        meetingTimeText: workspace.pendingProposal.meeting_time_text,
+        readingPlan: workspace.pendingProposal.reading_plan,
+      })
+    : null;
+  const pendingSmsHref = pendingShareText
+    ? `sms:?&body=${encodeURIComponent(pendingShareText)}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -207,14 +245,23 @@ export function ChatGroupPlanSection({
                 );
               })}
             </ul>
-            {!hasAgreed && (
-              <Button
-                onClick={() => onAgree(workspace.pendingProposal!.id)}
-                disabled={pending}
-              >
-                I agree to this plan
-              </Button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {!hasAgreed && (
+                <Button
+                  onClick={() => onAgree(workspace.pendingProposal!.id)}
+                  disabled={pending}
+                >
+                  I agree to this plan
+                </Button>
+              )}
+              {pendingSmsHref && (
+                <a href={pendingSmsHref}>
+                  <Button type="button" variant="outline">
+                    Text Proposal
+                  </Button>
+                </a>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -265,9 +312,20 @@ export function ChatGroupPlanSection({
               onChange={(e) => setReadingPlan(e.target.value)}
             />
           </div>
-          <Button onClick={onPropose} disabled={pending}>
-            Submit proposal
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={onPropose} disabled={pending}>
+              Submit proposal
+            </Button>
+            <a
+              href={draftSmsHref}
+              aria-disabled={!canTextDraftProposal}
+              className={!canTextDraftProposal ? "pointer-events-none opacity-50" : undefined}
+            >
+              <Button type="button" variant="outline" disabled={!canTextDraftProposal}>
+                Text Proposal
+              </Button>
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>

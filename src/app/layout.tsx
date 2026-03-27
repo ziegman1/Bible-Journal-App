@@ -19,23 +19,24 @@ export const metadata: Metadata = {
   title: "BADWR",
   description: "Be A Disciple Worth Reproducing",
   openGraph: {
+    title: "Be A Disciple Worth Reproducing",
+    description: "Be A Disciple Worth Reproducing",
     url: "https://badwr.app",
     siteName: "BADWR",
-    type: "website",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "BADWR",
       },
     ],
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/og-image.png"],
     title: "BADWR",
     description: "Be A Disciple Worth Reproducing",
+    images: ["/og-image.png"],
   },
 };
 
