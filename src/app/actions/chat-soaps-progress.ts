@@ -58,5 +58,7 @@ export async function recordChatSoapsChapterComplete(
 
   revalidatePath("/app");
   revalidatePath("/app/read");
+  revalidatePath(`/app/chat/groups/${groupId}`);
+  revalidatePath(`/app/chat/groups/${groupId}/manage`);
   return { success: true as const };
 }

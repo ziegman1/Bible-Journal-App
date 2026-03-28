@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getGroup } from "@/app/actions/groups";
 import { createClient } from "@/lib/supabase/server";
 import { ChatAccountabilityGuide } from "@/components/chat/chat-accountability-guide";
+import { ChatReadingPaceCard } from "@/components/chat/chat-reading-pace-card";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import { Settings } from "lucide-react";
@@ -85,7 +86,10 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
         </Link>
       </header>
 
-      <ChatAccountabilityGuide variant="meeting" />
+      <div className="space-y-8">
+        <ChatReadingPaceCard groupId={groupId} variant="meeting" />
+        <ChatAccountabilityGuide variant="meeting" />
+      </div>
     </div>
   );
 }

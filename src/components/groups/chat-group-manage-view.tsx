@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getChatGroupWorkspace } from "@/app/actions/chat-groups";
+import { ChatReadingPaceCard } from "@/components/chat/chat-reading-pace-card";
 import { ChatGroupPlanSection } from "@/components/groups/chat-group-plan-section";
 import { GroupWorkspaceManageSection } from "@/components/groups/group-workspace-manage-section";
 import { ShareChatGroupSheet } from "@/components/groups/share-chat-group-sheet";
@@ -96,6 +97,8 @@ export async function ChatGroupManageView({
         currentUserId={currentUserId}
         workspace={ws}
       />
+
+      <ChatReadingPaceCard groupId={groupId} variant="manage" />
 
       <section>
         <Link
