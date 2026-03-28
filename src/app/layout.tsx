@@ -16,13 +16,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://badwr.app"),
-  title: "Be A Disciple Worth Reproducing",
+  title: "BADWR",
   description: "Be A Disciple Worth Reproducing",
   openGraph: {
-    title: "Be A Disciple Worth Reproducing",
+    title: "BADWR",
     description: "Be A Disciple Worth Reproducing",
     url: "https://badwr.app",
-    siteName: "Be A Disciple Worth Reproducing",
+    siteName: "BADWR",
     images: [
       {
         url: "/og-image.png",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Be A Disciple Worth Reproducing",
+    title: "BADWR",
     description: "Be A Disciple Worth Reproducing",
     images: ["/og-image.png"],
   },

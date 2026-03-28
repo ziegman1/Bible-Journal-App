@@ -3,7 +3,6 @@
  */
 
 export const mockIdentityCore = {
-  displayName: "Alex",
   phaseLabel: "Growing season",
   nextActionLabel: "Start today’s SOAP",
   nextActionHref: "/app/soaps",
