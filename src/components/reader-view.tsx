@@ -52,6 +52,11 @@ interface ReaderViewProps {
   resumeScroll?: boolean;
   prevChapterNav?: ReaderChapterNavLink | null;
   nextChapterNav?: ReaderChapterNavLink | null;
+  /**
+   * When set (?chatSoapsGroup=… from dashboard CHAT SOAPS), saving SOAPS here updates
+   * per-group reading progress only for this flow.
+   */
+  chatSoapsGroupId?: string | null;
   aiStyle?: "concise" | "balanced" | "in-depth";
   initialHighlights?: Set<number>;
   initialHighlightIds?: Map<number, string>;
@@ -67,6 +72,7 @@ export function ReaderView({
   resumeScroll = false,
   prevChapterNav = null,
   nextChapterNav = null,
+  chatSoapsGroupId = null,
   aiStyle = "balanced",
   initialHighlights = new Set(),
   initialHighlightIds = new Map(),
@@ -397,6 +403,16 @@ export function ReaderView({
         return;
       }
       setSavingRead(true);
+      if (chatSoapsGroupId) {
+        setSavingRead(false);
+        savedThisVisitRef.current = true;
+        setHasRecordedRead(true);
+        if (navigateHref) {
+          toast.success("Opening next chapter");
+          router.push(navigateHref);
+        }
+        return;
+      }
       const result = await saveReadingSession(
         bookName,
         chapterNum,
@@ -423,6 +439,7 @@ export function ReaderView({
       bookName,
       chapterNum,
       router,
+      chatSoapsGroupId,
     ]
   );
 
@@ -582,6 +599,7 @@ export function ReaderView({
             bookName={bookName}
             currentChapter={chapterNum}
             chapterCount={chapterCount}
+            chatSoapsGroupId={chatSoapsGroupId}
           />
         </div>
         <div className="flex gap-2 shrink-0">
@@ -785,6 +803,7 @@ export function ReaderView({
                     verseStart={selectedRange?.start ?? null}
                     verseEnd={selectedRange?.end ?? null}
                     passageText={passageTextContent ?? undefined}
+                    chatSoapsGroupId={chatSoapsGroupId ?? undefined}
                     compact
                     onClose={() => setPanelOpen(false)}
                   />
@@ -881,6 +900,7 @@ export function ReaderView({
                   verseStart={selectedRange?.start ?? null}
                   verseEnd={selectedRange?.end ?? null}
                   passageText={passageTextContent ?? undefined}
+                  chatSoapsGroupId={chatSoapsGroupId ?? undefined}
                   compact
                   onClose={() => setPanelOpen(false)}
                 />

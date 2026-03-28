@@ -342,7 +342,7 @@ const EDGE_TINTS: EdgeTint[] = [
   { id: "child",      c1: "rgb(74,222,128)",  c2: "rgb(52,211,153)",  c3: "rgb(74,222,128)",  o1: 0.22, o2: 0.34, o3: 0.22 },
 ];
 
-/** Me → SOAP / PRAY / SHARE / CHAT — styled as thick electric-blue hub lines */
+/** Me → SOAPS / PRAY / SHARE / CHAT — styled as thick electric-blue hub lines */
 function isDailyPracticeHubEdge(from: string, to: string): boolean {
   return from === "me" && ["soap", "pray", "share", "chat"].includes(to);
 }

@@ -108,7 +108,7 @@ function shapeFor(type: ProcessNodeType, size: number, isChild: boolean): ShapeG
       };
     case "practice":
     case "chat":
-      /* SOAP / PRAY / SHARE / CHAT — perfect circles (same diameter = size) */
+      /* SOAPS / PRAY / SHARE / CHAT — perfect circles (same diameter = size) */
       return { w: size, h: size, radius: "50%" };
     case "watch":
       /* Horizontal oval — same footprint as Model / Assist (vertical oval rotated 90°) */

@@ -8,12 +8,18 @@ import { listFavoritePassages } from "@/app/actions/favorites";
 
 interface PageProps {
   params: Promise<{ book: string; chapter: string }>;
-  searchParams: Promise<{ resume?: string }>;
+  searchParams: Promise<{ resume?: string; chatSoapsGroup?: string }>;
+}
+
+function appendChatSoapsQuery(href: string, groupId: string) {
+  const join = href.includes("?") ? "&" : "?";
+  return `${href}${join}chatSoapsGroup=${encodeURIComponent(groupId)}`;
 }
 
 export default async function ChapterPage({ params, searchParams }: PageProps) {
   const { book: bookId, chapter: chapterStr } = await params;
-  const { resume: resumeParam } = await searchParams;
+  const { resume: resumeParam, chatSoapsGroup: chatSoapsGroupParam } =
+    await searchParams;
   const resumeScroll =
     resumeParam === "1" ||
     resumeParam === "true" ||
@@ -34,6 +40,25 @@ export default async function ChapterPage({ params, searchParams }: PageProps) {
     ? await supabase.from("profiles").select("ai_style").eq("id", user.id).single()
     : { data: null };
 
+  let chatSoapsGroupId: string | null = null;
+  const rawGroup = chatSoapsGroupParam?.trim();
+  if (rawGroup && user) {
+    const { data: grp } = await supabase
+      .from("groups")
+      .select("group_kind")
+      .eq("id", rawGroup)
+      .maybeSingle();
+    const { data: mem } = await supabase
+      .from("group_members")
+      .select("user_id")
+      .eq("group_id", rawGroup)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (grp?.group_kind === "chat" && mem) {
+      chatSoapsGroupId = rawGroup;
+    }
+  }
+
   const [{ highlights }, { favorites }] = await Promise.all([
     listHighlights(book.name, chapterNum),
     listFavoritePassages(),
@@ -51,13 +76,28 @@ export default async function ChapterPage({ params, searchParams }: PageProps) {
     }
   });
 
+  const prevHref =
+    chapterNum > 1 ? `/app/read/${bookId}/${chapterNum - 1}` : null;
+  const nextHref =
+    chapterNum < book.chapterCount ? `/app/read/${bookId}/${chapterNum + 1}` : null;
+
   const prevChapter: ReaderChapterNavLink | null =
-    chapterNum > 1
-      ? { href: `/app/read/${bookId}/${chapterNum - 1}`, label: `${book.name} ${chapterNum - 1}` }
+    prevHref != null
+      ? {
+          href: chatSoapsGroupId
+            ? appendChatSoapsQuery(prevHref, chatSoapsGroupId)
+            : prevHref,
+          label: `${book.name} ${chapterNum - 1}`,
+        }
       : null;
   const nextChapter: ReaderChapterNavLink | null =
-    chapterNum < book.chapterCount
-      ? { href: `/app/read/${bookId}/${chapterNum + 1}`, label: `${book.name} ${chapterNum + 1}` }
+    nextHref != null
+      ? {
+          href: chatSoapsGroupId
+            ? appendChatSoapsQuery(nextHref, chatSoapsGroupId)
+            : nextHref,
+          label: `${book.name} ${chapterNum + 1}`,
+        }
       : null;
 
   return (
@@ -71,6 +111,7 @@ export default async function ChapterPage({ params, searchParams }: PageProps) {
         resumeScroll={resumeScroll}
         prevChapterNav={prevChapter}
         nextChapterNav={nextChapter}
+        chatSoapsGroupId={chatSoapsGroupId}
         aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
         initialHighlights={highlightedVerses}
         initialHighlightIds={highlightIdsByVerse}

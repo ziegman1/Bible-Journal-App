@@ -9,11 +9,11 @@ export default function SoapsPage() {
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-serif font-light text-stone-900 dark:text-stone-100">
-          SOAP
+          SOAPS
         </h1>
         <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
           Placeholder route for the new dashboard flow. Connect this page to the full
-          SOAP experience next.
+          SOAPS experience next.
         </p>
       </div>
 
@@ -26,7 +26,7 @@ export default function SoapsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            TODO: route this page into the dedicated SOAP workflow. For now, use the
+            TODO: route this page into the dedicated SOAPS workflow. For now, use the
             journal hub.
           </p>
           <div className="flex flex-wrap gap-2">

@@ -4,8 +4,6 @@
 
 export const mockIdentityCore = {
   phaseLabel: "Growing season",
-  nextActionLabel: "Start today’s SOAP",
-  nextActionHref: "/app/soaps",
   stats: [
     { label: "This week", value: "3 entries" },
     { label: "Reading streak", value: "5 days" },
@@ -16,8 +14,8 @@ export const mockIdentityCore = {
 
 export const mockPracticeNodes = [
   {
-    title: "SOAP" as const,
-    description: "Scripture, observation, application, prayer.",
+    title: "SOAPS" as const,
+    description: "Scripture, observation, application, prayer, share.",
     statusLabel: "Ready",
     secondaryMeta: "Last: yesterday",
     href: "/app/soaps",

@@ -32,7 +32,7 @@ export type ProcessMapNode = {
 export const PROCESS_NODES: ProcessMapNode[] = [
   { id: "me",          label: "Me / BADWR",          x: 24, y: 40, href: "/app",              size: 190, type: "identity"    },
 
-  { id: "soap",        label: "SOAP",                x: 9.4,  y: 13.6, href: "/app/soaps",        size: 103,  type: "practice"    },
+  { id: "soap",        label: "SOAPS",               x: 9.4,  y: 13.6, href: "/app/soaps",        size: 103,  type: "practice"    },
   { id: "pray",        label: "PRAY",                x: 25.6, y: 10.5, href: "/app/prayer",       size: 103,  type: "practice"    },
   { id: "share",       label: "SHARE",               x: 39.7, y: 17.1, href: "/app/share",        size: 103,  type: "practice"    },
 

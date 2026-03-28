@@ -14,6 +14,8 @@ interface ChapterSelectorProps {
   bookName: string;
   currentChapter: number;
   chapterCount: number;
+  /** Preserve CHAT SOAPS reader mode when switching chapters. */
+  chatSoapsGroupId?: string | null;
 }
 
 export function ChapterSelector({
@@ -21,8 +23,15 @@ export function ChapterSelector({
   bookName,
   currentChapter,
   chapterCount,
+  chatSoapsGroupId = null,
 }: ChapterSelectorProps) {
   const router = useRouter();
+
+  const readPath = (chapter: number) => {
+    const base = `/app/read/${bookId}/${chapter}`;
+    if (!chatSoapsGroupId) return base;
+    return `${base}?chatSoapsGroup=${encodeURIComponent(chatSoapsGroupId)}`;
+  };
 
   return (
     <Select
@@ -30,7 +39,7 @@ export function ChapterSelector({
       onValueChange={(v) => {
         if (v == null) return;
         const ch = parseInt(String(v), 10);
-        router.push(`/app/read/${bookId}/${ch}`);
+        router.push(readPath(ch));
       }}
     >
       <SelectTrigger className="w-[100px] h-8 text-sm">

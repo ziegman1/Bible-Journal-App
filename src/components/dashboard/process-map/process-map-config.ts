@@ -37,7 +37,7 @@ export const PROCESS_MAP_NODES: ProcessNodeConfig[] = [
   { id: "me",          label: "Me / BADWR",         x: 45, y: 45, type: "identity",  href: "/app",              size: "lg" },
 
   // Daily practice ring
-  { id: "soap",        label: "SOAP",               x: 30, y: 15, type: "practice",  href: "/app/soaps",        size: "md" },
+  { id: "soap",        label: "SOAPS",              x: 30, y: 15, type: "practice",  href: "/app/soaps",        size: "md" },
   { id: "pray",        label: "PRAY",               x: 45, y: 12, type: "practice",  href: "/app/prayer",       size: "md" },
   { id: "share",       label: "SHARE",              x: 60, y: 15, type: "practice",  href: "/app/share",        size: "md" },
 
