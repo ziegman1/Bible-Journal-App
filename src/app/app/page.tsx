@@ -39,6 +39,7 @@ export default async function DashboardPage() {
     const chatGroups = "groups" in listResult ? (listResult.groups ?? []) : [];
     const primaryChat = chatGroups[0];
     if (primaryChat) {
+      primaryChatGroupId = primaryChat.id;
       const { data: progress } = await supabase
         .from("chat_soaps_reading_progress")
         .select("book_id, last_completed_chapter")
