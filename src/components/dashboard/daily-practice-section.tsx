@@ -1,7 +1,12 @@
+import { ChatDashboardPracticeCard } from "@/components/dashboard/chat-dashboard-practice-card";
 import { PracticeNodeCard } from "@/components/dashboard/practice-node-card";
 import { mockPracticeNodes } from "@/lib/dashboard/mock-dashboard-data";
 
-export function DailyPracticeSection() {
+export async function DailyPracticeSection({
+  primaryChatGroupId = null,
+}: {
+  primaryChatGroupId?: string | null;
+}) {
   return (
     <section aria-labelledby="dashboard-daily-heading">
       <h2
@@ -11,17 +16,21 @@ export function DailyPracticeSection() {
         Daily practice
       </h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {mockPracticeNodes.map((node) => (
-          <PracticeNodeCard
-            key={node.title}
-            title={node.title}
-            description={node.description}
-            statusLabel={node.statusLabel}
-            secondaryMeta={"secondaryMeta" in node ? node.secondaryMeta : undefined}
-            href={node.href}
-            theme={node.theme}
-          />
-        ))}
+        {mockPracticeNodes.map((node) =>
+          node.theme === "chat" && primaryChatGroupId ? (
+            <ChatDashboardPracticeCard key="chat-pace" groupId={primaryChatGroupId} />
+          ) : (
+            <PracticeNodeCard
+              key={node.title}
+              title={node.title}
+              description={node.description}
+              statusLabel={node.statusLabel}
+              secondaryMeta={"secondaryMeta" in node ? node.secondaryMeta : undefined}
+              href={node.href}
+              theme={node.theme}
+            />
+          )
+        )}
       </div>
     </section>
   );

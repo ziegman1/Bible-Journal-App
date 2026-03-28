@@ -22,6 +22,7 @@ export default async function DashboardPage() {
   let displayName = "Reader";
   let soapsActionHref = "/app/read/matthew/1";
   const soapsActionLabel = "Start today's SOAPS";
+  let primaryChatGroupId: string | null = null;
 
   if (user && supabase) {
     const { data: profile } = await supabase
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
           nextActionLabel={soapsActionLabel}
         />
       }
-      daily={<DailyPracticeSection />}
+      daily={<DailyPracticeSection primaryChatGroupId={primaryChatGroupId} />}
       context={<ContextInsightSection />}
       community={<CommunityRingSection />}
       growth={<GrowthJourneySection />}

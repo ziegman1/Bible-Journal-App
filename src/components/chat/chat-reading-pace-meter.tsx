@@ -11,6 +11,8 @@ type Props = {
   daysElapsed: number;
   chaptersPerDay: number;
   className?: string;
+  /** Smaller gauge and copy for dashboard tiles. */
+  variant?: "default" | "compact";
 };
 
 export function ChatReadingPaceMeter({
@@ -22,16 +24,21 @@ export function ChatReadingPaceMeter({
   daysElapsed,
   chaptersPerDay,
   className,
+  variant = "default",
 }: Props) {
   const statusLabel =
     status === "on_pace" ? "On pace" : status === "ahead" ? "Ahead of pace" : "Behind pace";
+  const compact = variant === "compact";
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn(compact ? "space-y-1.5" : "space-y-3", className)}>
       <div className="flex justify-center">
         <svg
           viewBox="0 0 200 118"
-          className="h-32 w-full max-w-[220px] text-muted-foreground"
+          className={cn(
+            "w-full text-muted-foreground",
+            compact ? "h-24 max-w-[200px]" : "h-32 max-w-[220px]"
+          )}
           role="img"
           aria-label={`${statusLabel}. ${message} Expected ${expectedChapters} chapters over ${daysElapsed} day${daysElapsed === 1 ? "" : "s"} at ${chaptersPerDay} per day; you have completed ${actualChapters}.`}
         >
@@ -39,19 +46,23 @@ export function ChatReadingPaceMeter({
             d="M 28 100 A 72 72 0 0 1 172 100"
             fill="none"
             stroke="currentColor"
-            strokeWidth="6"
+            strokeWidth={compact ? "5" : "6"}
             strokeLinecap="round"
             className="text-border"
           />
-          <text x="24" y="108" className="fill-muted-foreground text-[10px] font-medium">
-            Behind
-          </text>
-          <text x="86" y="22" className="fill-muted-foreground text-[10px] font-medium">
-            On pace
-          </text>
-          <text x="158" y="108" className="fill-muted-foreground text-[10px] font-medium">
-            Ahead
-          </text>
+          {!compact ? (
+            <>
+              <text x="24" y="108" className="fill-muted-foreground text-[10px] font-medium">
+                Behind
+              </text>
+              <text x="86" y="22" className="fill-muted-foreground text-[10px] font-medium">
+                On pace
+              </text>
+              <text x="158" y="108" className="fill-muted-foreground text-[10px] font-medium">
+                Ahead
+              </text>
+            </>
+          ) : null}
           <g transform="translate(100, 100)">
             <line
               x1="0"
@@ -59,7 +70,7 @@ export function ChatReadingPaceMeter({
               x2="0"
               y2="-68"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth={compact ? "2.5" : "3"}
               strokeLinecap="round"
               className={cn(
                 "text-foreground",
@@ -68,20 +79,28 @@ export function ChatReadingPaceMeter({
               )}
               transform={`rotate(${needleDegrees - 90}, 0, 0)`}
             />
-            <circle r="5" className="fill-foreground" />
+            <circle r={compact ? 4 : 5} className="fill-foreground" />
           </g>
         </svg>
       </div>
-      <div className="space-y-1 text-center">
+      <div className={cn("text-center", compact ? "space-y-0.5" : "space-y-1")}>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {statusLabel}
         </p>
-        <p className="text-sm text-foreground">{message}</p>
-        <p className="text-xs text-muted-foreground">
-          Plan: {expectedChapters} chapter{expectedChapters === 1 ? "" : "s"} expected ·{" "}
-          {actualChapters} completed ({daysElapsed} day{daysElapsed === 1 ? "" : "s"} ×{" "}
-          {chaptersPerDay}/day)
+        <p className={cn("text-foreground", compact ? "text-xs leading-snug" : "text-sm")}>
+          {message}
         </p>
+        {!compact ? (
+          <p className="text-xs text-muted-foreground">
+            Plan: {expectedChapters} chapter{expectedChapters === 1 ? "" : "s"} expected ·{" "}
+            {actualChapters} completed ({daysElapsed} day{daysElapsed === 1 ? "" : "s"} ×{" "}
+            {chaptersPerDay}/day)
+          </p>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">
+            {expectedChapters} expected · {actualChapters} done · {chaptersPerDay}/day
+          </p>
+        )}
       </div>
     </div>
   );

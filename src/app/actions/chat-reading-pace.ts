@@ -159,6 +159,7 @@ export async function updateChatGroupReadingPace(
 
   if (error) return { error: error.message };
 
+  revalidatePath("/app");
   revalidatePath(`/app/chat/groups/${groupId}`);
   revalidatePath(`/app/chat/groups/${groupId}/manage`);
   revalidatePath("/app/chat");
