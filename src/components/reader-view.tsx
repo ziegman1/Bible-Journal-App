@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { createHighlight, deleteHighlight } from "@/app/actions/highlights";
 import { addFavoritePassage, removeFavoritePassage } from "@/app/actions/favorites";
 import { saveReadingSession } from "@/app/actions/journal";
+import { recordChatSoapsChapterComplete } from "@/app/actions/chat-soaps-progress";
 import { toast } from "sonner";
 import type { Chapter } from "@/lib/scripture/types";
 import { readStoredScrollY, writeStoredScrollY } from "@/lib/reading-scroll-storage";
@@ -333,6 +334,17 @@ export function ReaderView({
   const minVisibleMs = isEmpty ? 0 : minVisibleReadMsForChapter(chapterWordCount);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
   const savedThisVisitRef = useRef(false);
+  /** CHAT SOAPS bookmark persisted to server for this chapter visit */
+  const chatSoapsPersistedRef = useRef(false);
+  const chatSoapsFlushInFlightRef = useRef(false);
+  /** Latest reader state for pagehide / visibility (avoid stale listeners) */
+  const chatSoapsSnapRef = useRef({
+    groupId: "" as string,
+    bookId: "",
+    chapter: 0,
+    reachedEnd: false,
+    dwellMet: false,
+  });
   const [reachedChapterEnd, setReachedChapterEnd] = useState(false);
   const [visibleElapsedMs, setVisibleElapsedMs] = useState(0);
   const [savingRead, setSavingRead] = useState(false);
@@ -348,7 +360,103 @@ export function ReaderView({
     setVisibleElapsedMs(0);
     setHasRecordedRead(false);
     savedThisVisitRef.current = false;
+    chatSoapsPersistedRef.current = false;
+    chatSoapsFlushInFlightRef.current = false;
   }, [bookId, chapterNum]);
+
+  chatSoapsSnapRef.current = {
+    groupId: chatSoapsGroupId ?? "",
+    bookId,
+    chapter: chapterNum,
+    reachedEnd: reachedChapterEnd,
+    dwellMet: timeRequirementMet,
+  };
+
+  const persistChatSoapsBookmark = useCallback(
+    async (opts: { requireDwell: boolean; showSaving: boolean }): Promise<boolean> => {
+      if (!chatSoapsGroupId) return true;
+      if (chatSoapsPersistedRef.current) return true;
+      if (!reachedChapterEnd) return false;
+      if (opts.requireDwell && !timeRequirementMet) return false;
+      if (opts.showSaving) setSavingRead(true);
+      const out = await recordChatSoapsChapterComplete(
+        chatSoapsGroupId,
+        bookId,
+        chapterNum
+      );
+      if (opts.showSaving) setSavingRead(false);
+      if ("error" in out) {
+        if (opts.showSaving) toast.error(out.error);
+        return false;
+      }
+      chatSoapsPersistedRef.current = true;
+      setHasRecordedRead(true);
+      savedThisVisitRef.current = true;
+      return true;
+    },
+    [
+      chatSoapsGroupId,
+      reachedChapterEnd,
+      timeRequirementMet,
+      bookId,
+      chapterNum,
+    ]
+  );
+
+  /** Auto-save bookmark when chapter is fully “read” (end + dwell), same bar as mark-read */
+  useEffect(() => {
+    if (!chatSoapsGroupId || isEmpty || !canRecordReading || hasRecordedRead) return;
+    if (chatSoapsPersistedRef.current) return;
+    let cancelled = false;
+    void (async () => {
+      const ok = await persistChatSoapsBookmark({
+        requireDwell: true,
+        showSaving: false,
+      });
+      if (cancelled || !ok) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    chatSoapsGroupId,
+    isEmpty,
+    canRecordReading,
+    hasRecordedRead,
+    persistChatSoapsBookmark,
+  ]);
+
+  /** If the user reaches the chapter end then closes the tab/app, persist bookmark (bottom reached; dwell optional on exit) */
+  useEffect(() => {
+    if (!chatSoapsGroupId) return;
+
+    const flushOnLeave = () => {
+      const s = chatSoapsSnapRef.current;
+      if (!s.groupId || chatSoapsPersistedRef.current || chatSoapsFlushInFlightRef.current)
+        return;
+      if (!s.reachedEnd) return;
+      chatSoapsFlushInFlightRef.current = true;
+      void recordChatSoapsChapterComplete(s.groupId, s.bookId, s.chapter).then(
+        (out) => {
+          chatSoapsFlushInFlightRef.current = false;
+          if ("error" in out) return;
+          chatSoapsPersistedRef.current = true;
+          setHasRecordedRead(true);
+          savedThisVisitRef.current = true;
+        }
+      );
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushOnLeave();
+    };
+    window.addEventListener("pagehide", flushOnLeave);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flushOnLeave);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [chatSoapsGroupId]);
 
   useEffect(() => {
     if (isEmpty) return;
@@ -404,12 +512,17 @@ export function ReaderView({
       }
       setSavingRead(true);
       if (chatSoapsGroupId) {
+        const ok = await persistChatSoapsBookmark({
+          requireDwell: true,
+          showSaving: true,
+        });
         setSavingRead(false);
-        savedThisVisitRef.current = true;
-        setHasRecordedRead(true);
+        if (!ok) return;
         if (navigateHref) {
           toast.success("Opening next chapter");
           router.push(navigateHref);
+        } else {
+          toast.success("SOAPS reading bookmark updated");
         }
         return;
       }
@@ -440,6 +553,7 @@ export function ReaderView({
       chapterNum,
       router,
       chatSoapsGroupId,
+      persistChatSoapsBookmark,
     ]
   );
 

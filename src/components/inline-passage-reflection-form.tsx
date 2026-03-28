@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { createJournalEntry } from "@/app/actions/journal";
-import { recordChatSoapsChapterComplete } from "@/app/actions/chat-soaps-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +21,7 @@ interface InlinePassageReflectionFormProps {
   verseStart: number | null;
   verseEnd: number | null;
   passageText?: React.ReactNode;
-  /** Dashboard CHAT SOAPS flow: marks this chapter complete for resume link only. */
+  /** Passed through for future use; bookmark is updated from reader scroll/end-of-chapter only. */
   chatSoapsGroupId?: string;
   compact?: boolean;
   onSaved?: (entryId: string) => void;
@@ -32,7 +31,7 @@ interface InlinePassageReflectionFormProps {
 export function InlinePassageReflectionForm({
   reference,
   bookName,
-  bookId,
+  bookId: _bookId,
   chapter,
   verseStart,
   verseEnd,
@@ -98,19 +97,6 @@ export function InlinePassageReflectionForm({
     if (result?.error) {
       toast.error(result.error);
       return;
-    }
-
-    if (chatSoapsGroupId) {
-      const prog = await recordChatSoapsChapterComplete(
-        chatSoapsGroupId,
-        bookId,
-        chapter
-      );
-      if ("error" in prog) {
-        toast.message(
-          "Journal saved — CHAT reading spot could not be updated (try again after refresh)."
-        );
-      }
     }
 
     setSavedShareBody(draftShareBody);

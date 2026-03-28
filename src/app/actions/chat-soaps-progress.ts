@@ -4,8 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 /**
- * Record that the user completed SOAPS for this chapter in CHAT mode (dashboard reader flow).
- * Only updates the pointer for this group; does not touch generic reading_sessions.
+ * Updates the CHAT SOAPS reading bookmark: last chapter the user finished in the
+ * "Start today's SOAPS" reader flow (?chatSoapsGroup=…). Triggered when they reach
+ * the end of the chapter (and meet the same dwell-time rule as "mark read"), or when
+ * they leave the page after scrolling to the chapter end. Does not use reading_sessions.
  */
 export async function recordChatSoapsChapterComplete(
   groupId: string,
