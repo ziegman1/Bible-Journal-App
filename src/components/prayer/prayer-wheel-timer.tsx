@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { playPrayerWheelBell } from "@/components/prayer/play-prayer-bell";
+import { playBellChime } from "@/lib/sounds/play-bell-chime";
 import { PrayerWheelSvg } from "@/components/prayer/prayer-wheel-svg";
 import { cn } from "@/lib/utils";
 
@@ -32,15 +32,32 @@ export function PrayerWheelTimer() {
   const [failedStep, setFailedStep] = useState<number | null>(null);
 
   const finishingRef = useRef(false);
+  /** Wall-clock start of the current segment (for logging actual minutes, not just the picker value). */
+  const segmentWallStartMsRef = useRef<number | null>(null);
+  /**
+   * Prevents the interval from calling persist many times for the same segment deadline
+   * (finishingRef clears in `finally` before React swaps in the next `segmentEndTime`).
+   */
+  const expiryHandledForDeadlineRef = useRef<number | null>(null);
+
+  function actualMinutesForCurrentSegment(fallbackMinutes: number): number {
+    const start = segmentWallStartMsRef.current;
+    if (start == null) return fallbackMinutes;
+    const elapsedMs = Date.now() - start;
+    const m = Math.round(elapsedMs / 60000);
+    return Math.min(15, Math.max(1, m || 1));
+  }
 
   const advanceAfterSuccessfulSave = useCallback(
     (completedStep: number) => {
       if (completedStep < 11) {
         setCurrentStep(completedStep + 1);
         setSegmentEndTime(Date.now() + minutesPerSegment * 60 * 1000);
+        segmentWallStartMsRef.current = Date.now();
       } else {
         setPhase("complete");
         setSegmentEndTime(null);
+        segmentWallStartMsRef.current = null;
       }
       setSaveError(null);
       setFailedStep(null);
@@ -52,9 +69,10 @@ export function PrayerWheelTimer() {
     async (completedStep: number) => {
       if (finishingRef.current) return;
       finishingRef.current = true;
+      const loggedMinutes = actualMinutesForCurrentSegment(minutesPerSegment);
       try {
-        playPrayerWheelBell();
-        const res = await recordPrayerWheelSegment(completedStep, minutesPerSegment);
+        playBellChime();
+        const res = await recordPrayerWheelSegment(completedStep, loggedMinutes);
         if ("error" in res) {
           setSaveError(res.error);
           setFailedStep(completedStep);
@@ -71,14 +89,20 @@ export function PrayerWheelTimer() {
   );
 
   useEffect(() => {
+    expiryHandledForDeadlineRef.current = null;
+  }, [segmentEndTime]);
+
+  useEffect(() => {
     if (phase !== "running" || segmentEndTime == null) return;
 
     const tick = () => {
       const sec = Math.max(0, Math.ceil((segmentEndTime - Date.now()) / 1000));
       setSecondsLeft(sec);
-      if (Date.now() >= segmentEndTime && !finishingRef.current) {
-        void persistAndAdvance(currentStep);
-      }
+      const deadline = segmentEndTime;
+      if (Date.now() < deadline || finishingRef.current) return;
+      if (expiryHandledForDeadlineRef.current === deadline) return;
+      expiryHandledForDeadlineRef.current = deadline;
+      void persistAndAdvance(currentStep);
     };
 
     tick();
@@ -91,24 +115,43 @@ export function PrayerWheelTimer() {
     setFailedStep(null);
     setCurrentStep(0);
     setPhase("running");
-    setSegmentEndTime(Date.now() + minutesPerSegment * 60 * 1000);
+    const now = Date.now();
+    segmentWallStartMsRef.current = now;
+    setSegmentEndTime(now + minutesPerSegment * 60 * 1000);
     setSecondsLeft(minutesPerSegment * 60);
   }
 
   function stopSession() {
+    if (
+      phase === "running" &&
+      segmentWallStartMsRef.current != null &&
+      segmentEndTime != null &&
+      expiryHandledForDeadlineRef.current !== segmentEndTime
+    ) {
+      const elapsedMs = Date.now() - segmentWallStartMsRef.current;
+      if (elapsedMs >= 30000) {
+        const partialMin = Math.min(15, Math.max(1, Math.round(elapsedMs / 60000) || 1));
+        void recordPrayerWheelSegment(currentStep, partialMin);
+      }
+    }
     setPhase("setup");
     setSegmentEndTime(null);
     setCurrentStep(0);
     setSecondsLeft(0);
     setSaveError(null);
     setFailedStep(null);
+    segmentWallStartMsRef.current = null;
+    expiryHandledForDeadlineRef.current = null;
   }
 
   async function retrySave() {
     if (failedStep == null) return;
     finishingRef.current = true;
     try {
-      const res = await recordPrayerWheelSegment(failedStep, minutesPerSegment);
+      const res = await recordPrayerWheelSegment(
+        failedStep,
+        actualMinutesForCurrentSegment(minutesPerSegment)
+      );
       if ("error" in res) {
         setSaveError(res.error);
         return;
@@ -122,6 +165,21 @@ export function PrayerWheelTimer() {
       finishingRef.current = false;
     }
   }
+
+  /** Advance the wheel when the DB is unavailable (e.g. migration not applied). Stats are not recorded. */
+  function continueWithoutSaving() {
+    if (failedStep == null) return;
+    advanceAfterSuccessfulSave(failedStep);
+    if (failedStep < 11) {
+      setPhase("running");
+      setSecondsLeft(minutesPerSegment * 60);
+    }
+  }
+
+  const missingTableHint =
+    saveError &&
+    (saveError.includes("prayer_wheel_segment_completions") ||
+      saveError.toLowerCase().includes("schema cache"));
 
   const displayStepIndex = phase === "save_error" && failedStep != null ? failedStep : currentStep;
   const displayStep = PRAYER_WHEEL_STEPS[displayStepIndex];
@@ -206,14 +264,31 @@ export function PrayerWheelTimer() {
                 <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   <p className="font-medium">Could not save this segment</p>
                   <p className="mt-1 text-destructive/90">{saveError}</p>
+                  {missingTableHint ? (
+                    <p className="mt-2 text-xs leading-relaxed text-destructive/80">
+                      Your Supabase project is missing the Prayer Wheel table. In the Supabase
+                      dashboard for this app, open SQL Editor and run the migration file{" "}
+                      <span className="font-mono text-[11px]">038_prayer_wheel_segment_completions.sql</span>{" "}
+                      from the repo (or run{" "}
+                      <span className="font-mono text-[11px]">supabase db push</span>
+                      ). After that, Retry save will work and the dashboard can track your time.
+                    </p>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button type="button" size="sm" variant="secondary" onClick={retrySave}>
                       Retry save
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={continueWithoutSaving}>
+                      Continue without saving
                     </Button>
                     <Button type="button" size="sm" variant="outline" onClick={stopSession}>
                       End session
                     </Button>
                   </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Continue without saving keeps your prayer flow going; that segment won&apos;t count
+                    toward weekly stats until the database is set up.
+                  </p>
                 </div>
               ) : (
                 <Button type="button" variant="outline" size="sm" onClick={stopSession}>

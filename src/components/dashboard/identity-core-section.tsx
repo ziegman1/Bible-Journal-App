@@ -1,9 +1,8 @@
+import { BadwrReproductionCard } from "@/components/dashboard/badwr-reproduction-card";
 import { IdentityCoreCard } from "@/components/dashboard/identity-core-card";
-import {
-  mockIdentityCore,
-} from "@/lib/dashboard/mock-dashboard-data";
+import { mockIdentityCore } from "@/lib/dashboard/mock-dashboard-data";
 
-export function IdentityCoreSection({
+export async function IdentityCoreSection({
   displayName,
   nextActionLabel = "Start today's SOAPS",
   nextActionHref = "/app/read/matthew/1",
@@ -13,7 +12,7 @@ export function IdentityCoreSection({
   nextActionHref?: string;
 }) {
   return (
-    <section aria-labelledby="dashboard-identity-heading" className="h-full">
+    <section aria-labelledby="dashboard-identity-heading" className="flex h-full min-h-0 flex-col gap-4">
       <h2 id="dashboard-identity-heading" className="sr-only">
         Identity and status
       </h2>
@@ -24,6 +23,7 @@ export function IdentityCoreSection({
         nextActionHref={nextActionHref}
         stats={mockIdentityCore.stats}
       />
+      <BadwrReproductionCard />
     </section>
   );
 }

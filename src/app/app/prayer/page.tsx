@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import { ExtraPrayerMinutesForm } from "@/components/prayer/extra-prayer-minutes-form";
 import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ export default function PrayerPage() {
             A guided hour with God, broken into twelve equal parts—praise, waiting, confession,
             Scripture, petition, intercession, praying the Word, thanksgiving, singing, meditation,
             listening, and closing praise. Choose how long each part runs; your completed segments
-            add to this week&apos;s prayer time on the dashboard.
+            add to this week&apos;s prayer time on the dashboard. You can also log extra prayer time
+            below in 5-minute blocks.
           </p>
         </div>
         <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
@@ -29,6 +31,8 @@ export default function PrayerPage() {
       </div>
 
       <PrayerWheelTimer />
+
+      <ExtraPrayerMinutesForm />
     </div>
   );
 }

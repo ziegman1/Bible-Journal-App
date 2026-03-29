@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { getPrayerWheelDashboardStats } from "@/app/actions/prayer-wheel";
+import {
+  buildPrayerWheelWeeklyPace,
+  getPrayerWheelDashboardStats,
+} from "@/app/actions/prayer-wheel";
+import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
 import { cn } from "@/lib/utils";
 
 const prayCard =
@@ -10,36 +14,6 @@ const prayHover =
 const prayLabel = "text-violet-700/70 dark:text-violet-400/60";
 const prayIconBg =
   "bg-violet-100/70 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400";
-
-/** Semicircle arc length for r=40: π * 40 */
-const ARC_LEN = 40 * Math.PI;
-
-function PrayerfulnessGauge({ percent }: { percent: number }) {
-  const p = Math.min(100, Math.max(0, percent));
-  const offset = ARC_LEN * (1 - p / 100);
-  return (
-    <svg viewBox="0 0 100 58" className="h-14 w-full max-w-[140px]" aria-hidden>
-      <path
-        d="M 12 52 A 40 40 0 0 1 88 52"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="6"
-        strokeLinecap="round"
-        className="text-border"
-      />
-      <path
-        d="M 12 52 A 40 40 0 0 1 88 52"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="6"
-        strokeLinecap="round"
-        className="text-violet-600 dark:text-violet-400"
-        strokeDasharray={ARC_LEN}
-        strokeDashoffset={offset}
-      />
-    </svg>
-  );
-}
 
 export async function PrayDashboardPracticeCard() {
   const stats = await getPrayerWheelDashboardStats();
@@ -77,13 +51,20 @@ export async function PrayDashboardPracticeCard() {
           Prayer wheel, lists, and focused time. Open to begin.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <p>Sign in to track weekly prayer time.</p>
+          <p>Sign in to track weekly prayer pace.</p>
         </div>
       </Link>
     );
   }
 
-  const { weeklyMinutes, prayerfulnessPercent, weeklyGoalMinutes, fullWheelsThisWeek } = stats;
+  const {
+    weeklyMinutes,
+    weeklyExtraMinutes,
+    weeklyGoalMinutes,
+    fullWheelsThisWeek,
+  } = stats;
+  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes);
+  const ariaDesc = `${pace.message} ${pace.expectedSoFar} minutes expected so far toward ${weeklyGoalMinutes}; you have logged ${pace.actual} minutes total. ${fullWheelsThisWeek} full wheel${fullWheelsThisWeek === 1 ? "" : "s"} this week.`;
 
   return (
     <Link
@@ -114,18 +95,15 @@ export async function PrayDashboardPracticeCard() {
         Prayer Wheel: twelve guided segments with a timer.
       </p>
 
-      <div className="mt-3 flex flex-col items-center gap-1 border-t border-border/60 pt-3">
-        <PrayerfulnessGauge percent={prayerfulnessPercent} />
-        <p className="text-center text-xs font-medium text-foreground">
-          Prayerfulness · {prayerfulnessPercent}%
-        </p>
-        <p className="text-center text-[11px] text-muted-foreground">
-          {weeklyMinutes} min this week
-          {weeklyGoalMinutes > 0 ? ` · goal ${weeklyGoalMinutes} min` : ""}
-          {fullWheelsThisWeek > 0
-            ? ` · ${fullWheelsThisWeek} full wheel${fullWheelsThisWeek === 1 ? "" : "s"}`
-            : ""}
-        </p>
+      <div className="mt-2 border-t border-border/60 pt-2">
+        <PaceNeedleMeter
+          variant="compact"
+          needleDegrees={pace.needleDegrees}
+          status={pace.status}
+          message={pace.message}
+          detailLineCompact={`${pace.expectedSoFar} min expected · ${pace.actual} min total · day ${pace.daysElapsed} of 7 · goal ${weeklyGoalMinutes} min/wk${weeklyExtraMinutes > 0 ? ` · +${weeklyExtraMinutes} extra` : ""}${fullWheelsThisWeek > 0 ? ` · ${fullWheelsThisWeek} wheel${fullWheelsThisWeek === 1 ? "" : "s"}` : ""}`}
+          ariaDescription={ariaDesc}
+        />
       </div>
     </Link>
   );
