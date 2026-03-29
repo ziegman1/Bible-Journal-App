@@ -118,7 +118,9 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
   const [verseEnd, setVerseEnd] = useState(() =>
     week.look_up_verse_end != null ? String(week.look_up_verse_end) : ""
   );
-  const [passageVerses, setPassageVerses] = useState<{ verse: number; text: string }[]>([]);
+  const [passageVerses, setPassageVerses] = useState<{ verse: number; text: string }[]>(
+    () => initial.initialPassageVerses
+  );
   const [passageLoading, setPassageLoading] = useState(false);
   const [obsLike, setObsLike] = useState(week.observation_like);
   const [obsDiff, setObsDiff] = useState(week.observation_difficult);
@@ -174,6 +176,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     setObedience(initial.week.obedience_statement || s.obedience_statement);
     setSharing(initial.week.sharing_commitment || s.sharing_commitment);
     setTrain(initial.week.train_commitment || s.train_commitment);
+    setPassageVerses(initial.initialPassageVerses);
   }, [initial]);
 
   useEffect(() => {
@@ -193,13 +196,23 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     }
     const bn = book.trim();
     const ch = parseInt(chapter, 10);
-    const vs = parseInt(verseStart, 10);
-    const ve = parseInt(verseEnd, 10);
-    if (!bn || !ch || !vs || !ve) {
+    const vsRaw = parseInt(verseStart, 10);
+    const veRaw = parseInt(verseEnd, 10);
+    if (
+      !bn ||
+      !Number.isFinite(ch) ||
+      ch < 1 ||
+      !Number.isFinite(vsRaw) ||
+      vsRaw < 1 ||
+      !Number.isFinite(veRaw) ||
+      veRaw < 1
+    ) {
       setPassageVerses([]);
       setPassageLoading(false);
       return;
     }
+    const vs = vsRaw;
+    const ve = veRaw;
     let cancelled = false;
     setPassageLoading(true);
     void fetchPassageVersesRangeInBrowser({

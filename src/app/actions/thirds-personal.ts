@@ -15,6 +15,7 @@ import type {
   ThirdsPersonalWorkspacePayload,
 } from "@/lib/groups/thirds-personal-types";
 import { createClient } from "@/lib/supabase/server";
+import { getChapter, sliceChapterByVerseRange } from "@/lib/scripture/web";
 
 async function fetchPriorFinalizedWeek(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
@@ -209,11 +210,54 @@ export async function getThirdsPersonalWorkspace(): Promise<
   const priorFinalized = await fetchPriorFinalizedWeek(supabase, user.id, currentWeekMondayYmd);
   const suggestedLookForward = buildSuggestedLookForward(week, priorFinalized);
 
+  let bookForPassage = week.look_up_book?.trim() ?? "";
+  let passageChapter = week.look_up_chapter;
+  let passageVs = week.look_up_verse_start;
+  let passageVe = week.look_up_verse_end;
+
+  if (
+    (!bookForPassage ||
+      passageChapter == null ||
+      passageVs == null ||
+      passageVe == null) &&
+    week.look_up_preset_story_id
+  ) {
+    const { data: ps } = await supabase
+      .from("preset_stories")
+      .select("book, chapter, verse_start, verse_end")
+      .eq("id", week.look_up_preset_story_id)
+      .maybeSingle();
+    if (ps) {
+      bookForPassage = String(ps.book ?? "").trim();
+      passageChapter = typeof ps.chapter === "number" ? ps.chapter : null;
+      passageVs = typeof ps.verse_start === "number" ? ps.verse_start : null;
+      passageVe = typeof ps.verse_end === "number" ? ps.verse_end : null;
+    }
+  }
+
+  let initialPassageVerses: { verse: number; text: string }[] = [];
+  if (
+    bookForPassage &&
+    passageChapter != null &&
+    passageVs != null &&
+    passageVe != null
+  ) {
+    const chapterData = await getChapter(bookForPassage, passageChapter);
+    if (chapterData) {
+      initialPassageVerses = sliceChapterByVerseRange(
+        chapterData,
+        passageVs,
+        passageVe
+      );
+    }
+  }
+
   return {
     week,
     currentWeekMondayYmd,
     priorFinalized,
     suggestedLookForward,
+    initialPassageVerses,
   };
 }
 

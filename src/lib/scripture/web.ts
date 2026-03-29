@@ -53,6 +53,19 @@ export async function getChapter(
   return chapterData;
 }
 
+/** Verses in inclusive range; if start > end, bounds are swapped. */
+export function sliceChapterByVerseRange(
+  chapter: Chapter,
+  verseStart: number,
+  verseEnd: number
+): { verse: number; text: string }[] {
+  const lo = Math.min(verseStart, verseEnd);
+  const hi = Math.max(verseStart, verseEnd);
+  return chapter.verses
+    .filter((v) => v.verse >= lo && v.verse <= hi)
+    .map((v) => ({ verse: v.verse, text: v.text }));
+}
+
 export async function getVerse(
   book: string,
   chapter: number,
