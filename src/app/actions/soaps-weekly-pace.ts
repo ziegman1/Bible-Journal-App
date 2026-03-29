@@ -1,12 +1,11 @@
 "use server";
 
+import { SOAPS_WEEKLY_GOAL_SESSIONS } from "@/lib/dashboard/soaps-weekly-constants";
+import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 import { utcDateYmd, startOfUtcWeekMonday } from "@/lib/dashboard/utc-week";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
 import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
-import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 import { createClient } from "@/lib/supabase/server";
-
-export const SOAPS_WEEKLY_GOAL_SESSIONS = 5;
 
 export async function getSoapsWeeklyPace(): Promise<
   { error: string } | WeeklyRhythmPaceResult

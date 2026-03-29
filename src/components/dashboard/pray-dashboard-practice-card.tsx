@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import {
-  buildPrayerWheelWeeklyPace,
-  getPrayerWheelDashboardStats,
-} from "@/app/actions/prayer-wheel";
+import { getPrayerWheelDashboardStats } from "@/app/actions/prayer-wheel";
+import { buildPrayerWheelWeeklyPace } from "@/lib/prayer-wheel/weekly-pace";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
 import { cn } from "@/lib/utils";
 

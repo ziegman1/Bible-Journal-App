@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { getSoapsWeeklyPace, SOAPS_WEEKLY_GOAL_SESSIONS } from "@/app/actions/soaps-weekly-pace";
+import { getSoapsWeeklyPace } from "@/app/actions/soaps-weekly-pace";
+import { SOAPS_WEEKLY_GOAL_SESSIONS } from "@/lib/dashboard/soaps-weekly-constants";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
 import { cn } from "@/lib/utils";
 

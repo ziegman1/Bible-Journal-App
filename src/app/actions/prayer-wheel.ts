@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
 import {
   endOfUtcWeekMonday,
   PRAYER_WEEKLY_GOAL_MINUTES,
@@ -9,19 +8,6 @@ import {
   startOfUtcWeekMonday,
 } from "@/lib/prayer-wheel/stats";
 import { createClient } from "@/lib/supabase/server";
-
-/** Weekly needle pace vs 60 min Prayer Wheel goal (UTC week, same as segment stats). */
-export function buildPrayerWheelWeeklyPace(weeklyMinutes: number, asOf: Date = new Date()) {
-  return computeWeeklyRhythmPace({
-    actual: weeklyMinutes,
-    weeklyGoal: PRAYER_WEEKLY_GOAL_MINUTES,
-    needleSensitivity: 0.85,
-    unitSingular: "minute",
-    unitPlural: "minutes",
-    goalLabel: `${PRAYER_WEEKLY_GOAL_MINUTES} weekly prayer minutes`,
-    asOf,
-  });
-}
 
 export type PrayerWheelDashboardStats = {
   /** Prayer Wheel segments + à la carte minutes */
