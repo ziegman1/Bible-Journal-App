@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { listGroupMeetings } from "@/app/actions/meetings";
 import { GroupCard } from "@/components/groups/group-card";
+import { ThirdsParticipationPanel } from "@/components/groups/thirds-participation-panel";
 import { Button } from "@/components/ui/button";
 import { Archive, Plus } from "lucide-react";
 
@@ -52,6 +53,11 @@ export default async function GroupsPage() {
               Archived 3/3rds
             </Button>
           </Link>
+          <Link href="/app/groups/personal-thirds">
+            <Button variant="outline" size="sm">
+              Solo 3/3rds
+            </Button>
+          </Link>
           <Link href="/app/groups/new">
             <Button>
               <Plus className="size-4 mr-2" />
@@ -72,17 +78,24 @@ export default async function GroupsPage() {
         delete.
       </p>
 
+      <ThirdsParticipationPanel />
+
       {groupsWithMeetings.length === 0 ? (
         <div className="rounded-xl border border-border p-12 text-center bg-card">
           <p className="text-stone-600 dark:text-stone-400 mb-4">
             You are not in any 3/3rds groups yet.
           </p>
-          <Link href="/app/groups/new">
-            <Button>
-              <Plus className="size-4 mr-2" />
-              Create your first group
-            </Button>
-          </Link>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link href="/app/groups/new">
+              <Button>
+                <Plus className="size-4 mr-2" />
+                Create your first group
+              </Button>
+            </Link>
+            <Link href="/app/groups/personal-thirds">
+              <Button variant="outline">Solo 3/3rds (no group)</Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

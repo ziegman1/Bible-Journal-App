@@ -9,7 +9,7 @@ export const SHARE_RECEIVED = [
 ] as const;
 export type ShareEncounterReceived = (typeof SHARE_RECEIVED)[number];
 
-export const SHARE_FOLLOW_UPS = ["discovery_group", "thirds_group"] as const;
+export const SHARE_FOLLOW_UPS = ["discovery_group", "thirds_group", "none"] as const;
 export type ShareEncounterFollowUp = (typeof SHARE_FOLLOW_UPS)[number];
 
 export type ShareReceivedCounts = Record<ShareEncounterReceived, number>;

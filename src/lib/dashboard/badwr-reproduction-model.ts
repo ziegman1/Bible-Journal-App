@@ -116,10 +116,12 @@ export function buildThirdsPillar(input: {
     hint = "You connected with your 3/3rds group this week.";
   } else if (input.inThirdsGroup) {
     score = 0.42;
-    hint = "Plan to attend or host a completed 3/3rds meeting this week.";
+    hint =
+      "Plan a completed 3/3rds meeting this week, or finalize your week on Solo 3/3rds (Groups page).";
   } else {
     score = 0;
-    hint = "Join a 3/3rds group and meet weekly when possible.";
+    hint =
+      "Join a 3/3rds group or start Solo 3/3rds from the Groups page to build a weekly rhythm.";
   }
   return {
     id: "thirds",

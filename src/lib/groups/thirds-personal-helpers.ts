@@ -1,0 +1,57 @@
+import { startOfUtcWeekMonday, utcDateYmd } from "@/lib/dashboard/utc-week";
+
+/** Inclusive count of UTC Monday weeks from start Monday through end Monday (both YYYY-MM-DD). */
+export function utcMondayWeeksInclusive(startMondayYmd: string, endMondayYmd: string): number {
+  const start = new Date(`${startMondayYmd}T12:00:00.000Z`);
+  const end = new Date(`${endMondayYmd}T12:00:00.000Z`);
+  if (end.getTime() < start.getTime()) return 0;
+  const msWeek = 7 * 86400000;
+  return Math.floor((end.getTime() - start.getTime()) / msWeek) + 1;
+}
+
+export function currentUtcWeekMondayYmd(now: Date = new Date()): string {
+  return utcDateYmd(startOfUtcWeekMonday(now));
+}
+
+export type PriorFinalizedCommitments = {
+  weekStartMonday: string;
+  obedience_statement: string;
+  sharing_commitment: string;
+  train_commitment: string;
+};
+
+export type LookForwardCarrySource = {
+  obedience_statement: string;
+  sharing_commitment: string;
+  train_commitment: string;
+  prior_obedience_done: boolean;
+  prior_sharing_done: boolean;
+  prior_train_done: boolean;
+};
+
+export type SuggestedLookForward = {
+  obedience_statement: string;
+  sharing_commitment: string;
+  train_commitment: string;
+};
+
+/** Unchecked Look Back pillars pull last week’s commitment text into Look Forward defaults. */
+export function buildSuggestedLookForward(
+  week: LookForwardCarrySource,
+  prior: PriorFinalizedCommitments | null
+): SuggestedLookForward {
+  const o =
+    week.obedience_statement.trim() ||
+    (prior && !week.prior_obedience_done ? prior.obedience_statement.trim() : "");
+  const s =
+    week.sharing_commitment.trim() ||
+    (prior && !week.prior_sharing_done ? prior.sharing_commitment.trim() : "");
+  const t =
+    week.train_commitment.trim() ||
+    (prior && !week.prior_train_done ? prior.train_commitment.trim() : "");
+  return {
+    obedience_statement: o,
+    sharing_commitment: s,
+    train_commitment: t,
+  };
+}

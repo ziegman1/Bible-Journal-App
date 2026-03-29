@@ -38,7 +38,7 @@ export function ShareEncounterLogSheet() {
   const [location, setLocation] = useState("");
   const [sharedType, setSharedType] = useState("gospel");
   const [received, setReceived] = useState("green_light");
-  const [followUp, setFollowUp] = useState("discovery_group");
+  const [followUp, setFollowUp] = useState("none");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export function ShareEncounterLogSheet() {
     setLocation("");
     setSharedType("gospel");
     setReceived("green_light");
-    setFollowUp("discovery_group");
+    setFollowUp("none");
     setError(null);
     setMessage(null);
   }
@@ -154,6 +154,7 @@ export function ShareEncounterLogSheet() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="discovery_group">Discovery group</SelectItem>
                   <SelectItem value="thirds_group">3/3rds group</SelectItem>
                 </SelectContent>

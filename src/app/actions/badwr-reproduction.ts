@@ -79,31 +79,46 @@ export async function getBadwrReproductionSnapshot(): Promise<
     meetingsWeek = mw ?? [];
   }
 
-  const [soapsRes, readingCountRes, prayerStats, shareCountRes] = await Promise.all([
-    supabase
-      .from("journal_entries")
-      .select("scripture_text, soaps_share, user_reflection, prayer, application")
-      .eq("user_id", user.id)
-      .gte("entry_date", startYmd)
-      .lte("entry_date", endYmd),
-    supabase
-      .from("reading_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("read_at", startIso)
-      .lte("read_at", endIso),
-    getPrayerWheelDashboardStats(),
-    supabase
-      .from("share_encounters")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("encounter_date", startYmd)
-      .lte("encounter_date", endYmd),
-  ]);
+  const [soapsRes, readingCountRes, prayerStats, shareCountRes, soloWeekRes, soloSettingsRes] =
+    await Promise.all([
+      supabase
+        .from("journal_entries")
+        .select("scripture_text, soaps_share, user_reflection, prayer, application")
+        .eq("user_id", user.id)
+        .gte("entry_date", startYmd)
+        .lte("entry_date", endYmd),
+      supabase
+        .from("reading_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("read_at", startIso)
+        .lte("read_at", endIso),
+      getPrayerWheelDashboardStats(),
+      supabase
+        .from("share_encounters")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("encounter_date", startYmd)
+        .lte("encounter_date", endYmd),
+      supabase
+        .from("thirds_personal_weeks")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("week_start_monday", startYmd)
+        .not("finalized_at", "is", null)
+        .maybeSingle(),
+      supabase
+        .from("thirds_participation_settings")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
 
   if (soapsRes.error) return { error: soapsRes.error.message };
   if (readingCountRes.error) return { error: readingCountRes.error.message };
   if (shareCountRes.error) return { error: shareCountRes.error.message };
+  if (soloWeekRes.error) return { error: soloWeekRes.error.message };
+  if (soloSettingsRes.error) return { error: soloSettingsRes.error.message };
 
   const soapsActual = (soapsRes.data ?? []).filter((row) => isQualifyingSoapsEntry(row)).length;
   const readingActual = readingCountRes.count ?? 0;
@@ -124,7 +139,11 @@ export async function getBadwrReproductionSnapshot(): Promise<
     attendedThirdsThisWeek = (parts?.length ?? 0) > 0;
   }
 
-  const inThirdsGroup = thirdsGroupIds.length > 0;
+  if (soloWeekRes.data) {
+    attendedThirdsThisWeek = true;
+  }
+
+  const inThirdsGroup = thirdsGroupIds.length > 0 || soloSettingsRes.data != null;
   const inChatGroup = chatGroupId != null;
 
   let paceAheadOrOn = false;

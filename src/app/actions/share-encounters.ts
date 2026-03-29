@@ -88,7 +88,7 @@ export async function recordShareEncounter(input: {
     return { error: "Choose how they received it." };
   }
   if (!isShareEncounterFollowUp(input.followUp)) {
-    return { error: "Choose a follow-up path." };
+    return { error: "Choose a follow-up option." };
   }
 
   const { error } = await supabase.from("share_encounters").insert({
