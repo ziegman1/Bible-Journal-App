@@ -1,42 +1,34 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 export default function PrayerPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-serif font-light text-stone-900 dark:text-stone-100">
-          Prayer
-        </h1>
-        <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-          Placeholder route for the dashboard card. This gives the dashboard a stable
-          destination now without overbuilding the feature.
-        </p>
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 pb-20 sm:px-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Prayer
+          </p>
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-serif font-light text-foreground">
+            <Heart className="size-6 text-violet-600 dark:text-violet-400" />
+            Prayer Wheel
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            A guided hour with God, broken into twelve equal parts—praise, waiting, confession,
+            Scripture, petition, intercession, praying the Word, thanksgiving, singing, meditation,
+            listening, and closing praise. Choose how long each part runs; your completed segments
+            add to this week&apos;s prayer time on the dashboard.
+          </p>
+        </div>
+        <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+          Dashboard
+        </Link>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="size-4" />
-            Next implementation step
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-stone-600 dark:text-stone-400">
-            TODO: connect this page to a real prayer workflow or list when that feature is
-            ready.
-          </p>
-          <Link
-            href="/app"
-            className={cn(buttonVariants({ variant: "outline" }))}
-          >
-            Back to dashboard
-          </Link>
-        </CardContent>
-      </Card>
+      <PrayerWheelTimer />
     </div>
   );
 }
