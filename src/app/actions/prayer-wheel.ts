@@ -133,3 +133,48 @@ export async function recordPrayerWheelSegment(
   revalidatePath("/app/prayer");
   return { success: true };
 }
+
+/** Removes all Prayer Wheel segment completions and extra minutes for the current UTC week. */
+export async function resetThisWeeksPrayerTime(): Promise<
+  | { error: string }
+  | { success: true; removedWheelSegments: number; removedExtraEntries: number }
+> {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const start = startOfUtcWeekMonday().toISOString();
+  const end = endOfUtcWeekMonday().toISOString();
+
+  const { data: segRemoved, error: segErr } = await supabase
+    .from("prayer_wheel_segment_completions")
+    .delete()
+    .eq("user_id", user.id)
+    .gte("completed_at", start)
+    .lte("completed_at", end)
+    .select("id");
+
+  if (segErr) return { error: segErr.message };
+
+  const { data: extraRemoved, error: extraErr } = await supabase
+    .from("prayer_extra_minutes")
+    .delete()
+    .eq("user_id", user.id)
+    .gte("logged_at", start)
+    .lte("logged_at", end)
+    .select("id");
+
+  if (extraErr) return { error: extraErr.message };
+
+  revalidatePath("/app");
+  revalidatePath("/app/prayer");
+
+  return {
+    success: true,
+    removedWheelSegments: segRemoved?.length ?? 0,
+    removedExtraEntries: extraRemoved?.length ?? 0,
+  };
+}

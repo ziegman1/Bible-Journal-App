@@ -3,7 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Settings, MessageCircle, Users, Waypoints } from "lucide-react";
+import {
+  Home,
+  BookOpen,
+  Settings,
+  MessageCircle,
+  Users,
+  Waypoints,
+  ClipboardList,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -20,6 +28,7 @@ const navItems = [
   { href: "/app/process-map", label: "Discipleship Process", icon: Waypoints },
   { href: "/app/groups", label: "3/3rds Groups", icon: Users },
   { href: "/app/chat", label: "CHAT", icon: MessageCircle },
+  { href: "/app/list-of-100", label: "List of 100", icon: ClipboardList },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
 

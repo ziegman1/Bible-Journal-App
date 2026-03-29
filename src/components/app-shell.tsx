@@ -13,6 +13,7 @@ import {
   Users,
   MessageCircle,
   Waypoints,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/app/read", label: "Read", icon: BookOpen },
   { href: "/app/groups", label: "3/3rds Groups", icon: Users },
   { href: "/app/chat", label: "CHAT", icon: MessageCircle },
+  { href: "/app/list-of-100", label: "List of 100", icon: ClipboardList },
   { href: "/app/process-map", label: "Discipleship Process", icon: Waypoints },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];

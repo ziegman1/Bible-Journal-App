@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,30 @@ export default function SoapsPage() {
           SOAPS experience next.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">SOAPS training video</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            Zúme Training walks through the SOAPS Bible reading format—Scripture, Observation,
+            Application, Prayer, and Sharing—with video and examples.
+          </p>
+          <a
+            href="https://zume.training/soaps-bible-reading"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "inline-flex items-center gap-2"
+            )}
+          >
+            Open SOAPS Bible Reading on Zúme
+            <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+          </a>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

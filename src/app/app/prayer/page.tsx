@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { ExtraPrayerMinutesForm } from "@/components/prayer/extra-prayer-minutes-form";
 import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
+import { ResetWeekPrayerButton } from "@/components/prayer/reset-week-prayer-button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,8 @@ export default function PrayerPage() {
       <PrayerWheelTimer />
 
       <ExtraPrayerMinutesForm />
+
+      <ResetWeekPrayerButton />
     </div>
   );
 }

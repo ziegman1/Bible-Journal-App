@@ -1,4 +1,5 @@
 import { SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
+import type { ThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
 
 export const BADWR_SOAPS_WEEKLY_GOAL = 5;
 export const BADWR_READING_CHAPTERS_PER_DAY = 4;
@@ -108,7 +109,34 @@ export function buildChatPillar(input: {
 export function buildThirdsPillar(input: {
   attendedCompletedThisWeek: boolean;
   inThirdsGroup: boolean;
+  /** When set, pillar score matches the participation % on the 3/3rds Groups panel */
+  participationMetrics?: ThirdsParticipationMetrics | null;
 }): BadwrPillarModel {
+  const m = input.participationMetrics;
+  if (m && m.totalWeeks > 0) {
+    const score = m.ratio;
+    const pct = Math.round(score * 100);
+    let hint: string;
+    if (input.attendedCompletedThisWeek) {
+      hint = `${m.participatedWeeks}/${m.totalWeeks} weeks (${pct}%) since your start date — and you joined a completed 3/3rds meeting this week.`;
+    } else if (score >= 0.82) {
+      hint = `${m.participatedWeeks}/${m.totalWeeks} weeks (${pct}%). Strong 3/3rds rhythm; keep finalizing solo weeks or meeting with your group.`;
+    } else if (score >= 0.55) {
+      hint = `${m.participatedWeeks}/${m.totalWeeks} weeks (${pct}%). Finalize weeks in Solo 3/3rds or attend your group to improve this.`;
+    } else {
+      hint = `${m.participatedWeeks}/${m.totalWeeks} weeks (${pct}%). Build consistency from the 3/3rds Groups page.`;
+    }
+    return {
+      id: "thirds",
+      label: "3/3rds",
+      shortLabel: "3/3rds",
+      score,
+      tier: tierForScore(score),
+      hint,
+      href: "/app/groups",
+    };
+  }
+
   let score: number;
   let hint: string;
   if (input.attendedCompletedThisWeek) {

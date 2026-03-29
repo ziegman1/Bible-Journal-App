@@ -55,3 +55,16 @@ export function buildSuggestedLookForward(
     train_commitment: t,
   };
 }
+
+/** Display reference for solo Look Up (matches common Bible citation style). */
+export function formatThirdsPersonalPassageRef(
+  book: string,
+  chapter: number,
+  verseStart: number,
+  verseEnd: number
+): string {
+  const b = book.trim();
+  if (!b || chapter < 1 || verseStart < 1 || verseEnd < 1) return "";
+  if (verseStart === verseEnd) return `${b} ${chapter}:${verseStart}`;
+  return `${b} ${chapter}:${verseStart}–${verseEnd}`;
+}

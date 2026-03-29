@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { startOfUtcWeekMonday, utcDateYmd } from "@/lib/dashboard/utc-week";
+import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
 import {
   buildSuggestedLookForward,
   currentUtcWeekMondayYmd,
-  utcMondayWeeksInclusive,
+  formatThirdsPersonalPassageRef,
   type PriorFinalizedCommitments,
 } from "@/lib/groups/thirds-personal-helpers";
 import type {
@@ -49,6 +50,21 @@ function rowToDto(r: Record<string, unknown>): ThirdsPersonalWeekDTO {
     prior_sharing_done: Boolean(r.prior_sharing_done),
     prior_train_done: Boolean(r.prior_train_done),
     passage_ref: String(r.passage_ref ?? ""),
+    look_up_preset_story_id:
+      r.look_up_preset_story_id != null ? String(r.look_up_preset_story_id) : null,
+    look_up_book: String(r.look_up_book ?? ""),
+    look_up_chapter:
+      typeof r.look_up_chapter === "number" && Number.isFinite(r.look_up_chapter)
+        ? r.look_up_chapter
+        : null,
+    look_up_verse_start:
+      typeof r.look_up_verse_start === "number" && Number.isFinite(r.look_up_verse_start)
+        ? r.look_up_verse_start
+        : null,
+    look_up_verse_end:
+      typeof r.look_up_verse_end === "number" && Number.isFinite(r.look_up_verse_end)
+        ? r.look_up_verse_end
+        : null,
     observation_like: String(r.observation_like ?? ""),
     observation_difficult: String(r.observation_difficult ?? ""),
     observation_teaches_people: String(r.observation_teaches_people ?? ""),
@@ -97,22 +113,15 @@ export async function getThirdsParticipationStats(): Promise<
   const startMonday = utcDateYmd(
     startOfUtcWeekMonday(new Date(`${settings.participation_started_on}T12:00:00.000Z`))
   );
-  const currentMonday = currentUtcWeekMondayYmd();
-  const totalWeeks = utcMondayWeeksInclusive(startMonday, currentMonday);
 
-  const { count: participated, error: cErr } = await supabase
-    .from("thirds_personal_weeks")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .not("finalized_at", "is", null)
-    .gte("week_start_monday", startMonday)
-    .lte("week_start_monday", currentMonday);
+  const metrics = await fetchThirdsParticipationMetrics(supabase, user.id, startMonday);
+  if (!metrics) {
+    return { error: "Could not load participation weeks." };
+  }
 
-  if (cErr) return { error: cErr.message };
-
-  const participatedWeeks = participated ?? 0;
+  const { participatedWeeks, totalWeeks, ratio } = metrics;
   const percent =
-    totalWeeks > 0 ? Math.min(100, Math.round((participatedWeeks / totalWeeks) * 100)) : null;
+    totalWeeks > 0 ? Math.min(100, Math.round(ratio * 100)) : null;
 
   const { count: completions, error: compErr2 } = await supabase
     .from("thirds_personal_group_completions")
@@ -250,6 +259,12 @@ export async function saveThirdsPersonalLookBack(input: {
 }
 
 export async function saveThirdsPersonalLookUp(input: {
+  passageMode: "preset" | "manual" | "reference_only";
+  presetStoryId?: string | null;
+  book?: string;
+  chapter?: number | null;
+  verseStart?: number | null;
+  verseEnd?: number | null;
   passageRef: string;
   observationLike: string;
   observationDifficult: string;
@@ -275,10 +290,84 @@ export async function saveThirdsPersonalLookUp(input: {
   if (!existing) return { error: "Week not found." };
   if (existing.finalized_at) return { error: "This week is already finalized." };
 
+  type PassageCols = {
+    passage_ref: string;
+    look_up_preset_story_id: string | null;
+    look_up_book: string;
+    look_up_chapter: number | null;
+    look_up_verse_start: number | null;
+    look_up_verse_end: number | null;
+  };
+
+  let passageCols: PassageCols;
+
+  if (input.passageMode === "reference_only") {
+    passageCols = {
+      passage_ref: input.passageRef.trim().slice(0, 500),
+      look_up_preset_story_id: null,
+      look_up_book: "",
+      look_up_chapter: null,
+      look_up_verse_start: null,
+      look_up_verse_end: null,
+    };
+  } else if (input.passageMode === "preset") {
+    const pid = input.presetStoryId?.trim();
+    if (!pid) return { error: "Select a preset story." };
+    const { data: ps, error: pErr } = await supabase
+      .from("preset_stories")
+      .select("book, chapter, verse_start, verse_end")
+      .eq("id", pid)
+      .maybeSingle();
+    if (pErr || !ps) return { error: "Invalid preset story." };
+    const ref =
+      input.passageRef.trim() ||
+      formatThirdsPersonalPassageRef(
+        ps.book,
+        ps.chapter,
+        ps.verse_start,
+        ps.verse_end
+      );
+    passageCols = {
+      passage_ref: ref.slice(0, 500),
+      look_up_preset_story_id: pid,
+      look_up_book: ps.book,
+      look_up_chapter: ps.chapter,
+      look_up_verse_start: ps.verse_start,
+      look_up_verse_end: ps.verse_end,
+    };
+  } else {
+    const book = (input.book ?? "").trim();
+    const ch = input.chapter;
+    let vs = input.verseStart;
+    let ve = input.verseEnd;
+    if (!book || ch == null || vs == null || ve == null) {
+      return { error: "Fill in book, chapter, and verse range for a custom passage." };
+    }
+    if (!Number.isFinite(ch) || ch < 1 || !Number.isFinite(vs) || vs < 1 || !Number.isFinite(ve) || ve < 1) {
+      return { error: "Chapter and verses must be positive numbers." };
+    }
+    if (vs > ve) {
+      const t = vs;
+      vs = ve;
+      ve = t;
+    }
+    const ref =
+      input.passageRef.trim() ||
+      formatThirdsPersonalPassageRef(book, Math.floor(ch), Math.floor(vs), Math.floor(ve));
+    passageCols = {
+      passage_ref: ref.slice(0, 500),
+      look_up_preset_story_id: null,
+      look_up_book: book,
+      look_up_chapter: Math.floor(ch),
+      look_up_verse_start: Math.floor(vs),
+      look_up_verse_end: Math.floor(ve),
+    };
+  }
+
   const { error } = await supabase
     .from("thirds_personal_weeks")
     .update({
-      passage_ref: input.passageRef.trim().slice(0, 500),
+      ...passageCols,
       observation_like: input.observationLike.trim().slice(0, 4000),
       observation_difficult: input.observationDifficult.trim().slice(0, 4000),
       observation_teaches_people: input.observationTeachesPeople.trim().slice(0, 4000),

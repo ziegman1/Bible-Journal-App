@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { ChatGroupsHubList } from "@/components/groups/chat-groups-hub-list";
 import { StartChatGroupPanel } from "@/components/groups/start-chat-group-panel";
 import { ChatInformationalSections } from "@/components/chat/chat-informational-sections";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { CHAT_CONTENT } from "@/content/chatContent";
+import { cn } from "@/lib/utils";
 
 export default async function ChatPage() {
   const supabase = await createClient();
@@ -38,6 +42,30 @@ export default async function ChatPage() {
         {CHAT_CONTENT.pageTitle}
       </h1>
       <p className="mb-8 text-stone-600 dark:text-stone-400">{CHAT_CONTENT.pageOverview}</p>
+
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-base">Accountability groups training</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            Zúme Training covers why accountability matters, how small groups can meet, and
+            includes video plus example question lists.
+          </p>
+          <a
+            href="https://zume.training/accountability-groups"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "inline-flex items-center gap-2"
+            )}
+          >
+            Open Accountability Groups on Zúme
+            <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+          </a>
+        </CardContent>
+      </Card>
 
       <div className="mb-10">
         <ChatGroupsHubList

@@ -9,6 +9,11 @@ export type ThirdsPersonalWeekDTO = {
   prior_sharing_done: boolean;
   prior_train_done: boolean;
   passage_ref: string;
+  look_up_preset_story_id: string | null;
+  look_up_book: string;
+  look_up_chapter: number | null;
+  look_up_verse_start: number | null;
+  look_up_verse_end: number | null;
   observation_like: string;
   observation_difficult: string;
   observation_teaches_people: string;

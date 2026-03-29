@@ -29,13 +29,21 @@ export async function BadwrReproductionCard() {
   const snap = await getBadwrReproductionSnapshot();
 
   if ("error" in snap) {
+    const err = snap.error;
+    const body =
+      err === "Not authenticated"
+        ? "Sign in to see your collective BADWR progress."
+        : err === "Supabase not configured"
+          ? "Connect Supabase in setup to see BADWR progress."
+          : "Could not load your reproduction summary. Try refreshing; if it continues, confirm recent database migrations are applied.";
     return (
       <div
         className={cn(
           "rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground"
         )}
+        title={err}
       >
-        Sign in to see your collective BADWR progress.
+        {body}
       </div>
     );
   }
