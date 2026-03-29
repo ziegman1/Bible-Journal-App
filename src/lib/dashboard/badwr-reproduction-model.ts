@@ -1,8 +1,10 @@
+import { SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
+
 export const BADWR_SOAPS_WEEKLY_GOAL = 5;
 export const BADWR_READING_CHAPTERS_PER_DAY = 4;
 export const BADWR_READING_MAX_PER_WEEK = 35;
 export const BADWR_PRAYER_MINUTES_WEEKLY_GOAL = 60;
-export const BADWR_SHARE_WEEKLY_GOAL = 4;
+export const BADWR_SHARE_WEEKLY_GOAL = SHARE_WEEKLY_GOAL_ENCOUNTERS;
 
 export type BadwrPillarTier = "strong" | "ok" | "attention";
 
@@ -141,7 +143,7 @@ export function buildSharePillar(input: {
     shortLabel: "Share",
     score,
     tier: tierForScore(score),
-    hint: "Log who and how you’ll share (SOAPS “Share”)—aim for several times a week.",
+    hint: "Log each gospel or testimony share on the Share page—aim for five people a week.",
     href: "/app/share",
   };
 }

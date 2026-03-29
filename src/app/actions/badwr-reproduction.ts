@@ -79,7 +79,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     meetingsWeek = mw ?? [];
   }
 
-  const [soapsRes, readingCountRes, prayerStats, shareRows] = await Promise.all([
+  const [soapsRes, readingCountRes, prayerStats, shareCountRes] = await Promise.all([
     supabase
       .from("journal_entries")
       .select("scripture_text, soaps_share, user_reflection, prayer, application")
@@ -94,25 +94,23 @@ export async function getBadwrReproductionSnapshot(): Promise<
       .lte("read_at", endIso),
     getPrayerWheelDashboardStats(),
     supabase
-      .from("journal_entries")
-      .select("soaps_share")
+      .from("share_encounters")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("entry_date", startYmd)
-      .lte("entry_date", endYmd),
+      .gte("encounter_date", startYmd)
+      .lte("encounter_date", endYmd),
   ]);
 
   if (soapsRes.error) return { error: soapsRes.error.message };
   if (readingCountRes.error) return { error: readingCountRes.error.message };
-  if (shareRows.error) return { error: shareRows.error.message };
+  if (shareCountRes.error) return { error: shareCountRes.error.message };
 
   const soapsActual = (soapsRes.data ?? []).filter((row) => isQualifyingSoapsEntry(row)).length;
   const readingActual = readingCountRes.count ?? 0;
 
   const weeklyMinutes = "error" in prayerStats ? 0 : prayerStats.weeklyMinutes;
 
-  const shareActual = (shareRows.data ?? []).filter(
-    (r) => (r.soaps_share ?? "").trim().length > 0
-  ).length;
+  const shareActual = shareCountRes.count ?? 0;
 
   let attendedThirdsThisWeek = false;
   const meetingIds = meetingsWeek.map((m) => m.id);

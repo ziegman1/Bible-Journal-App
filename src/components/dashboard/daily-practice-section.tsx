@@ -1,5 +1,6 @@
 import { ChatDashboardPracticeCard } from "@/components/dashboard/chat-dashboard-practice-card";
 import { PrayDashboardPracticeCard } from "@/components/dashboard/pray-dashboard-practice-card";
+import { ShareDashboardPracticeCard } from "@/components/dashboard/share-dashboard-practice-card";
 import { SoapsDashboardPracticeCard } from "@/components/dashboard/soaps-dashboard-practice-card";
 import { PracticeNodeCard } from "@/components/dashboard/practice-node-card";
 import { mockPracticeNodes } from "@/lib/dashboard/mock-dashboard-data";
@@ -21,8 +22,10 @@ export async function DailyPracticeSection({
         {mockPracticeNodes.map((node) =>
           node.theme === "soap" ? (
             <SoapsDashboardPracticeCard key="soaps-pace" />
-          ) : node.theme === "pray" ? (
+          ) :           node.theme === "pray" ? (
             <PrayDashboardPracticeCard key="pray-wheel" />
+          ) : node.theme === "share" ? (
+            <ShareDashboardPracticeCard key="share-pace" />
           ) : node.theme === "chat" && primaryChatGroupId ? (
             <ChatDashboardPracticeCard key="chat-pace" groupId={primaryChatGroupId} />
           ) : (
