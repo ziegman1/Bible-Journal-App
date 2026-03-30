@@ -12,7 +12,6 @@ import {
   meetingSectionPadding,
   meetingTextareaClass,
   meetingYourLabel,
-  meetingYourRegion,
 } from "@/components/groups/meeting-input-layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -178,12 +177,15 @@ function ObservationPromptField({
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const [observationTypeSnap, setObservationTypeSnap] =
+    useState(observationType);
+  if (observationType !== observationTypeSnap) {
+    setObservationTypeSnap(observationType);
     setPickPhase("idle");
     setFirstVerse(null);
     setRangeEnd(null);
     setNote("");
-  }, [observationType]);
+  }
 
   const selStart =
     pickPhase === "ready" && firstVerse != null && rangeEnd != null
@@ -496,10 +498,11 @@ export function LookUpSection({
   const [clientPassageVerses, setClientPassageVerses] = useState<
     { verse: number; text: string }[]
   >([]);
-
-  useEffect(() => {
+  const [meetingIdSnap, setMeetingIdSnap] = useState(meetingId);
+  if (meetingId !== meetingIdSnap) {
+    setMeetingIdSnap(meetingId);
     setClientPassageVerses([]);
-  }, [meetingId]);
+  }
 
   useEffect(() => {
     if (passageVerses.length > 0 || !scriptureLoadHint) return;

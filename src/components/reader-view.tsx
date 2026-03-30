@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AskAIPanel } from "./ask-ai-panel";
@@ -26,16 +26,18 @@ import {
   SCROLL_BOTTOM_ROOT_MARGIN_PX,
 } from "@/lib/reading/chapter-reading-rules";
 
+function subscribeIsMobile(callback: () => void) {
+  const mq = window.matchMedia("(max-width: 767px)");
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = () => setIsMobile(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isMobile;
+  return useSyncExternalStore(
+    subscribeIsMobile,
+    () => window.matchMedia("(max-width: 767px)").matches,
+    () => false
+  );
 }
 
 export interface ReaderChapterNavLink {
@@ -206,7 +208,7 @@ export function ReaderView({
     } else {
       isScrollingRef.current = false;
     }
-  }, [panelOpen, selectedRange?.start, panelMode]);
+  }, [panelOpen, selectedRange, panelMode]);
 
   // Sync scroll between left and right panels on desktop (only when form is visible)
   useEffect(() => {

@@ -7,7 +7,7 @@ interface InsightsBooksPassagesProps {
 }
 
 export function InsightsBooksPassages({ data }: InsightsBooksPassagesProps) {
-  const { topBooks, passagesMostRevisited, topBooksReferenced, topChaptersReferenced } =
+  const { topBooks, passagesMostRevisited, topChaptersReferenced } =
     data.booksAndPassages;
 
   const hasBooks = topBooks.length > 0;

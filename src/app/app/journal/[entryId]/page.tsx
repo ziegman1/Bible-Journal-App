@@ -84,7 +84,7 @@ export default async function JournalEntryPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  let { data: entryRaw, error: entryError } = await supabase
+  const { data: entryRaw, error: entryError } = await supabase
     .from("journal_entries")
     .select(JOURNAL_ENTRY_SELECT_EXTENDED)
     .eq("id", entryId)

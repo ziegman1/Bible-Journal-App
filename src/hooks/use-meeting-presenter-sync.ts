@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateMeetingPresenterState } from "@/app/actions/meetings";
 import { toast } from "sonner";
@@ -51,19 +51,25 @@ export function useMeetingPresenterSync(opts: {
     return { ...s, practiceSlideIndex: Math.min(s.practiceSlideIndex, maxIdx) };
   });
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useLayoutEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const [connection, setConnection] = useState<
     "connecting" | "subscribed" | "error" | "closed"
   >(() => (readOnly ? "closed" : "connecting"));
 
+  // initialRow object identity often changes every parent render; `updated_at` is the server row version we sync from.
   useEffect(() => {
-    const s = rowToPresenterState(opts.initialRow ?? undefined);
-    const maxIdx = Math.max(0, opts.practiceSlideCount - 1);
-    setState({
-      ...s,
-      practiceSlideIndex: Math.min(s.practiceSlideIndex, maxIdx),
+    queueMicrotask(() => {
+      const s = rowToPresenterState(opts.initialRow ?? undefined);
+      const maxIdx = Math.max(0, opts.practiceSlideCount - 1);
+      setState({
+        ...s,
+        practiceSlideIndex: Math.min(s.practiceSlideIndex, maxIdx),
+      });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync key is initialRow.updated_at, not full row reference
   }, [
     opts.initialRow?.updated_at,
     opts.meetingId,
@@ -90,23 +96,26 @@ export function useMeetingPresenterSync(opts: {
 
   /** If practice deck shrinks (e.g. first vs later ST meeting), clamp index and persist. */
   useEffect(() => {
-    const maxIdx = Math.max(0, opts.practiceSlideCount - 1);
-    const s = stateRef.current;
-    if (s.practiceSlideIndex <= maxIdx) return;
-    const next = { ...s, practiceSlideIndex: maxIdx };
-    if (readOnly || !canPersist) {
-      stateRef.current = next;
-      setState(next);
-      return;
-    }
-    void persist(next);
+    queueMicrotask(() => {
+      const maxIdx = Math.max(0, opts.practiceSlideCount - 1);
+      const s = stateRef.current;
+      if (s.practiceSlideIndex <= maxIdx) return;
+      const next = { ...s, practiceSlideIndex: maxIdx };
+      if (readOnly || !canPersist) {
+        stateRef.current = next;
+        setState(next);
+        return;
+      }
+      void persist(next);
+    });
   }, [opts.practiceSlideCount, readOnly, canPersist, persist]);
 
   useEffect(() => {
     if (readOnly) {
-      setConnection("closed");
+      queueMicrotask(() => setConnection("closed"));
       return;
     }
+    queueMicrotask(() => setConnection("connecting"));
     const supabase = createClient();
     const channel = supabase
       .channel(`presenter:${opts.meetingId}`)

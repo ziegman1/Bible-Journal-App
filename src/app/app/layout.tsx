@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
+import { SiteFooter } from "@/components/site-footer";
 
 export default async function AppLayout({
   children,
@@ -24,7 +25,14 @@ export default async function AppLayout({
   // Invite link: minimal shell for everyone; skip onboarding until after accept.
   // Otherwise new users who sign in hit /onboarding before acceptGroupInvite runs.
   if (isInviteRoute) {
-    return <div className="min-h-screen bg-background">{children}</div>;
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex-1">{children}</div>
+        <div className="shrink-0 border-t border-border px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <SiteFooter variant="compact" />
+        </div>
+      </div>
+    );
   }
 
   if (!user) {

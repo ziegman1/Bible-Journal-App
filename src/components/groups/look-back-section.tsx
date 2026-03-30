@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   saveLookBackResponse,
   saveMeetingCommitmentCheckoff,
@@ -33,6 +33,12 @@ import {
   meetingYourLabel,
   meetingYourRegion,
 } from "@/components/groups/meeting-input-layout";
+
+const LOOKBACK_PILLAR_ORDER: Record<string, number> = {
+  obedience: 0,
+  sharing: 1,
+  train: 2,
+};
 
 interface LookBackSectionProps {
   meetingId: string;
@@ -86,7 +92,7 @@ export function LookBackSection({
   starterTrackLookBack,
   myLookback,
   myPriorFollowup,
-  priorFollowups,
+  priorFollowups: _priorFollowups,
   participants,
   displayNames,
   onGoToLookUp,
@@ -99,31 +105,58 @@ export function LookBackSection({
   patchCommitmentComplete = () => {},
   readOnly = false,
 }: LookBackSectionProps) {
-  const [pastoral, setPastoral] = useState(myLookback?.pastoral_care_response ?? "");
-  const [accountability, setAccountability] = useState(
-    myLookback?.accountability_response ?? ""
-  );
-  const [vision, setVision] = useState(myLookback?.vision_casting_response ?? "");
-  const [obedienceFollowup, setObedienceFollowup] = useState(
+  const pastoralRemote = myLookback?.pastoral_care_response ?? "";
+  const accountabilityRemote = myLookback?.accountability_response ?? "";
+  const visionRemote = myLookback?.vision_casting_response ?? "";
+  const obedienceFollowupRemote =
     (myPriorFollowup as { obedience_followup_response?: string } | undefined)
-      ?.obedience_followup_response ?? ""
-  );
-  const [sharingFollowup, setSharingFollowup] = useState(
+      ?.obedience_followup_response ?? "";
+  const sharingFollowupRemote =
     (myPriorFollowup as { sharing_followup_response?: string } | undefined)
-      ?.sharing_followup_response ?? ""
-  );
+      ?.sharing_followup_response ?? "";
+
+  const [pastoral, setPastoral] = useState(pastoralRemote);
+  const [pastoralSource, setPastoralSource] = useState(pastoralRemote);
+  if (pastoralRemote !== pastoralSource) {
+    setPastoralSource(pastoralRemote);
+    setPastoral(pastoralRemote);
+  }
+
+  const [accountability, setAccountability] = useState(accountabilityRemote);
+  const [accountabilitySource, setAccountabilitySource] = useState(accountabilityRemote);
+  if (accountabilityRemote !== accountabilitySource) {
+    setAccountabilitySource(accountabilityRemote);
+    setAccountability(accountabilityRemote);
+  }
+
+  const [vision, setVision] = useState(visionRemote);
+  const [visionSource, setVisionSource] = useState(visionRemote);
+  if (visionRemote !== visionSource) {
+    setVisionSource(visionRemote);
+    setVision(visionRemote);
+  }
+
+  const [obedienceFollowup, setObedienceFollowup] = useState(obedienceFollowupRemote);
+  const [obedienceFollowupSource, setObedienceFollowupSource] =
+    useState(obedienceFollowupRemote);
+  if (obedienceFollowupRemote !== obedienceFollowupSource) {
+    setObedienceFollowupSource(obedienceFollowupRemote);
+    setObedienceFollowup(obedienceFollowupRemote);
+  }
+
+  const [sharingFollowup, setSharingFollowup] = useState(sharingFollowupRemote);
+  const [sharingFollowupSource, setSharingFollowupSource] = useState(sharingFollowupRemote);
+  if (sharingFollowupRemote !== sharingFollowupSource) {
+    setSharingFollowupSource(sharingFollowupRemote);
+    setSharingFollowup(sharingFollowupRemote);
+  }
+
   const [saving, setSaving] = useState(false);
   const [checkoffPending, setCheckoffPending] = useState<Record<string, boolean>>(
     {}
   );
 
   const isStarter = starterTrackLookBack != null;
-
-  const pillarOrder: Record<string, number> = {
-    obedience: 0,
-    sharing: 1,
-    train: 2,
-  };
 
   const groupedAccountabilityLines = useMemo(() => {
     const m = new Map<string, AccountabilityCheckupLine[]>();
@@ -136,7 +169,8 @@ export function LookBackSection({
       userId: normalizeMeetingUserId(lines[0]!.subjectUserId) ?? lines[0]!.subjectUserId,
       displayName: lines[0]!.displayName,
       lines: [...lines].sort(
-        (a, b) => pillarOrder[a.pillar] - pillarOrder[b.pillar]
+        (a, b) =>
+          LOOKBACK_PILLAR_ORDER[a.pillar] - LOOKBACK_PILLAR_ORDER[b.pillar]
       ),
     }));
     entries.sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -249,38 +283,6 @@ export function LookBackSection({
       </div>
     );
   }
-
-  useEffect(() => {
-    setPastoral(myLookback?.pastoral_care_response ?? "");
-  }, [myLookback?.pastoral_care_response]);
-
-  useEffect(() => {
-    setAccountability(myLookback?.accountability_response ?? "");
-  }, [myLookback?.accountability_response]);
-
-  useEffect(() => {
-    setVision(myLookback?.vision_casting_response ?? "");
-  }, [myLookback?.vision_casting_response]);
-
-  useEffect(() => {
-    setObedienceFollowup(
-      (myPriorFollowup as { obedience_followup_response?: string } | undefined)
-        ?.obedience_followup_response ?? ""
-    );
-  }, [
-    (myPriorFollowup as { obedience_followup_response?: string } | undefined)
-      ?.obedience_followup_response,
-  ]);
-
-  useEffect(() => {
-    setSharingFollowup(
-      (myPriorFollowup as { sharing_followup_response?: string } | undefined)
-        ?.sharing_followup_response ?? ""
-    );
-  }, [
-    (myPriorFollowup as { sharing_followup_response?: string } | undefined)
-      ?.sharing_followup_response,
-  ]);
 
   function selfDisplayName() {
     const id = normalizeMeetingUserId(currentUserId) ?? currentUserId;

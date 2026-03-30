@@ -15,7 +15,7 @@
 
 # next.js
 /.next/
-# /out/ — kept for Capacitor mobile app (minimal index.html)
+# Capacitor loads the deployed site via server.url; `www/` is the committed sync fallback (not Next `out/`)
 
 # production
 /build

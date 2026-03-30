@@ -1,4 +1,4 @@
-import { utcWeekDaysElapsedInclusive } from "@/lib/dashboard/utc-week";
+import { pillarWeekDaysElapsedInclusive } from "@/lib/dashboard/pillar-week";
 
 export type WeeklyRhythmStatus = "ahead" | "on_pace" | "behind";
 
@@ -18,7 +18,7 @@ function clamp(n: number, lo: number, hi: number): number {
 }
 
 /**
- * Linear pace through the week: by Sunday you should reach `weeklyGoal`.
+ * Linear pace through the pillar week (Sun–Sat calendar days in pillar TZ, see `pillar-week.ts`).
  * `expectedSoFar = floor(daysElapsed * weeklyGoal / 7)` capped at goal.
  */
 export function expectedUnitsThroughWeek(
@@ -35,7 +35,7 @@ export function expectedUnitsThroughWeek(
 export function computeWeeklyRhythmPace(input: {
   actual: number;
   weeklyGoal: number;
-  /** 1–7; omit to use “today” in UTC week */
+  /** 1–7; omit to use “today” in pillar week (site-config TZ) */
   daysElapsed?: number;
   /** Degrees per unit of delta (sessions ~9, minutes ~0.85) */
   needleSensitivity: number;
@@ -46,7 +46,8 @@ export function computeWeeklyRhythmPace(input: {
   goalLabel: string;
   asOf?: Date;
 }): WeeklyRhythmPaceResult {
-  const daysElapsed = input.daysElapsed ?? utcWeekDaysElapsedInclusive(input.asOf ?? new Date());
+  const daysElapsed =
+    input.daysElapsed ?? pillarWeekDaysElapsedInclusive(input.asOf ?? new Date());
   const weeklyGoal = Math.max(0, Math.floor(input.weeklyGoal));
   const actual = Math.max(0, input.actual);
   const expectedSoFar = expectedUnitsThroughWeek(daysElapsed, weeklyGoal);

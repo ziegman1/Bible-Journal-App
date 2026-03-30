@@ -101,6 +101,33 @@ export function LookForwardSection({
   const commissioningRef = useRef<HTMLDivElement>(null);
   const prayerRef = useRef<HTMLDivElement>(null);
 
+  const obedienceRemote = myLookforward?.obedience_statement ?? "";
+  const sharingRemote = myLookforward?.sharing_commitment ?? "";
+  const trainRemote = myLookforward?.train_commitment ?? "";
+
+  const [obedience, setObedience] = useState(obedienceRemote);
+  const [obedienceSource, setObedienceSource] = useState(obedienceRemote);
+  if (obedienceRemote !== obedienceSource) {
+    setObedienceSource(obedienceRemote);
+    setObedience(obedienceRemote);
+  }
+
+  const [sharing, setSharing] = useState(sharingRemote);
+  const [sharingSource, setSharingSource] = useState(sharingRemote);
+  if (sharingRemote !== sharingSource) {
+    setSharingSource(sharingRemote);
+    setSharing(sharingRemote);
+  }
+
+  const [train, setTrain] = useState(trainRemote);
+  const [trainSource, setTrainSource] = useState(trainRemote);
+  if (trainRemote !== trainSource) {
+    setTrainSource(trainRemote);
+    setTrain(trainRemote);
+  }
+
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     if (!presenterFocus) return;
     const el =
@@ -114,33 +141,7 @@ export function LookForwardSection({
               ? commissioningRef.current
               : prayerRef.current;
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [
-    presenterFocus?.forwardSub,
-    presenterFocus?.practiceSlideIndex,
-  ]);
-
-  const [obedience, setObedience] = useState(
-    myLookforward?.obedience_statement ?? ""
-  );
-  const [sharing, setSharing] = useState(
-    myLookforward?.sharing_commitment ?? ""
-  );
-  const [train, setTrain] = useState(
-    myLookforward?.train_commitment ?? ""
-  );
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setObedience(myLookforward?.obedience_statement ?? "");
-  }, [myLookforward?.obedience_statement]);
-
-  useEffect(() => {
-    setSharing(myLookforward?.sharing_commitment ?? "");
-  }, [myLookforward?.sharing_commitment]);
-
-  useEffect(() => {
-    setTrain(myLookforward?.train_commitment ?? "");
-  }, [myLookforward?.train_commitment]);
+  }, [presenterFocus]);
 
   const starterWeekConfig =
     starterTrackWeek != null &&

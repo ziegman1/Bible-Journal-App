@@ -62,7 +62,9 @@ export async function BadwrReproductionCard() {
         Reproduction check
       </p>
       <p className="mt-1 text-center text-xs text-muted-foreground">
-        Word + SOAPS, prayer, CHAT, 3/3rds, and share—weekly rhythms of a disciple worth reproducing.
+        Word + SOAPS, prayer, CHAT, 3/3rds, and share. The gauge and each % are your{" "}
+        <span className="font-medium text-foreground/90">average across weeks</span> (since your
+        earliest logged activity). “Improve next” highlights this week only.
       </p>
 
       <div className="mt-2 border-t border-border/50 pt-3">
@@ -71,9 +73,9 @@ export async function BadwrReproductionCard() {
           needleDegrees={needleDegrees}
           status={paceStatus}
           statusHeading={heading}
-          message={`${overallPercent}% likelihood you’re living a reproducible rhythm this week.`}
-          detailLineCompact="Needle reflects the combined health of all five areas below."
-          ariaDescription={`Combined weekly score ${overallPercent} percent across Word and SOAPS, prayer, CHAT, three-thirds groups, and sharing.`}
+          message={`${overallPercent}% average reproduction health (all pillars combined, cumulative).`}
+          detailLineCompact="Average of Word & SOAPS, prayer, CHAT, 3/3rds, and share scores across weeks."
+          ariaDescription={`Combined cumulative average ${overallPercent} percent across Word and SOAPS, prayer, CHAT, three-thirds groups, and sharing.`}
         />
       </div>
 

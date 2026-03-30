@@ -377,8 +377,8 @@ function isMeToFamilyEdge(from: string, to: string): boolean {
 
 const FAMILY_EDGE_GOLD = "rgb(250, 204, 21)";
 const FAMILY_EDGE_DEEP = "rgb(202, 138, 4)";
-const FAMILY_EDGE_HIGHLIGHT = "rgba(255, 251, 235, 0.92)";
-const FAMILY_EDGE_STROKE_PX = 10;
+const _FAMILY_EDGE_HIGHLIGHT = "rgba(255, 251, 235, 0.92)";
+const _FAMILY_EDGE_STROKE_PX = 10;
 const FAMILY_EDGE_HALO_PX = 17;
 
 /** Edges that end at Watch Phase — thick blue flow toward the watch node */
@@ -388,8 +388,8 @@ function isFlowToWatchPhaseEdge(from: string, to: string): boolean {
 
 const WATCH_EDGE_BLUE = "rgb(59, 130, 246)";
 const WATCH_EDGE_DEEP = "rgb(30, 64, 175)";
-const WATCH_EDGE_HIGHLIGHT = "rgba(224, 242, 254, 0.92)";
-const WATCH_EDGE_STROKE_PX = 10;
+const _WATCH_EDGE_HIGHLIGHT = "rgba(224, 242, 254, 0.92)";
+const _WATCH_EDGE_STROKE_PX = 10;
 const WATCH_EDGE_HALO_PX = 17;
 
 /** Me → Model / Assist — thick warm flow toward the model node */
@@ -399,8 +399,8 @@ function isMeToModelEdge(from: string, to: string): boolean {
 
 const MODEL_EDGE_MAIN = "rgb(244, 114, 182)";
 const MODEL_EDGE_DEEP = "rgb(157, 23, 77)";
-const MODEL_EDGE_HIGHLIGHT = "rgba(255, 237, 245, 0.92)";
-const MODEL_EDGE_STROKE_PX = 10;
+const _MODEL_EDGE_HIGHLIGHT = "rgba(255, 237, 245, 0.92)";
+const _MODEL_EDGE_STROKE_PX = 10;
 const MODEL_EDGE_HALO_PX = 17;
 
 /** Model / Assist → Transformed Person — thick warm flow toward TP */
@@ -410,8 +410,8 @@ function isModelToTransformedEdge(from: string, to: string): boolean {
 
 const ASSIST_TO_TP_MAIN = "rgb(251, 113, 133)";
 const ASSIST_TO_TP_DEEP = "rgb(190, 18, 60)";
-const ASSIST_TO_TP_HIGHLIGHT = "rgba(255, 245, 248, 0.92)";
-const ASSIST_TO_TP_STROKE_PX = 10;
+const _ASSIST_TO_TP_HIGHLIGHT = "rgba(255, 245, 248, 0.92)";
+const _ASSIST_TO_TP_STROKE_PX = 10;
 const ASSIST_TO_TP_HALO_PX = 17;
 
 /** Transformed Person → New 3/3 — thick green flow toward the new33 node */
@@ -421,8 +421,8 @@ function isTransformedToNew33Edge(from: string, to: string): boolean {
 
 const NEW33_EDGE_GREEN = "rgb(34, 197, 94)";
 const NEW33_EDGE_DEEP = "rgb(21, 128, 61)";
-const NEW33_EDGE_HIGHLIGHT = "rgba(220, 252, 231, 0.92)";
-const NEW33_EDGE_STROKE_PX = 10;
+const _NEW33_EDGE_HIGHLIGHT = "rgba(220, 252, 231, 0.92)";
+const _NEW33_EDGE_STROKE_PX = 10;
 const NEW33_EDGE_HALO_PX = 17;
 
 function edgeTintId(from: string, to: string): string {
@@ -653,8 +653,6 @@ function ProcessMapConnections() {
         const curveF = isChild ? 0.105 : 0.16;
         const flowD = organicFlowPath(a.x, a.y, b.x, b.y, i, curveF);
         const hubEdge = isDailyPracticeHubEdge(from, to);
-        const pulseDur = 19 + (i % 6) * 1.4;
-        const pulseStagger = pulseDur * 0.52;
         const pathId = `pm-flowpath-${from}-${to}`;
         const meOutDim = from === "me" ? 0.78 : 1;
 

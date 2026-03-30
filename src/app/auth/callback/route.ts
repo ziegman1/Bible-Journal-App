@@ -2,15 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
+import { resolvePostAuthDestination } from "@/lib/site-config";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const redirectToParam = searchParams.get("redirectTo");
-  const redirectTo =
-    redirectToParam && (redirectToParam.startsWith("/app") || redirectToParam === "/onboarding")
-      ? redirectToParam
-      : "/app";
+  const nextParam = searchParams.get("next");
+  const destination = resolvePostAuthDestination(redirectToParam, nextParam);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const redirect = NextResponse.redirect(`${baseUrl}${redirectTo}`);
+      const redirect = NextResponse.redirect(`${baseUrl}${destination}`);
       response.cookies.getAll().forEach((c) =>
         redirect.cookies.set(c.name, c.value, { path: "/" })
       );

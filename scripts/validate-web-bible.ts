@@ -47,7 +47,8 @@ async function main() {
     .select("*", { count: "exact", head: true });
   const booksOk = (bookCount ?? 0) === EXPECTED.books;
   console.log(`Books:     ${bookCount ?? 0} / ${EXPECTED.books} ${booksOk ? "✓" : "✗ FAIL"}`);
-  booksOk ? passed++ : failed++;
+  if (booksOk) passed++;
+  else failed++;
 
   // Chapter count
   const { count: chapterCount } = await supabase
@@ -55,7 +56,8 @@ async function main() {
     .select("*", { count: "exact", head: true });
   const chaptersOk = (chapterCount ?? 0) === EXPECTED.chapters;
   console.log(`Chapters:  ${chapterCount ?? 0} / ${EXPECTED.chapters} ${chaptersOk ? "✓" : "✗ FAIL"}`);
-  chaptersOk ? passed++ : failed++;
+  if (chaptersOk) passed++;
+  else failed++;
 
   // Verse count
   const { count: verseCount } = await supabase
@@ -65,7 +67,8 @@ async function main() {
   const vc = verseCount ?? 0;
   const versesOk = vc >= EXPECTED.verses.min && vc <= EXPECTED.verses.max;
   console.log(`Verses:   ${vc} (expected ${EXPECTED.verses.min}-${EXPECTED.verses.max}) ${versesOk ? "✓" : "✗ FAIL"}`);
-  versesOk ? passed++ : failed++;
+  if (versesOk) passed++;
+  else failed++;
 
   // James exists
   const { data: jamesBook } = await supabase
@@ -75,7 +78,8 @@ async function main() {
     .single();
   const jamesExists = !!jamesBook;
   console.log(`James:    ${jamesExists ? "exists" : "MISSING"} ${jamesExists ? "✓" : "✗ FAIL"}`);
-  jamesExists ? passed++ : failed++;
+  if (jamesExists) passed++;
+  else failed++;
 
   // James verse count
   const { count: jamesVerseCount } = await supabase
@@ -85,7 +89,8 @@ async function main() {
     .eq("translation", "web");
   const jamesVersesOk = (jamesVerseCount ?? 0) === EXPECTED.james.verses;
   console.log(`  James verses: ${jamesVerseCount ?? 0} / ${EXPECTED.james.verses} ${jamesVersesOk ? "✓" : "✗ FAIL"}`);
-  jamesVersesOk ? passed++ : failed++;
+  if (jamesVersesOk) passed++;
+  else failed++;
 
   // Jude exists
   const { data: judeBook } = await supabase
@@ -95,7 +100,8 @@ async function main() {
     .single();
   const judeExists = !!judeBook;
   console.log(`Jude:     ${judeExists ? "exists" : "MISSING"} ${judeExists ? "✓" : "✗ FAIL"}`);
-  judeExists ? passed++ : failed++;
+  if (judeExists) passed++;
+  else failed++;
 
   // Jude verse count
   const { count: judeVerseCount } = await supabase
@@ -105,7 +111,8 @@ async function main() {
     .eq("translation", "web");
   const judeVersesOk = (judeVerseCount ?? 0) === EXPECTED.jude.verses;
   console.log(`  Jude verses:  ${judeVerseCount ?? 0} / ${EXPECTED.jude.verses} ${judeVersesOk ? "✓" : "✗ FAIL"}`);
-  judeVersesOk ? passed++ : failed++;
+  if (judeVersesOk) passed++;
+  else failed++;
 
   console.log("=".repeat(50));
   console.log(`\nResult: ${passed} passed, ${failed} failed`);

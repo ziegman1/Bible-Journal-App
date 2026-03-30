@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { signUp } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
+import { AuthFormSubmit } from "@/components/auth-form-submit";
+import { SiteFooter } from "@/components/site-footer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SupabaseCheckButton } from "@/components/supabase-check-button";
+import { APP_MARKETING_NAME } from "@/lib/site-config";
 
 export default async function SignUpPage({
   searchParams,
@@ -11,12 +13,15 @@ export default async function SignUpPage({
   searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }) {
   const params = await searchParams;
+  const authFieldClass =
+    "bg-white dark:bg-stone-900 h-11 min-h-[44px] text-base sm:text-sm";
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
-            Bible Journal
+            {APP_MARKETING_NAME}
           </h1>
           <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
             Create your account
@@ -50,7 +55,8 @@ export default async function SignUpPage({
               type="text"
               placeholder="Your name"
               required
-              className="bg-white dark:bg-stone-900"
+              autoComplete="name"
+              className={authFieldClass}
             />
           </div>
           <div className="space-y-2">
@@ -61,7 +67,8 @@ export default async function SignUpPage({
               type="email"
               placeholder="you@example.com"
               required
-              className="bg-white dark:bg-stone-900"
+              autoComplete="email"
+              className={authFieldClass}
             />
           </div>
           <div className="space-y-2">
@@ -72,12 +79,22 @@ export default async function SignUpPage({
               type="password"
               required
               minLength={6}
-              className="bg-white dark:bg-stone-900"
+              autoComplete="new-password"
+              className={authFieldClass}
             />
           </div>
-          <Button type="submit" className="w-full">
-            Sign Up
-          </Button>
+          <p className="text-xs text-stone-500 dark:text-stone-500 leading-relaxed text-center">
+            By signing up, you agree to our{" "}
+            <Link href="/terms" className="underline underline-offset-2">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+          <AuthFormSubmit label="Sign Up" pendingLabel="Creating account…" />
         </form>
 
         <p className="text-center text-sm text-stone-500 dark:text-stone-400">
@@ -88,11 +105,15 @@ export default async function SignUpPage({
                 ? `/login?redirectTo=${encodeURIComponent(params.redirectTo)}`
                 : "/login"
             }
-            className="text-stone-700 dark:text-stone-300 underline"
+            className="text-stone-700 dark:text-stone-300 underline min-h-[44px] inline-flex items-center justify-center"
           >
             Sign in
           </Link>
         </p>
+      </div>
+      </div>
+      <div className="shrink-0 px-4 py-6 border-t border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <SiteFooter variant="compact" />
       </div>
     </div>
   );

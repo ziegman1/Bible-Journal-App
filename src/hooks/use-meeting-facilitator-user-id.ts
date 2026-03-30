@@ -12,20 +12,19 @@ export function useMeetingFacilitatorUserId(
   initialFacilitatorUserId: string | null | undefined,
   readOnly?: boolean
 ) {
-  const [facilitatorUserId, setFacilitatorUserId] = useState<string | null>(
-    () =>
-      normalizeMeetingUserId(initialFacilitatorUserId ?? "") ??
-      initialFacilitatorUserId ??
-      null
-  );
+  const normalizedProp =
+    normalizeMeetingUserId(initialFacilitatorUserId ?? "") ??
+    initialFacilitatorUserId ??
+    null;
 
-  useEffect(() => {
-    const n =
-      normalizeMeetingUserId(initialFacilitatorUserId ?? "") ??
-      initialFacilitatorUserId ??
-      null;
-    setFacilitatorUserId(n);
-  }, [initialFacilitatorUserId]);
+  const [facilitatorUserId, setFacilitatorUserId] = useState<string | null>(
+    normalizedProp
+  );
+  const [propSnap, setPropSnap] = useState(normalizedProp);
+  if (normalizedProp !== propSnap) {
+    setPropSnap(normalizedProp);
+    setFacilitatorUserId(normalizedProp);
+  }
 
   useEffect(() => {
     if (readOnly) return;

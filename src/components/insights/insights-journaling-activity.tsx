@@ -9,7 +9,6 @@ interface InsightsJournalingActivityProps {
 export function InsightsJournalingActivity({ data }: InsightsJournalingActivityProps) {
   const { frequencyByMonth, frequencyByWeek } = data.journalingActivity;
   const maxMonth = Math.max(1, ...frequencyByMonth.map((f) => f.count));
-  const maxWeek = Math.max(1, ...frequencyByWeek.map((f) => f.count));
 
   if (frequencyByMonth.length === 0 && frequencyByWeek.length === 0) {
     return (

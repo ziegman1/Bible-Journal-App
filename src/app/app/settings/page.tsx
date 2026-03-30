@@ -17,7 +17,7 @@ export default async function SettingsPage() {
     .single();
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-xl mx-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200 mb-6">
         Settings
       </h1>

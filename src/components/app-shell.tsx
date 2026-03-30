@@ -25,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { AppBrandLink } from "@/components/app-brand-link";
+import { SiteFooter } from "@/components/site-footer";
 import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
 
 const navItems = [
@@ -67,7 +68,7 @@ function NavLinks({
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              "flex items-center gap-3 px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation",
               isActive
                 ? "bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
                 : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:hover:text-stone-100"
@@ -88,7 +89,7 @@ function NavLinks({
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              "flex items-center gap-3 px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation",
               isActive
                 ? "bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
                 : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:hover:text-stone-100"
@@ -132,7 +133,7 @@ export function AppShell({ displayName, children }: AppShellProps) {
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-stone-200 dark:border-stone-800 bg-background/95 backdrop-blur px-4 md:px-6">
           <div className="flex items-center gap-2 min-w-0">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-              <SheetTrigger className="shrink-0 rounded-lg p-2 hover:bg-stone-100 dark:hover:bg-stone-800 md:hidden">
+              <SheetTrigger className="shrink-0 rounded-lg p-2 min-h-11 min-w-11 inline-flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 md:hidden touch-manipulation">
                 <Menu className="size-5" />
                 <span className="sr-only">Open menu</span>
               </SheetTrigger>
@@ -152,13 +153,21 @@ export function AppShell({ displayName, children }: AppShellProps) {
             </span>
           </div>
           <form action={signOut} className="shrink-0">
-            <Button type="submit" variant="ghost" size="sm">
-              <LogOut className="size-4 md:mr-2" />
-              <span className="hidden md:inline">Sign out</span>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="default"
+              className="min-h-10 gap-2 px-3 text-sm touch-manipulation"
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              <span>Sign out</span>
             </Button>
           </form>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        <div className="shrink-0 border-t border-stone-200 dark:border-stone-800 bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <SiteFooter variant="compact" />
+        </div>
       </div>
     </div>
   );

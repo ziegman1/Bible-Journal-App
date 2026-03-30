@@ -1,7 +1,7 @@
 import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
 import { PRAYER_WEEKLY_GOAL_MINUTES } from "@/lib/prayer-wheel/stats";
 
-/** Weekly needle pace vs weekly prayer goal (UTC week, same window as segment stats). */
+/** Weekly needle pace vs weekly prayer goal (pillar week: Sun 00:00–Sat, configured TZ). */
 export function buildPrayerWheelWeeklyPace(weeklyMinutes: number, asOf: Date = new Date()) {
   return computeWeeklyRhythmPace({
     actual: weeklyMinutes,

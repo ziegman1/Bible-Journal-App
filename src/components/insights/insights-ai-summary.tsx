@@ -17,8 +17,8 @@ interface InsightsAISummaryProps {
 
 export function InsightsAISummary({
   range,
-  startDate,
-  endDate,
+  startDate: _startDate,
+  endDate: _endDate,
   initialSummary,
 }: InsightsAISummaryProps) {
   const [summary, setSummary] = useState<InsightSummaryJSON | null>(initialSummary);

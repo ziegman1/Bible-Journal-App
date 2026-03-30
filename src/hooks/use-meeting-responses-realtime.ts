@@ -233,19 +233,23 @@ export function useMeetingResponsesRealtime(opts: {
     });
   }, []);
 
+  // Snapshot initial rows only when switching meetings; including full opts would wipe optimistic/realtime state on re-renders.
   useEffect(() => {
-    setLookbackByUser(rowsToMap(opts.initialLookback));
-    setLookforwardByUser(rowsToLookforwardMap(opts.initialLookforward));
-    setPriorFollowupByUser(rowsToMap(opts.initialPriorFollowups));
-    setPassageObservations(
-      (opts.initialPassageObservations ?? []).map(normalizeObservationRow)
-    );
-    setCommitmentCompleteByKey(
-      commitmentRowsToCompleteMap(
-        opts.meetingId,
-        opts.initialCommitmentCheckoffs ?? []
-      )
-    );
+    queueMicrotask(() => {
+      setLookbackByUser(rowsToMap(opts.initialLookback));
+      setLookforwardByUser(rowsToLookforwardMap(opts.initialLookforward));
+      setPriorFollowupByUser(rowsToMap(opts.initialPriorFollowups));
+      setPassageObservations(
+        (opts.initialPassageObservations ?? []).map(normalizeObservationRow)
+      );
+      setCommitmentCompleteByKey(
+        commitmentRowsToCompleteMap(
+          opts.meetingId,
+          opts.initialCommitmentCheckoffs ?? []
+        )
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional meetingId-only reset; see comment on effect
   }, [opts.meetingId]);
 
   const onLookbackEvent = useCallback(
@@ -363,9 +367,10 @@ export function useMeetingResponsesRealtime(opts: {
 
   useEffect(() => {
     if (readOnly) {
-      setConnection("closed");
+      queueMicrotask(() => setConnection("closed"));
       return;
     }
+    queueMicrotask(() => setConnection("connecting"));
     const supabase = createClient();
     const filter = `meeting_id=eq.${opts.meetingId}`;
     const channel = supabase
@@ -480,13 +485,17 @@ export function useMeetingCommitmentCheckoffsOnlyRealtime(opts: {
     readOnly ? "closed" : "connecting"
   );
 
+  // Commitment snapshot resets only on meeting switch, not when parent passes a new checkoffs array reference.
   useEffect(() => {
-    setCommitmentCompleteByKey(
-      commitmentRowsToCompleteMap(
-        opts.meetingId,
-        opts.initialCommitmentCheckoffs
+    queueMicrotask(() =>
+      setCommitmentCompleteByKey(
+        commitmentRowsToCompleteMap(
+          opts.meetingId,
+          opts.initialCommitmentCheckoffs
+        )
       )
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional meetingId-only reset; see comment on effect
   }, [opts.meetingId]);
 
   const onCommitmentCheckoffEvent = useCallback(
@@ -506,9 +515,10 @@ export function useMeetingCommitmentCheckoffsOnlyRealtime(opts: {
 
   useEffect(() => {
     if (readOnly) {
-      setConnection("closed");
+      queueMicrotask(() => setConnection("closed"));
       return;
     }
+    queueMicrotask(() => setConnection("connecting"));
     const supabase = createClient();
     const channel = supabase
       .channel(`meeting-commit-checkoffs:${opts.meetingId}`)

@@ -20,7 +20,7 @@ interface ChapterSelectorProps {
 
 export function ChapterSelector({
   bookId,
-  bookName,
+  bookName: _bookName,
   currentChapter,
   chapterCount,
   chatSoapsGroupId = null,

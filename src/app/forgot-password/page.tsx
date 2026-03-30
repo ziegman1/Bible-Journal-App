@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { resetPassword } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
+import { AuthFormSubmit } from "@/components/auth-form-submit";
+import { SiteFooter } from "@/components/site-footer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -10,8 +11,11 @@ export default async function ForgotPasswordPage({
   searchParams: Promise<{ message?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const authFieldClass =
+    "bg-white dark:bg-stone-900 h-11 min-h-[44px] text-base sm:text-sm";
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
@@ -48,19 +52,25 @@ export default async function ForgotPasswordPage({
               type="email"
               placeholder="you@example.com"
               required
-              className="bg-white dark:bg-stone-900"
+              autoComplete="email"
+              className={authFieldClass}
             />
           </div>
-          <Button type="submit" className="w-full">
-            Send reset link
-          </Button>
+          <AuthFormSubmit label="Send reset link" pendingLabel="Sending…" />
         </form>
 
         <p className="text-center text-sm text-stone-500 dark:text-stone-400">
-          <Link href="/login" className="text-stone-700 dark:text-stone-300 underline">
+          <Link
+            href="/login"
+            className="text-stone-700 dark:text-stone-300 underline min-h-[44px] inline-flex items-center justify-center"
+          >
             Back to sign in
           </Link>
         </p>
+      </div>
+      </div>
+      <div className="shrink-0 px-4 py-6 border-t border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <SiteFooter variant="compact" />
       </div>
     </div>
   );

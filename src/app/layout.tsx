@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { buildRootMetadata, THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "@/lib/site-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,30 +15,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://badwr.app"),
-  title: "BADWR",
-  description: "Be A Disciple Worth Reproducing",
-  openGraph: {
-    title: "BADWR",
-    description: "Be A Disciple Worth Reproducing",
-    url: "https://badwr.app",
-    siteName: "BADWR",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-      },
-    ],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "BADWR",
-    description: "Be A Disciple Worth Reproducing",
-    images: ["/og-image.png"],
-  },
+export const metadata: Metadata = buildRootMetadata();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
+  ],
 };
 
 export default function RootLayout({

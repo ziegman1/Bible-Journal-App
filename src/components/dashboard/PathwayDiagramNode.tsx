@@ -177,11 +177,6 @@ function shapePath(
   return { d: wobblyRoundedRectPath(2, 2, w - 4, h - 4, rr), labelCy: cy };
 }
 
-function softFill(hex: string): string {
-  if (hex.toLowerCase() === "white" || hex === "#fff" || hex === "#ffffff") return "#fffef8";
-  return hex;
-}
-
 /** “3 HR/WK” — optional split so digit + letters share one explicit font size (script fonts). */
 function splitLeadingNumberSubtext(s: string): { num: string; rest: string } | null {
   const m = /^(\d+(?:\.\d+)?)\s+(.+)$/.exec(s.trim());

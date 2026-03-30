@@ -140,7 +140,7 @@ export function FacilitatorMeetingView({
   memberDisplayNames,
   currentUserId,
   groupMemberRole,
-  groupId,
+  groupId: _groupId,
   meetingId,
   priorCommitments,
   starterTrackLookBack,

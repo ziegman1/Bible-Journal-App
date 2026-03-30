@@ -74,10 +74,12 @@ export async function updateSession(request: NextRequest) {
     );
     supabaseResponse = presentResponse;
   }
+  const path = request.nextUrl.pathname;
   const isAuthRoute =
-    request.nextUrl.pathname === "/login" ||
-    request.nextUrl.pathname === "/signup" ||
-    request.nextUrl.pathname === "/";
+    path === "/login" ||
+    path === "/signup" ||
+    path === "/forgot-password" ||
+    path === "/";
 
   const redirectWithCookies = (url: URL) => {
     const res = NextResponse.redirect(url);

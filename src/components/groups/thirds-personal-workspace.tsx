@@ -144,39 +144,41 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
   }, []);
 
   useEffect(() => {
-    setWeek(initial.week);
-    setPassageRef(initial.week.passage_ref);
-    setPassageMode(passageModeFromWeek(initial.week));
-    setSelectedPresetId(initial.week.look_up_preset_story_id ?? "");
-    setBook(initial.week.look_up_book || "");
-    setChapter(
-      initial.week.look_up_chapter != null ? String(initial.week.look_up_chapter) : ""
-    );
-    setVerseStart(
-      initial.week.look_up_verse_start != null ? String(initial.week.look_up_verse_start) : ""
-    );
-    setVerseEnd(
-      initial.week.look_up_verse_end != null ? String(initial.week.look_up_verse_end) : ""
-    );
-    setObsLike(initial.week.observation_like);
-    setObsDiff(initial.week.observation_difficult);
-    setObsPpl(initial.week.observation_teaches_people);
-    setObsGod(initial.week.observation_teaches_god);
-    const s = buildSuggestedLookForward(
-      {
-        obedience_statement: initial.week.obedience_statement,
-        sharing_commitment: initial.week.sharing_commitment,
-        train_commitment: initial.week.train_commitment,
-        prior_obedience_done: initial.week.prior_obedience_done,
-        prior_sharing_done: initial.week.prior_sharing_done,
-        prior_train_done: initial.week.prior_train_done,
-      },
-      initial.priorFinalized
-    );
-    setObedience(initial.week.obedience_statement || s.obedience_statement);
-    setSharing(initial.week.sharing_commitment || s.sharing_commitment);
-    setTrain(initial.week.train_commitment || s.train_commitment);
-    setPassageVerses(initial.initialPassageVerses);
+    queueMicrotask(() => {
+      setWeek(initial.week);
+      setPassageRef(initial.week.passage_ref);
+      setPassageMode(passageModeFromWeek(initial.week));
+      setSelectedPresetId(initial.week.look_up_preset_story_id ?? "");
+      setBook(initial.week.look_up_book || "");
+      setChapter(
+        initial.week.look_up_chapter != null ? String(initial.week.look_up_chapter) : ""
+      );
+      setVerseStart(
+        initial.week.look_up_verse_start != null ? String(initial.week.look_up_verse_start) : ""
+      );
+      setVerseEnd(
+        initial.week.look_up_verse_end != null ? String(initial.week.look_up_verse_end) : ""
+      );
+      setObsLike(initial.week.observation_like);
+      setObsDiff(initial.week.observation_difficult);
+      setObsPpl(initial.week.observation_teaches_people);
+      setObsGod(initial.week.observation_teaches_god);
+      const s = buildSuggestedLookForward(
+        {
+          obedience_statement: initial.week.obedience_statement,
+          sharing_commitment: initial.week.sharing_commitment,
+          train_commitment: initial.week.train_commitment,
+          prior_obedience_done: initial.week.prior_obedience_done,
+          prior_sharing_done: initial.week.prior_sharing_done,
+          prior_train_done: initial.week.prior_train_done,
+        },
+        initial.priorFinalized
+      );
+      setObedience(initial.week.obedience_statement || s.obedience_statement);
+      setSharing(initial.week.sharing_commitment || s.sharing_commitment);
+      setTrain(initial.week.train_commitment || s.train_commitment);
+      setPassageVerses(initial.initialPassageVerses);
+    });
   }, [initial]);
 
   useEffect(() => {
@@ -185,13 +187,17 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     const vs = parseInt(verseStart, 10);
     const ve = parseInt(verseEnd, 10);
     if (!book.trim() || !ch || !vs || !ve) return;
-    setPassageRef(formatThirdsPersonalPassageRef(book.trim(), ch, vs, ve));
+    queueMicrotask(() =>
+      setPassageRef(formatThirdsPersonalPassageRef(book.trim(), ch, vs, ve))
+    );
   }, [passageMode, book, chapter, verseStart, verseEnd]);
 
   useEffect(() => {
     if (passageMode === "reference_only") {
-      setPassageVerses([]);
-      setPassageLoading(false);
+      queueMicrotask(() => {
+        setPassageVerses([]);
+        setPassageLoading(false);
+      });
       return;
     }
     const bn = book.trim();
@@ -207,14 +213,16 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
       !Number.isFinite(veRaw) ||
       veRaw < 1
     ) {
-      setPassageVerses([]);
-      setPassageLoading(false);
+      queueMicrotask(() => {
+        setPassageVerses([]);
+        setPassageLoading(false);
+      });
       return;
     }
     const vs = vsRaw;
     const ve = veRaw;
     let cancelled = false;
-    setPassageLoading(true);
+    queueMicrotask(() => setPassageLoading(true));
     void fetchPassageVersesRangeInBrowser({
       book: bn,
       chapter: ch,
@@ -305,7 +313,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     if (selectedPresetId) return;
     const first = Object.values(bySeries).flat()[0];
     if (!first) return;
-    applyPresetRow(first);
+    queueMicrotask(() => applyPresetRow(first));
   }, [readOnly, passageMode, selectedPresetId, bySeries, applyPresetRow]);
 
   const onSaveLookForward = () => {

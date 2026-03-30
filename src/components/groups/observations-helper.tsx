@@ -83,9 +83,9 @@ export function ObservationsHelper({
   useEffect(() => {
     if (useParent) return;
     let cancelled = false;
-    setFetched(null);
-    setFetchError(null);
     void (async () => {
+      setFetched(null);
+      setFetchError(null);
       const r = await getMyPassageObservationsForMeeting(meetingId);
       if (cancelled) return;
       if (r.error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { askPassageQuestion } from "@/app/actions/ai";
 import { createJournalEntry } from "@/app/actions/journal";
@@ -39,7 +39,7 @@ export function AskAIPanel({
   verseEnd,
   reference,
   open,
-  onOpenChange,
+  onOpenChange: _unusedOnOpenChange,
   aiStyle = "balanced",
   defaultToReflection = false,
   passageText,
@@ -60,8 +60,10 @@ export function AskAIPanel({
   const [tags, setTags] = useState("");
   const [lastError, setLastError] = useState<string | null>(null);
 
-  const prevThreadIdRef = useRef<string | null>(null);
-  useEffect(() => {
+  const prevThreadIdRef = useRef<string | null>(initialThreadId);
+  const prevReferenceRef = useRef(reference);
+
+  const syncFromThreadProps = useCallback(() => {
     if (prevThreadIdRef.current !== initialThreadId) {
       prevThreadIdRef.current = initialThreadId;
       setThreadId(initialThreadId);
@@ -69,8 +71,7 @@ export function AskAIPanel({
     }
   }, [initialThreadId, initialMessages]);
 
-  const prevReferenceRef = useRef(reference);
-  useEffect(() => {
+  const syncFromReferenceChange = useCallback(() => {
     if (prevReferenceRef.current !== reference && !initialThreadId) {
       prevReferenceRef.current = reference;
       setThreadId(null);
@@ -79,6 +80,13 @@ export function AskAIPanel({
       setLastError(null);
     }
   }, [reference, initialThreadId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      syncFromThreadProps();
+      syncFromReferenceChange();
+    });
+  }, [syncFromThreadProps, syncFromReferenceChange]);
 
   async function handleAsk() {
     if (!question.trim()) return;

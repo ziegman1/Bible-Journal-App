@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { saveRelationalNetworkLine } from "@/app/actions/list-of-100";
 import { ListOf100Instructions } from "@/components/list-of-100/list-of-100-instructions";
@@ -51,11 +51,16 @@ export function ListOf100Editor({ initialLines }: { initialLines: NetworkListLin
   const [savingLine, setSavingLine] = useState<number | null>(null);
   const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const rowsRef = useRef(rows);
-  rowsRef.current = rows;
+
+  useLayoutEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
 
   useEffect(() => {
-    const count = initialVisibleCount(initialLines);
-    setRows(dtoToRows(initialLines, count));
+    queueMicrotask(() => {
+      const count = initialVisibleCount(initialLines);
+      setRows(dtoToRows(initialLines, count));
+    });
   }, [initialLines]);
 
   const persist = useCallback(async (lineNumber: number, draft: RowDraft) => {

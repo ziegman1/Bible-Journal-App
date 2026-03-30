@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { AIResponseSections } from "./ai-response-sections";
 import type { ThreadMessage as ThreadMessageType } from "@/types/database";
 
@@ -9,7 +8,7 @@ interface ThreadMessageProps {
   threadReference: string;
 }
 
-export function ThreadMessage({ message, threadReference }: ThreadMessageProps) {
+export function ThreadMessage({ message, threadReference: _threadReference }: ThreadMessageProps) {
   const isUser = message.role === "user";
   const aiData = message.structured_ai_response as Record<string, unknown> | null;
 

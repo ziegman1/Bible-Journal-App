@@ -2,7 +2,7 @@
 
 import { SOAPS_WEEKLY_GOAL_SESSIONS } from "@/lib/dashboard/soaps-weekly-constants";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
-import { utcDateYmd, startOfUtcWeekMonday } from "@/lib/dashboard/utc-week";
+import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
 import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
 import { createClient } from "@/lib/supabase/server";
@@ -18,11 +18,7 @@ export async function getSoapsWeeklyPace(): Promise<
   if (!user) return { error: "Not authenticated" };
 
   const now = new Date();
-  const weekStart = startOfUtcWeekMonday(now);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-  const startYmd = utcDateYmd(weekStart);
-  const endYmd = utcDateYmd(weekEnd);
+  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now);
 
   const { data: rows, error } = await supabase
     .from("journal_entries")

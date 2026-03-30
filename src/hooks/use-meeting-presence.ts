@@ -63,8 +63,9 @@ export function useMeetingPresence(opts: {
 }) {
   const readOnly = opts.readOnly ?? false;
   const [peers, setPeers] = useState<MeetingPresencePeer[]>([]);
-  const [connection, setConnection] =
-    useState<MeetingPresenceConnection>("connecting");
+  const [connection, setConnection] = useState<MeetingPresenceConnection>(() =>
+    readOnly ? "closed" : "connecting"
+  );
 
   const flattenPresenceState = useCallback((presenceState: object) => {
     const byUser = new Map<string, MeetingPresencePeer>();
@@ -84,11 +85,14 @@ export function useMeetingPresence(opts: {
 
   useEffect(() => {
     if (readOnly) {
-      setConnection("closed");
-      setPeers([]);
+      queueMicrotask(() => {
+        setConnection("closed");
+        setPeers([]);
+      });
       return;
     }
 
+    queueMicrotask(() => setConnection("connecting"));
     const supabase = createClient();
     const meetingRole: MeetingPresenceRole =
       opts.facilitatorUserId === opts.userId

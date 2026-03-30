@@ -184,7 +184,7 @@ export async function getThirdsPersonalWorkspace(): Promise<
 
   const currentWeekMondayYmd = currentUtcWeekMondayYmd();
 
-  let { data: row, error: fetchErr } = await supabase
+  const { data: fetchedRow, error: fetchErr } = await supabase
     .from("thirds_personal_weeks")
     .select("*")
     .eq("user_id", user.id)
@@ -192,6 +192,8 @@ export async function getThirdsPersonalWorkspace(): Promise<
     .maybeSingle();
 
   if (fetchErr) return { error: fetchErr.message };
+
+  let row = fetchedRow;
 
   if (!row) {
     const ins = await supabase

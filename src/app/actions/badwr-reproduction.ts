@@ -1,12 +1,11 @@
 "use server";
 
 import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
-import { getPrayerWheelDashboardStats } from "@/app/actions/prayer-wheel";
 import { listGroupsForUser } from "@/app/actions/groups";
 import {
+  BADWR_PRAYER_MINUTES_WEEKLY_GOAL,
   BADWR_SHARE_WEEKLY_GOAL,
   BADWR_SOAPS_WEEKLY_GOAL,
-  BADWR_PRAYER_MINUTES_WEEKLY_GOAL,
   buildChatPillar,
   buildPrayPillar,
   buildSharePillar,
@@ -16,13 +15,22 @@ import {
   overallReproductionPercent,
   type BadwrPillarModel,
 } from "@/lib/dashboard/badwr-reproduction-model";
-import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 import {
-  utcDateYmd,
-  startOfUtcWeekMonday,
-  endOfUtcWeekMonday,
-  utcWeekDaysElapsedInclusive,
-} from "@/lib/dashboard/utc-week";
+  computeCumulativeBadwr,
+  emptyBucket,
+  mergeCumulativeIntoWeeklyTemplates,
+  type WeekRhythmBucket,
+} from "@/lib/dashboard/badwr-reproduction-cumulative";
+import {
+  enumeratePillarWeekStartYmids,
+  pillarWeekDaysElapsedInclusive,
+  pillarWeekRangeForQuery,
+  pillarWeekStartKeyFromDateYmd,
+  pillarWeekStartKeyFromInstant,
+  ymdAddCalendarDays,
+  ymdRangesOverlap,
+} from "@/lib/dashboard/pillar-week";
+import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 import { expectedUnitsThroughWeek } from "@/lib/dashboard/weekly-rhythm-pace";
 import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +43,26 @@ export type BadwrReproductionSnapshot = {
   daysElapsed: number;
 };
 
+function bumpBucket(
+  map: Map<string, WeekRhythmBucket>,
+  weekKey: string,
+  patch: Partial<WeekRhythmBucket>
+) {
+  const c = map.get(weekKey) ?? emptyBucket();
+  map.set(weekKey, {
+    soapsQualifying: c.soapsQualifying + (patch.soapsQualifying ?? 0),
+    readingSessions: c.readingSessions + (patch.readingSessions ?? 0),
+    prayerMinutes: c.prayerMinutes + (patch.prayerMinutes ?? 0),
+    shares: c.shares + (patch.shares ?? 0),
+  });
+}
+
+function touchEarliest(e: string | null | undefined, ref: { min: string | null }) {
+  if (!e) return;
+  const d = e.slice(0, 10);
+  if (!ref.min || d < ref.min) ref.min = d;
+}
+
 export async function getBadwrReproductionSnapshot(): Promise<
   { error: string } | BadwrReproductionSnapshot
 > {
@@ -46,15 +74,10 @@ export async function getBadwrReproductionSnapshot(): Promise<
   if (!user) return { error: "Not authenticated" };
 
   const now = new Date();
-  const weekStart = startOfUtcWeekMonday(now);
-  const weekEndDate = new Date(weekStart);
-  weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
-  const startYmd = utcDateYmd(weekStart);
-  const endYmd = utcDateYmd(weekEndDate);
-  const startIso = weekStart.toISOString();
-  const endIso = endOfUtcWeekMonday(now).toISOString();
+  const { startYmd, endYmdInclusive, startIso, endExclusiveIso } =
+    pillarWeekRangeForQuery(now);
 
-  const daysElapsed = utcWeekDaysElapsedInclusive(now);
+  const daysElapsed = pillarWeekDaysElapsedInclusive(now);
 
   const soapsExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_SOAPS_WEEKLY_GOAL);
   const prayerExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_PRAYER_MINUTES_WEEKLY_GOAL);
@@ -69,72 +92,150 @@ export async function getBadwrReproductionSnapshot(): Promise<
     "error" in chatResult || !chatResult.groups[0] ? null : chatResult.groups[0].id;
 
   let meetingsWeek: { id: string }[] = [];
+  let allCompletedMeetings: { id: string; meeting_date: string }[] = [];
   if (thirdsGroupIds.length > 0) {
-    const { data: mw } = await supabase
-      .from("group_meetings")
-      .select("id")
-      .in("group_id", thirdsGroupIds)
-      .eq("status", "completed")
-      .gte("meeting_date", startYmd)
-      .lte("meeting_date", endYmd);
+    const [{ data: mw }, { data: allM }] = await Promise.all([
+      supabase
+        .from("group_meetings")
+        .select("id")
+        .in("group_id", thirdsGroupIds)
+        .eq("status", "completed")
+        .gte("meeting_date", startYmd)
+        .lte("meeting_date", endYmdInclusive),
+      supabase
+        .from("group_meetings")
+        .select("id, meeting_date")
+        .in("group_id", thirdsGroupIds)
+        .eq("status", "completed"),
+    ]);
     meetingsWeek = mw ?? [];
+    allCompletedMeetings = allM ?? [];
   }
+
+  const memberGroupIds = [...thirdsGroupIds];
+  if (chatGroupId) memberGroupIds.push(chatGroupId);
 
   const [
     soapsRes,
-    readingCountRes,
-    prayerStats,
-    shareCountRes,
+    journalAllRes,
+    readingWeekCountRes,
+    readingAllRes,
+    prayerSegRes,
+    prayerExtraRes,
+    shareWeekCountRes,
+    shareAllRes,
     soloWeekRes,
-    soloSettingsRes,
+    soloFinalizedRes,
+    participationRes,
+    membershipsRes,
     thirdsParticipationMetrics,
+    attendedAllMeetingsRes,
   ] = await Promise.all([
     supabase
       .from("journal_entries")
       .select("scripture_text, soaps_share, user_reflection, prayer, application")
       .eq("user_id", user.id)
       .gte("entry_date", startYmd)
-      .lte("entry_date", endYmd),
+      .lte("entry_date", endYmdInclusive),
+    supabase
+      .from("journal_entries")
+      .select("entry_date, scripture_text, soaps_share, user_reflection, prayer, application")
+      .eq("user_id", user.id),
     supabase
       .from("reading_sessions")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .gte("read_at", startIso)
-      .lte("read_at", endIso),
-    getPrayerWheelDashboardStats(),
+      .lt("read_at", endExclusiveIso),
+    supabase.from("reading_sessions").select("read_at").eq("user_id", user.id),
+    supabase
+      .from("prayer_wheel_segment_completions")
+      .select("completed_at, duration_minutes")
+      .eq("user_id", user.id),
+    supabase
+      .from("prayer_extra_minutes")
+      .select("logged_at, minutes")
+      .eq("user_id", user.id),
     supabase
       .from("share_encounters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .gte("encounter_date", startYmd)
-      .lte("encounter_date", endYmd),
+      .lte("encounter_date", endYmdInclusive),
+    supabase.from("share_encounters").select("encounter_date").eq("user_id", user.id),
     supabase
       .from("thirds_personal_weeks")
-      .select("id")
+      .select("week_start_monday")
       .eq("user_id", user.id)
-      .eq("week_start_monday", startYmd)
       .not("finalized_at", "is", null)
-      .maybeSingle(),
+      .gte("week_start_monday", ymdAddCalendarDays(startYmd, -6))
+      .lte("week_start_monday", endYmdInclusive),
+    supabase
+      .from("thirds_personal_weeks")
+      .select("week_start_monday")
+      .eq("user_id", user.id)
+      .not("finalized_at", "is", null),
     supabase
       .from("thirds_participation_settings")
-      .select("user_id")
+      .select("participation_started_on")
       .eq("user_id", user.id)
       .maybeSingle(),
+    memberGroupIds.length === 0
+      ? Promise.resolve({
+          data: [] as { joined_at: string; group_id: string }[],
+          error: null,
+        })
+      : supabase
+          .from("group_members")
+          .select("joined_at, group_id")
+          .eq("user_id", user.id)
+          .in("group_id", memberGroupIds),
     fetchThirdsParticipationMetrics(supabase, user.id),
+    allCompletedMeetings.length > 0
+      ? supabase
+          .from("meeting_participants")
+          .select("meeting_id")
+          .eq("user_id", user.id)
+          .eq("present", true)
+          .in(
+            "meeting_id",
+            allCompletedMeetings.map((m) => m.id)
+          )
+      : Promise.resolve({ data: [] as { meeting_id: string }[], error: null }),
   ]);
 
   if (soapsRes.error) return { error: soapsRes.error.message };
-  if (readingCountRes.error) return { error: readingCountRes.error.message };
+  if (readingWeekCountRes.error) return { error: readingWeekCountRes.error.message };
+  if (journalAllRes.error) return { error: journalAllRes.error.message };
+  if (readingAllRes.error) return { error: readingAllRes.error.message };
 
   const soapsActual = (soapsRes.data ?? []).filter((row) => isQualifyingSoapsEntry(row)).length;
-  const readingActual = readingCountRes.count ?? 0;
+  const readingActual = readingWeekCountRes.count ?? 0;
 
-  const weeklyMinutes = "error" in prayerStats ? 0 : prayerStats.weeklyMinutes;
+  const weeklyPrayerMinutes = (() => {
+    let m = 0;
+    for (const row of prayerSegRes.data ?? []) {
+      const iso = row.completed_at;
+      if (!iso || iso < startIso || iso >= endExclusiveIso) continue;
+      m += row.duration_minutes ?? 0;
+    }
+    for (const row of prayerExtraRes.data ?? []) {
+      const iso = row.logged_at;
+      if (!iso || iso < startIso || iso >= endExclusiveIso) continue;
+      m += row.minutes ?? 0;
+    }
+    return m;
+  })();
 
-  /** Share + solo 3/3rds tables are newer; missing migrations must not break the whole card. */
-  const shareActual = shareCountRes.error ? 0 : (shareCountRes.count ?? 0);
-  const soloWeekRow = soloWeekRes.error ? null : soloWeekRes.data;
-  const soloSettingsRow = soloSettingsRes.error ? null : soloSettingsRes.data;
+  const shareActual = shareWeekCountRes.error ? 0 : (shareWeekCountRes.count ?? 0);
+  const soloCandidates = soloWeekRes.error ? [] : (soloWeekRes.data ?? []);
+  const soloWeekRow = soloCandidates.find((r) => {
+    const m = r.week_start_monday.slice(0, 10);
+    const soloEnd = ymdAddCalendarDays(m, 6);
+    return ymdRangesOverlap(m, soloEnd, startYmd, endYmdInclusive);
+  });
+  const soloSettingsRow =
+    !participationRes.error && participationRes.data ? participationRes.data : null;
 
   let attendedThirdsThisWeek = false;
   const meetingIds = meetingsWeek.map((m) => m.id);
@@ -152,7 +253,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     attendedThirdsThisWeek = true;
   }
 
-  const inThirdsGroup = thirdsGroupIds.length > 0 || soloSettingsRow != null;
+  const inThirdsGroup = thirdsGroupIds.length > 0 || soloSettingsRow !== null;
   const inChatGroup = chatGroupId != null;
 
   let paceAheadOrOn = false;
@@ -166,7 +267,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     }
   }
 
-  const pillars: BadwrPillarModel[] = [
+  const weeklyPillars: BadwrPillarModel[] = [
     buildWordSoapsPillar({
       soapsActual,
       soapsExpectedSoFar,
@@ -174,7 +275,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
       readingExpectedSoFar,
     }),
     buildPrayPillar({
-      minutesActual: weeklyMinutes,
+      minutesActual: weeklyPrayerMinutes,
       minutesExpectedSoFar: prayerExpectedSoFar,
     }),
     buildChatPillar({
@@ -194,6 +295,135 @@ export async function getBadwrReproductionSnapshot(): Promise<
     }),
   ];
 
+  const earliest: { min: string | null } = { min: null };
+  touchEarliest(user.created_at ?? undefined, earliest);
+
+  const buckets = new Map<string, WeekRhythmBucket>();
+
+  for (const row of journalAllRes.data ?? []) {
+    touchEarliest(row.entry_date, earliest);
+    const wk = pillarWeekStartKeyFromDateYmd(row.entry_date);
+    if (isQualifyingSoapsEntry(row)) {
+      bumpBucket(buckets, wk, { soapsQualifying: 1 });
+    }
+  }
+
+  for (const row of readingAllRes.data ?? []) {
+    const iso = row.read_at;
+    if (!iso) continue;
+    touchEarliest(iso, earliest);
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    bumpBucket(buckets, wk, { readingSessions: 1 });
+  }
+
+  for (const row of prayerSegRes.data ?? []) {
+    const iso = row.completed_at;
+    if (!iso) continue;
+    touchEarliest(iso, earliest);
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    bumpBucket(buckets, wk, { prayerMinutes: row.duration_minutes ?? 0 });
+  }
+
+  for (const row of prayerExtraRes.data ?? []) {
+    const iso = row.logged_at;
+    if (!iso) continue;
+    touchEarliest(iso, earliest);
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    bumpBucket(buckets, wk, { prayerMinutes: row.minutes ?? 0 });
+  }
+
+  for (const row of shareAllRes.data ?? []) {
+    const ymd = row.encounter_date;
+    if (!ymd) continue;
+    touchEarliest(ymd, earliest);
+    const wk = pillarWeekStartKeyFromDateYmd(ymd);
+    bumpBucket(buckets, wk, { shares: 1 });
+  }
+
+  for (const row of soloFinalizedRes.data ?? []) {
+    touchEarliest(row.week_start_monday, earliest);
+  }
+
+  let chatEngagedWeekStartYmd: string | null = null;
+  let thirdsGroupFirstJoinedCalendarYmd: string | null = null;
+  const participationStartedYmd =
+    participationRes.data?.participation_started_on != null
+      ? String(participationRes.data.participation_started_on).slice(0, 10)
+      : null;
+
+  if (!membershipsRes.error && membershipsRes.data) {
+    for (const m of membershipsRes.data) {
+      const joined = m.joined_at;
+      if (!joined) continue;
+      touchEarliest(joined, earliest);
+      const pillar = pillarWeekStartKeyFromInstant(new Date(joined));
+      const calYmd = joined.slice(0, 10);
+      if (chatGroupId && m.group_id === chatGroupId) {
+        if (!chatEngagedWeekStartYmd || pillar < chatEngagedWeekStartYmd) {
+          chatEngagedWeekStartYmd = pillar;
+        }
+      }
+      if (thirdsGroupIds.includes(m.group_id)) {
+        if (!thirdsGroupFirstJoinedCalendarYmd || calYmd < thirdsGroupFirstJoinedCalendarYmd) {
+          thirdsGroupFirstJoinedCalendarYmd = calYmd;
+        }
+      }
+    }
+  }
+
+  for (const mtg of allCompletedMeetings) {
+    touchEarliest(mtg.meeting_date, earliest);
+  }
+
+  const attendedMeetingIdSet = new Set(
+    (attendedAllMeetingsRes.data ?? []).map((r) => r.meeting_id)
+  );
+  const attendedThirdsWeekStarts = new Set<string>();
+  for (const mtg of allCompletedMeetings) {
+    if (!attendedMeetingIdSet.has(mtg.id)) continue;
+    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(mtg.meeting_date));
+  }
+  for (const row of soloFinalizedRes.data ?? []) {
+    const m = row.week_start_monday.slice(0, 10);
+    const soloEnd = ymdAddCalendarDays(m, 6);
+    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(m));
+    const kEnd = pillarWeekStartKeyFromDateYmd(soloEnd);
+    if (kEnd !== pillarWeekStartKeyFromDateYmd(m)) {
+      attendedThirdsWeekStarts.add(kEnd);
+    }
+  }
+
+  function inThirdsGroupForWeek(weekStartSundayYmd: string): boolean {
+    const weekEnd = ymdAddCalendarDays(weekStartSundayYmd, 6);
+    if (participationStartedYmd && participationStartedYmd <= weekEnd) return true;
+    if (thirdsGroupFirstJoinedCalendarYmd && thirdsGroupFirstJoinedCalendarYmd <= weekEnd)
+      return true;
+    return false;
+  }
+
+  let firstSunday = startYmd;
+  if (earliest.min) {
+    firstSunday = pillarWeekStartKeyFromDateYmd(earliest.min);
+    if (firstSunday > startYmd) firstSunday = startYmd;
+  }
+
+  const pillarWeekStartYmids = enumeratePillarWeekStartYmids(firstSunday, startYmd);
+
+  const cumulative = computeCumulativeBadwr({
+    pillarWeekStartYmids,
+    currentPillarWeekStartYmd: startYmd,
+    now,
+    buckets,
+    chatEngagedWeekStartYmd,
+    currentChatPillar: weeklyPillars[2],
+    attendedThirdsWeekStarts,
+    inThirdsGroupForWeek,
+    participationMetrics: thirdsParticipationMetrics,
+    attendedCompletedThisWeekForCurrent: attendedThirdsThisWeek,
+    inThirdsGroupNow: inThirdsGroup,
+  });
+
+  const pillars = mergeCumulativeIntoWeeklyTemplates(weeklyPillars, cumulative);
   const overallPercent = overallReproductionPercent(pillars);
 
   const tierOrder: Record<BadwrPillarModel["tier"], number> = {
@@ -201,7 +431,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     ok: 1,
     strong: 2,
   };
-  const focusAreas = [...pillars]
+  const focusAreas = [...weeklyPillars]
     .sort((a, b) => {
       if (a.tier === b.tier) return a.score - b.score;
       return tierOrder[a.tier] - tierOrder[b.tier];

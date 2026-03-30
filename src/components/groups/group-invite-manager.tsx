@@ -94,57 +94,59 @@ export function GroupInviteManager({
 
   useEffect(() => {
     if (!state) return;
-    setInlineError(null);
-    setInlineSuccess(null);
-    if ("error" in state && state.error) {
-      setInlineError(state.error);
-      toast.error(state.error);
-      return;
-    }
-    if ("emailSent" in state && state.emailSent) {
-      const addr = email.trim();
-      const msg = name.trim()
-        ? `Invite email sent to ${addr} (${name.trim()})`
-        : `Invite email sent to ${addr}`;
-      setInlineSuccess(msg);
-      toast.success(msg);
-      setLastInviteUrl(null);
-      setTimeout(() => setInlineSuccess(null), 5000);
-    } else {
-      const err = "emailError" in state ? state.emailError : undefined;
-      toast.warning(
-        err
-          ? `Invite created — ${err}`
-          : "Invite created — email could not be sent. Copy the link below."
-      );
-      setLastInviteUrl("acceptUrl" in state ? state.acceptUrl ?? null : null);
-    }
-    setEmail("");
-    setName("");
-    if ("inviteId" in state && state.inviteId) {
-      const inviteId = state.inviteId;
-      const expiresAt = "expiresAt" in state ? state.expiresAt : null;
-      const lastSentAt =
-        "lastSentAt" in state ? state.lastSentAt : new Date().toISOString();
-      const token = "token" in state ? state.token : undefined;
-      setInvites((prev) =>
-        prev.some((i) => i.id === inviteId)
-          ? prev
-          : [
-              ...prev,
-              {
-                id: inviteId,
-                email: email.trim(),
-                invitee_name: name.trim() || null,
-                status: "pending",
-                created_at: new Date().toISOString(),
-                expires_at: expiresAt ?? new Date().toISOString(),
-                last_sent_at: lastSentAt,
-                token: typeof token === "string" ? token : undefined,
-              },
-            ]
-      );
-    }
+    queueMicrotask(() => {
+      setInlineError(null);
+      setInlineSuccess(null);
+      if ("error" in state && state.error) {
+        setInlineError(state.error);
+        toast.error(state.error);
+        return;
+      }
+      if ("emailSent" in state && state.emailSent) {
+        const addr = email.trim();
+        const msg = name.trim()
+          ? `Invite email sent to ${addr} (${name.trim()})`
+          : `Invite email sent to ${addr}`;
+        setInlineSuccess(msg);
+        toast.success(msg);
+        setLastInviteUrl(null);
+        setTimeout(() => setInlineSuccess(null), 5000);
+      } else {
+        const err = "emailError" in state ? state.emailError : undefined;
+        toast.warning(
+          err
+            ? `Invite created — ${err}`
+            : "Invite created — email could not be sent. Copy the link below."
+        );
+        setLastInviteUrl("acceptUrl" in state ? state.acceptUrl ?? null : null);
+      }
+      if ("inviteId" in state && state.inviteId) {
+        const inviteId = state.inviteId;
+        const expiresAt = "expiresAt" in state ? state.expiresAt : null;
+        const lastSentAt =
+          "lastSentAt" in state ? state.lastSentAt : new Date().toISOString();
+        const token = "token" in state ? state.token : undefined;
+        setInvites((prev) =>
+          prev.some((i) => i.id === inviteId)
+            ? prev
+            : [
+                ...prev,
+                {
+                  id: inviteId,
+                  email: email.trim(),
+                  invitee_name: name.trim() || null,
+                  status: "pending",
+                  created_at: new Date().toISOString(),
+                  expires_at: expiresAt ?? new Date().toISOString(),
+                  last_sent_at: lastSentAt,
+                  token: typeof token === "string" ? token : undefined,
+                },
+              ]
+        );
+      }
+      setEmail("");
+      setName("");
+    });
   }, [state, name, email]);
 
   const sending = isPending;

@@ -8,10 +8,9 @@ import {
   isShareEncounterSharedType,
   type ShareReceivedCounts,
 } from "@/lib/dashboard/share-encounter-types";
-import { SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { buildShareWeeklyPace } from "@/lib/dashboard/share-weekly-pace";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
-import { utcDateYmd, startOfUtcWeekMonday } from "@/lib/dashboard/utc-week";
+import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import { createClient } from "@/lib/supabase/server";
 
 export type ShareDashboardStats = WeeklyRhythmPaceResult & {
@@ -29,11 +28,7 @@ export async function getShareDashboardStats(): Promise<
   if (!user) return { error: "Not authenticated" };
 
   const now = new Date();
-  const weekStart = startOfUtcWeekMonday(now);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-  const startYmd = utcDateYmd(weekStart);
-  const endYmd = utcDateYmd(weekEnd);
+  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now);
 
   const { data: rows, error } = await supabase
     .from("share_encounters")

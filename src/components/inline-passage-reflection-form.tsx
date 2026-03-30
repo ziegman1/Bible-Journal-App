@@ -36,7 +36,7 @@ export function InlinePassageReflectionForm({
   verseStart,
   verseEnd,
   passageText,
-  chatSoapsGroupId,
+  chatSoapsGroupId: _chatSoapsGroupId,
   compact = false,
   onSaved,
   onClose,

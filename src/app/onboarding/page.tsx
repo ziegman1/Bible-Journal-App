@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/components/onboarding-form";
+import { SiteFooter } from "@/components/site-footer";
+import { APP_MARKETING_NAME } from "@/lib/site-config";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -44,19 +46,24 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-serif font-light text-center text-stone-800 dark:text-stone-200 mb-8">
-          Welcome to Bible Journal
-        </h1>
-        <p className="text-center text-stone-600 dark:text-stone-400 mb-8">
-          A few quick questions to personalize your experience
-        </p>
-        <OnboardingForm
-          defaultDisplayName={profile?.display_name ?? ""}
-          defaultReadingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
-          defaultJournalYear={profile?.journal_year ?? new Date().getFullYear()}
-        />
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <h1 className="text-2xl font-serif font-light text-center text-stone-800 dark:text-stone-200 mb-8">
+            Welcome to {APP_MARKETING_NAME}
+          </h1>
+          <p className="text-center text-stone-600 dark:text-stone-400 mb-8">
+            A few quick questions to personalize your experience
+          </p>
+          <OnboardingForm
+            defaultDisplayName={profile?.display_name ?? ""}
+            defaultReadingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
+            defaultJournalYear={profile?.journal_year ?? new Date().getFullYear()}
+          />
+        </div>
+      </div>
+      <div className="shrink-0 px-4 py-6 border-t border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <SiteFooter variant="compact" />
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ function isSoapsHubRowActive(pathname: string): boolean {
 
 const rowClass = (active: boolean) =>
   cn(
-    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+    "flex items-center gap-3 rounded-lg px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm transition-colors touch-manipulation",
     active
       ? "bg-stone-200 text-stone-900 dark:bg-stone-800 dark:text-stone-100"
       : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:hover:text-stone-100"
@@ -77,7 +77,7 @@ export function SoapsHubSidebarNav({
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "rounded-md px-2 py-1.5 text-sm transition-colors",
+                "rounded-md px-2 py-2 min-h-10 sm:min-h-0 sm:py-1.5 text-sm transition-colors touch-manipulation",
                 isRelatedActive(pathname, item.href)
                   ? "font-medium text-stone-900 dark:text-stone-100"
                   : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800/60 dark:hover:text-stone-100"

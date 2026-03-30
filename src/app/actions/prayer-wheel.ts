@@ -1,12 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  endOfUtcWeekMonday,
-  PRAYER_WEEKLY_GOAL_MINUTES,
-  prayerfulnessPercent,
-  startOfUtcWeekMonday,
-} from "@/lib/prayer-wheel/stats";
+import { PRAYER_WEEKLY_GOAL_MINUTES, prayerfulnessPercent } from "@/lib/prayer-wheel/stats";
+import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import { createClient } from "@/lib/supabase/server";
 
 export type PrayerWheelDashboardStats = {
@@ -33,15 +29,14 @@ export async function getPrayerWheelDashboardStats(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const start = startOfUtcWeekMonday().toISOString();
-  const end = endOfUtcWeekMonday().toISOString();
+  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery();
 
   const { data: rows, error } = await supabase
     .from("prayer_wheel_segment_completions")
     .select("duration_minutes")
     .eq("user_id", user.id)
-    .gte("completed_at", start)
-    .lte("completed_at", end);
+    .gte("completed_at", startIso)
+    .lt("completed_at", endExclusiveIso);
 
   if (error) return { error: error.message };
 
@@ -53,8 +48,8 @@ export async function getPrayerWheelDashboardStats(): Promise<
     .from("prayer_extra_minutes")
     .select("minutes")
     .eq("user_id", user.id)
-    .gte("logged_at", start)
-    .lte("logged_at", end);
+    .gte("logged_at", startIso)
+    .lt("logged_at", endExclusiveIso);
 
   if (extraErr) return { error: extraErr.message };
 
@@ -134,7 +129,7 @@ export async function recordPrayerWheelSegment(
   return { success: true };
 }
 
-/** Removes all Prayer Wheel segment completions and extra minutes for the current UTC week. */
+/** Removes all Prayer Wheel segment completions and extra minutes for the current pillar week (see `pillar-week.ts`). */
 export async function resetThisWeeksPrayerTime(): Promise<
   | { error: string }
   | { success: true; removedWheelSegments: number; removedExtraEntries: number }
@@ -146,15 +141,14 @@ export async function resetThisWeeksPrayerTime(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const start = startOfUtcWeekMonday().toISOString();
-  const end = endOfUtcWeekMonday().toISOString();
+  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery();
 
   const { data: segRemoved, error: segErr } = await supabase
     .from("prayer_wheel_segment_completions")
     .delete()
     .eq("user_id", user.id)
-    .gte("completed_at", start)
-    .lte("completed_at", end)
+    .gte("completed_at", startIso)
+    .lt("completed_at", endExclusiveIso)
     .select("id");
 
   if (segErr) return { error: segErr.message };
@@ -163,8 +157,8 @@ export async function resetThisWeeksPrayerTime(): Promise<
     .from("prayer_extra_minutes")
     .delete()
     .eq("user_id", user.id)
-    .gte("logged_at", start)
-    .lte("logged_at", end)
+    .gte("logged_at", startIso)
+    .lt("logged_at", endExclusiveIso)
     .select("id");
 
   if (extraErr) return { error: extraErr.message };

@@ -97,7 +97,9 @@ export function InviteAcceptGate({
   }, [router, token]);
 
   useEffect(() => {
-    void runAccept();
+    queueMicrotask(() => {
+      void runAccept();
+    });
   }, [runAccept]);
 
   if (phase === "loading" && !result) {

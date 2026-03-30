@@ -25,9 +25,6 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [storySource, setStorySource] = useState<"manual_passage" | "preset_story">("preset_story");
-  const [presetStories, setPresetStories] = useState<
-    { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number; series_name?: string }[]
-  >([]);
   const [bySeries, setBySeries] = useState<
     Record<string, { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number }[]>
   >({});
@@ -47,7 +44,6 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
   useEffect(() => {
     getPresetStories().then((r) => {
       if (r.stories) {
-        setPresetStories(r.stories as { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number; series_name?: string }[]);
         const res = r as { bySeries?: Record<string, { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number }[]> };
         setBySeries(res.bySeries ?? {});
         const first = r.stories[0] as { id: string } | undefined;
