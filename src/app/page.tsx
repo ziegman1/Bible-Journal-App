@@ -19,7 +19,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-950 dark:to-stone-900">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-stone-950">
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="max-w-lg text-center space-y-6">
           <h1 className="sr-only">{APP_NAME}</h1>
@@ -43,7 +43,7 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
-      <div className="shrink-0 px-4 py-8 border-t border-stone-200/80 dark:border-stone-800/80 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 bg-white dark:bg-stone-950 px-4 py-8 border-t border-stone-100 dark:border-stone-800/80 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <SiteFooter />
       </div>
     </div>
