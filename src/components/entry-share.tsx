@@ -99,7 +99,7 @@ function formatEntryForShare(props: EntryShareProps): string {
 
 export function EntryShare(props: EntryShareProps) {
   const body = formatEntryForShare(props);
-  const subject = `Bible Journal: ${props.reference}`;
+  const subject = `BADWR: ${props.reference}`;
 
   return (
     <div className="space-y-2">

@@ -1,4 +1,4 @@
--- Bible Journal - Insight Summaries (AI cache)
+-- BADWR - Insight Summaries (AI cache)
 -- Run after 005_fix_signup_trigger.sql
 
 CREATE TABLE insight_summaries (

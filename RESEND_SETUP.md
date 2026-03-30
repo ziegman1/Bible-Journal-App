@@ -15,7 +15,7 @@ Group invite emails are sent via [Resend](https://resend.com). Follow these step
 ```env
 RESEND_API_KEY=re_your_api_key_here
 # Optional for dev: onboarding@resend.dev works for testing
-RESEND_FROM_EMAIL=Bible Journal <onboarding@resend.dev>
+RESEND_FROM_EMAIL=BADWR <onboarding@resend.dev>
 ```
 
 ### Production (Vercel)
@@ -37,7 +37,7 @@ For production (e.g. www.logosflow.app):
 4. Wait for verification (usually 5–15 minutes)
 5. Set in Vercel:
    ```
-   RESEND_FROM_EMAIL=Bible Journal <invites@logosflow.app>
+   RESEND_FROM_EMAIL=BADWR <invites@logosflow.app>
    ```
    (Use a subdomain like `invites@` or `noreply@`)
 

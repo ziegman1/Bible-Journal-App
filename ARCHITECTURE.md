@@ -1,8 +1,8 @@
-# Bible Journal – Architecture Summary
+# BADWR – Architecture Summary
 
 ## Overview
 
-Bible Journal is a Scripture-first journaling platform built with Next.js 16 (App Router), Supabase, and OpenAI. Users read the Bible, ask AI questions about passages, save commentary, add reflections, and compile entries into an annual journal.
+BADWR (Be a Disciple Worth Reproducing) is a Scripture-first journaling platform built with Next.js 16 (App Router), Supabase, and OpenAI. Users read the Bible, ask AI questions about passages, save commentary, add reflections, and compile entries into an annual journal.
 
 ## Tech Stack
 

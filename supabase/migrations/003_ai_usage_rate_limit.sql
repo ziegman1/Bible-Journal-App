@@ -1,4 +1,4 @@
--- Bible Journal - AI Usage Rate Limiting
+-- BADWR - AI Usage Rate Limiting
 -- Run after 002_study_threads_and_extensions.sql
 
 -- ai_usage: tracks daily AI request count per user (UTC date boundaries)

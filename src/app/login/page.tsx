@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signIn } from "@/app/actions/auth";
 import { AuthFormSubmit } from "@/components/auth-form-submit";
+import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,10 @@ export default async function LoginPage({
     <div className="min-h-screen flex flex-col bg-background">
       <div className="flex flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <BadwrLogo variant="auth" priority />
+          </div>
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
             {APP_MARKETING_NAME}
           </h1>

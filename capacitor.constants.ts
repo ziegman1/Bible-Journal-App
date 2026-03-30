@@ -9,7 +9,7 @@
  */
 export const DEFAULT_CAPACITOR_APP_ID = "app.logosflow.biblejournal";
 
-export const DEFAULT_CAPACITOR_APP_NAME = "Bible Journal";
+export const DEFAULT_CAPACITOR_APP_NAME = "BADWR";
 
 function normalizeHttpUrl(raw: string): string {
   const trimmed = raw.trim().replace(/\/$/, "");
@@ -27,8 +27,9 @@ function normalizeHttpUrl(raw: string): string {
  * 1. CAPACITOR_SERVER_URL — explicit (e.g. staging preview)
  * 2. NEXT_PUBLIC_SITE_URL — same canonical origin as auth/callback and invite links
  * 3. VERCEL_URL — Vercel CI / CLI (https://…)
+ * 4. Production default so `cap sync` never omits `server.url` (avoids www-only fallback in the shell)
  */
-export function resolveCapacitorServerUrl(): string | undefined {
+export function resolveCapacitorServerUrl(): string {
   const explicit = process.env.CAPACITOR_SERVER_URL?.trim();
   if (explicit) return normalizeHttpUrl(explicit);
 
@@ -41,5 +42,5 @@ export function resolveCapacitorServerUrl(): string | undefined {
     return `https://${host}`;
   }
 
-  return undefined;
+  return "https://www.badwr.app";
 }

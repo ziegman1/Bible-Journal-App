@@ -5,16 +5,33 @@
 import type { Metadata } from "next";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 
-/** Shown in shell header, metadata title, Open Graph. */
-export const APP_SHORT_NAME = "BADWR";
+/** Public logo path (SVG; replace with `/icon.png` if you add a raster asset to `public/`). */
+export const APP_LOGO_PATH = "/badwr-logo.svg";
 
-/** Full marketing name on landing and auth headings. */
-export const APP_MARKETING_NAME = "Bible Journal";
+/** Alt text for logo images. */
+export const APP_LOGO_ALT = "BADWR logo";
 
+/** Primary product name (UI, metadata default title, auth headings). */
+export const APP_NAME = "BADWR";
+
+/** Same as {@link APP_NAME} — used where a “short name” field is expected (icons, template suffix). */
+export const APP_SHORT_NAME = APP_NAME;
+
+/** Same as {@link APP_NAME} — marketing/legal references to the product. */
+export const APP_MARKETING_NAME = APP_NAME;
+
+/** Subtitle under the main BADWR title (landing, footer, legal chrome). */
 export const APP_TAGLINE = "Be a Disciple Worth Reproducing";
 
-export const APP_DESCRIPTION =
-  "Your Scripture-first journaling platform. Read, reflect, ask questions, and compile your spiritual journey into a meaningful annual record.";
+/** Landing hero body line (public home only). */
+export const APP_LANDING_HERO_BLURB =
+  "Become a disciple that the Lord would delight in reproducing.";
+
+/** Meta / OG / manifest description (concise). */
+export const APP_DESCRIPTION = `${APP_TAGLINE} ${APP_LANDING_HERO_BLURB}`;
+
+/** Shown in footer and mailto when `NEXT_PUBLIC_SUPPORT_EMAIL` is unset. */
+export const DEFAULT_PUBLIC_SUPPORT_EMAIL = "support@badwr.app";
 
 /**
  * Update when you publish material changes to `/privacy` or `/terms`.
@@ -113,17 +130,13 @@ export function getSupportEmail(): string {
   return isSupportEmailConfigured() ? e : "";
 }
 
-/**
- * Link for “Support” / contact: `mailto:` when configured, otherwise Privacy Policy contact anchor
- * (production-safe when support email is not set).
- */
-export function getSupportContactHref(): string {
-  const e =
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim().replace(/^mailto:/i, "") ?? "";
-  if (isSupportEmailConfigured()) {
-    return e.startsWith("http") ? e : `mailto:${e}`;
-  }
-  return `${getPrivacyPolicyUrl()}#legal-contact`;
+/** Public support address for display and mailto (env override, else default inbox). */
+export function getPublicSupportEmail(): string {
+  return getSupportEmail() || DEFAULT_PUBLIC_SUPPORT_EMAIL;
+}
+
+export function getPublicSupportMailtoHref(): string {
+  return `mailto:${getPublicSupportEmail()}`;
 }
 
 /**
@@ -201,7 +214,7 @@ export function buildRootMetadata(): Metadata {
   }
 
   const title = {
-    default: `${APP_SHORT_NAME} · ${APP_MARKETING_NAME}`,
+    default: APP_NAME,
     template: `%s · ${APP_SHORT_NAME}`,
   };
 
@@ -211,7 +224,7 @@ export function buildRootMetadata(): Metadata {
     title,
     description: APP_DESCRIPTION,
     openGraph: {
-      title: `${APP_SHORT_NAME} · ${APP_MARKETING_NAME}`,
+      title: `${APP_SHORT_NAME} · ${APP_TAGLINE}`,
       description: APP_DESCRIPTION,
       url: origin,
       siteName: APP_SHORT_NAME,
@@ -219,7 +232,7 @@ export function buildRootMetadata(): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: `${APP_SHORT_NAME} · ${APP_MARKETING_NAME}`,
+      title: `${APP_SHORT_NAME} · ${APP_TAGLINE}`,
       description: APP_DESCRIPTION,
     },
   };

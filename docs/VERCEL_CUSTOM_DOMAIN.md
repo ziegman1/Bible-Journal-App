@@ -13,7 +13,7 @@ So: **domains on A, code deploys to B** → hard refresh on logosflow never show
 From the project root:
 
 ```bash
-cd "/Users/jeremyziegenhorn/Bible Journal App"
+cd "/path/to/badwr-app"
 npx vercel link
 ```
 

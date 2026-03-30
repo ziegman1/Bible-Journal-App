@@ -77,13 +77,13 @@ export async function sendGroupInviteEmail(params: {
     return {
       success: false,
       error:
-        "Resend is not configured for production. Add RESEND_FROM_EMAIL (e.g. Bible Journal <invites@yourdomain.com>) with a verified domain. See https://resend.com/domains",
+        "Resend is not configured for production. Add RESEND_FROM_EMAIL (e.g. BADWR <invites@yourdomain.com>) with a verified domain. See https://resend.com/domains",
     };
   }
 
   const from =
     fromEmail ||
-    "Bible Journal <onboarding@resend.dev>";
+    "BADWR <onboarding@resend.dev>";
 
   const to = params.to.trim().toLowerCase();
   const inviterName = params.inviterName.trim() || GENERIC_INVITER_LABEL;
@@ -146,7 +146,7 @@ export async function sendGroupInviteEmail(params: {
                     ? `<strong style="color:#1c1917;">${inviterHtml}</strong> invited you to join the CHAT accountability group
                 <strong style="color:#1c1917;">${groupHtml}</strong> on <strong style="color:#1c1917;">Logosflow</strong>.`
                     : `<strong style="color:#1c1917;">${inviterHtml}</strong> invited you to join the 3/3rds group
-                <strong style="color:#1c1917;">${groupHtml}</strong> in <strong style="color:#1c1917;">Bible Journal</strong>.`
+                <strong style="color:#1c1917;">${groupHtml}</strong> in <strong style="color:#1c1917;">BADWR</strong>.`
                 }
               </p>
               <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#57534e;">
@@ -175,7 +175,7 @@ export async function sendGroupInviteEmail(params: {
               </p>
             </td>
           </tr>
-          ${emailInviteFooterHtml(isChat ? "Logosflow · CHAT groups" : "Bible Journal · 3/3rds Groups")}
+          ${emailInviteFooterHtml(isChat ? "Logosflow · CHAT groups" : "BADWR · 3/3rds Groups")}
         </table>
       </td>
     </tr>
@@ -206,7 +206,7 @@ export async function sendGroupInviteEmail(params: {
     : [
         textGreeting,
         "",
-        `${inviterName} invited you to join the 3/3rds group "${groupName}" in Bible Journal.`,
+        `${inviterName} invited you to join the 3/3rds group "${groupName}" in BADWR.`,
         "",
         "When you accept, you'll be added to that group so you can read together and journal with your group.",
         `Sign in or create an account using this email address: ${to}`,
@@ -287,7 +287,7 @@ export async function sendChatGrowthInviteEmail(params: {
   }
 
   const from =
-    fromEmail || "Bible Journal <onboarding@resend.dev>";
+    fromEmail || "BADWR <onboarding@resend.dev>";
 
   const to = params.to.trim().toLowerCase();
   const inviteUrl = params.invitePageUrl.trim();

@@ -24,7 +24,7 @@ function buildInsightPrompt(summary: InsightsSummary): string {
   const applications = samplesForAI?.applications?.join("\n\n") || "None provided.";
   const threadInsights = samplesForAI?.threadInsights?.join("\n\n") || "None provided.";
 
-  return `You are a gentle, Scripture-sensitive spiritual reflection assistant. Your role is to synthesize a user's Bible journaling data into a meaningful, reflective summary. You must ONLY draw from what the user has actually written and the patterns in their data. Do NOT invent spiritual experiences, insights, or growth. Do NOT be preachy, manipulative, or generic. Be specific to their words and patterns.
+  return `You are a gentle, Scripture-sensitive spiritual reflection assistant. Your role is to synthesize a user's Scripture journal data into a meaningful, reflective summary. You must ONLY draw from what the user has actually written and the patterns in their data. Do NOT invent spiritual experiences, insights, or growth. Do NOT be preachy, manipulative, or generic. Be specific to their words and patterns.
 
 CRITICAL RULES:
 - Base every observation on the data provided. If something isn't in the data, don't mention it.
@@ -90,7 +90,7 @@ export async function generateInsightSummary(
         {
           role: "system",
           content:
-            "You synthesize Bible journaling data into a reflective summary. Respond with valid JSON only. Do not invent or assume. Base everything on the provided data.",
+            "You synthesize Scripture journal data into a reflective summary. Respond with valid JSON only. Do not invent or assume. Base everything on the provided data.",
         },
         { role: "user", content: userPrompt },
       ],

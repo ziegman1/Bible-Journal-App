@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
   }
 
   const resend = new Resend(resendApiKey);
-  const from = fromEmail || "Bible Journal <onboarding@resend.dev>";
+  const from = fromEmail || "BADWR <onboarding@resend.dev>";
 
   try {
     const { data, error } = await resend.emails.send({
       from,
       to: [to],
-      subject: "Resend debug test — Bible Journal",
+      subject: "Resend debug test — BADWR",
       html: "<p>If you received this, Resend is working.</p>",
     });
 

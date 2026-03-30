@@ -25,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { AppBrandLink } from "@/components/app-brand-link";
+import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
 
@@ -148,9 +149,12 @@ export function AppShell({ displayName, children }: AppShellProps) {
                 </nav>
               </SheetContent>
             </Sheet>
-            <span className="text-sm text-stone-600 dark:text-stone-400 truncate">
-              {displayName ? `Welcome, ${displayName}` : "BADWR"}
-            </span>
+            <div className="flex min-w-0 items-center gap-2">
+              <BadwrLogo variant="micro" className="md:hidden" />
+              <span className="text-sm text-stone-600 dark:text-stone-400 truncate">
+                {displayName ? `Welcome, ${displayName}` : "BADWR"}
+              </span>
+            </div>
           </div>
           <form action={signOut} className="shrink-0">
             <Button

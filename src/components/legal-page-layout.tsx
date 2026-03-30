@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
-import { APP_MARKETING_NAME, APP_SHORT_NAME } from "@/lib/site-config";
+import { APP_SHORT_NAME, APP_TAGLINE } from "@/lib/site-config";
 
 /** Shared chrome for /privacy and /terms — mobile-first readable column. */
 export function LegalPageLayout({
@@ -18,11 +19,16 @@ export function LegalPageLayout({
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-4 py-4">
           <Link
             href="/"
-            className="font-serif text-lg font-light text-stone-800 dark:text-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm px-1 min-h-[44px] inline-flex items-center"
+            className="flex items-center gap-3 min-h-[44px] min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm px-1"
           >
-            {APP_SHORT_NAME}
+            <BadwrLogo variant="compact" />
+            <span className="font-serif text-lg font-light text-stone-800 dark:text-stone-200 leading-tight">
+              {APP_SHORT_NAME}
+            </span>
           </Link>
-          <span className="text-xs text-stone-500 dark:text-stone-400 truncate">{APP_MARKETING_NAME}</span>
+          <span className="text-xs text-stone-500 dark:text-stone-400 truncate max-w-[min(100%,14rem)] text-right">
+            {APP_TAGLINE}
+          </span>
         </div>
       </header>
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">

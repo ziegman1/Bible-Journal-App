@@ -5,6 +5,10 @@ import {
   resolveCapacitorServerUrl,
 } from "./capacitor.constants";
 
+/**
+ * Same resolution as {@link resolveCapacitorServerUrl} (env → VERCEL_URL → https://www.badwr.app).
+ * `cleartext` is false for https://www.badwr.app; true only for http:// (e.g. local dev).
+ */
 const serverUrl = resolveCapacitorServerUrl();
 
 /**
@@ -18,14 +22,10 @@ const config: CapacitorConfig = {
   appId: process.env.CAPACITOR_APP_ID?.trim() || DEFAULT_CAPACITOR_APP_ID,
   appName: process.env.CAPACITOR_APP_NAME?.trim() || DEFAULT_CAPACITOR_APP_NAME,
   webDir: "www",
-  ...(serverUrl
-    ? {
-        server: {
-          url: serverUrl,
-          cleartext: serverUrl.startsWith("http://"),
-        },
-      }
-    : {}),
+  server: {
+    url: serverUrl,
+    cleartext: serverUrl.startsWith("http://"),
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

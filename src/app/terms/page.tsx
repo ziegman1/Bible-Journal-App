@@ -3,7 +3,7 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 import {
   APP_MARKETING_NAME,
   APP_SHORT_NAME,
-  getSupportContactHref,
+  getPublicSupportMailtoHref,
   getTermsOfServiceUrl,
   LEGAL_DOCUMENTS_LAST_UPDATED,
   LEGAL_DOC_PLACEHOLDERS,
@@ -12,7 +12,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: `Terms governing use of ${APP_SHORT_NAME} (${APP_MARKETING_NAME}).`,
+  description: `Terms governing use of ${APP_MARKETING_NAME}.`,
 };
 
 const T = LEGAL_DOC_PLACEHOLDERS.terms;
@@ -35,10 +35,10 @@ export default function TermsOfServicePage() {
         <h2>Agreement to terms</h2>
         <p>
           These Terms of Service (“Terms”) govern your access to and use of{" "}
-          <strong>{APP_MARKETING_NAME}</strong>, operated as <strong>{APP_SHORT_NAME}</strong> by{" "}
-          <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong> (“we,” “us”). By creating an account or using
-          the Service, you agree to these Terms. The current Terms are available at{" "}
-          <strong>{getTermsOfServiceUrl()}</strong>. If you do not agree, do not use the Service.
+          <strong>{APP_SHORT_NAME}</strong> (the “Service”) by <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong>{" "}
+          (“we,” “us”). By creating an account or using the Service, you agree to these Terms. The
+          current Terms are available at <strong>{getTermsOfServiceUrl()}</strong>. If you do not
+          agree, do not use the Service.
         </p>
       </section>
 
@@ -56,7 +56,7 @@ export default function TermsOfServicePage() {
         <p>
           You are responsible for safeguarding your credentials and for activity under your account.
           Notify us promptly at{" "}
-          <a className="text-primary underline underline-offset-2" href={getSupportContactHref()}>
+          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
             support
           </a>{" "}
           of unauthorized use. We may suspend or terminate accounts that violate these Terms or harm
@@ -176,7 +176,7 @@ export default function TermsOfServicePage() {
       <section>
         <h2>Contact</h2>
         <p>
-          <a className="text-primary underline underline-offset-2" href={getSupportContactHref()}>
+          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
             Contact support
           </a>{" "}
           for questions about these Terms (or see the Privacy Policy contact section if no mailbox is

@@ -14,7 +14,7 @@ Set these in **Vercel** (or your Node host) for **Production** (and **Preview** 
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `NEXT_PUBLIC_SITE_URL` | **Yes** | Canonical HTTPS origin, **no trailing slash** (auth links, invites, metadata, Open Graph, legal URLs, Capacitor WebView if `CAPACITOR_SERVER_URL` unset) |
-| `NEXT_PUBLIC_SUPPORT_EMAIL` | Strongly recommended | Valid email → footer + policies get working `mailto:`; if unset/invalid, Support links safely go to `/privacy#legal-contact` |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Optional override | If set to a valid email, footer/policies use it; otherwise the app uses `DEFAULT_PUBLIC_SUPPORT_EMAIL` (`support@badwr.app`) from `site-config.ts` |
 
 **Optional (features / email / native):**
 
@@ -51,8 +51,8 @@ The `/privacy` and `/terms` pages **only** read from these exports — edit **`s
 | Item | Where | Action |
 |------|--------|--------|
 | Short name (tabs, OG, manifest short) | `APP_SHORT_NAME` in `site-config.ts` | e.g. BADWR |
-| Marketing title | `APP_MARKETING_NAME` | e.g. Bible Journal |
-| Tagline / description | `APP_TAGLINE`, `APP_DESCRIPTION` | Store listings can align with these |
+| Product name | `APP_NAME` / `APP_MARKETING_NAME` | `BADWR` |
+| Tagline & meta description | `APP_TAGLINE`, `APP_DESCRIPTION`, `APP_LANDING_HERO_BLURB` | Store listings can align with these |
 | Theme colors (PWA / browser UI) | `THEME_COLOR_LIGHT`, `THEME_COLOR_DARK`, `BRAND_OG` in `site-config.ts` | Optional visual polish |
 | Capacitor defaults | `capacitor.constants.ts` → `DEFAULT_CAPACITOR_APP_ID`, `DEFAULT_CAPACITOR_APP_NAME` | Must stay aligned with **Xcode** + **Android** when you rebrand |
 | Native IDs | `ios/...` bundle identifier, `android/app/build.gradle` `applicationId` | Must match `appId` after changes |
@@ -63,7 +63,7 @@ The `/privacy` and `/terms` pages **only** read from these exports — edit **`s
 
 | What | How |
 |------|-----|
-| **Support** | Set `NEXT_PUBLIC_SUPPORT_EMAIL` to a monitored inbox (no `mailto:` prefix). Invalid/missing → no broken mailto; links use `/privacy#legal-contact`. |
+| **Support** | Optional: set `NEXT_PUBLIC_SUPPORT_EMAIL` to override default `support@badwr.app` (`DEFAULT_PUBLIC_SUPPORT_EMAIL` in `site-config.ts`). |
 | **Domain** | Set `NEXT_PUBLIC_SITE_URL=https://your-domain.com` on production. Used by `getPublicSiteBaseUrl()` for auth, invites, share footers, legal URLs, metadata base. |
 
 Verify:
@@ -170,7 +170,7 @@ npm run mobile:android
 
 | Area | Behavior |
 |------|----------|
-| Support email missing/invalid | Footer omits email line; Support link → `/privacy#legal-contact`; no invalid `mailto:` |
+| Support email env unset | Footer and Support use `support@badwr.app` from `site-config.ts` (override with `NEXT_PUBLIC_SUPPORT_EMAIL`) |
 | `NEXT_PUBLIC_SITE_URL` unset locally | `getPublicSiteBaseUrl()` may fall back to `VERCEL_URL` or `http://localhost:3000` — **not** valid for production mobile/WebView until set |
 | Legal TODOs in `site-config` | Still visible on `/privacy` and `/terms` — **finalize copy before public store listing** |
 | Share footers (`share-promo`) | Uses real hostname when `NEXT_PUBLIC_SITE_URL` is a proper URL; else short app name — no hardcoded fake domain |

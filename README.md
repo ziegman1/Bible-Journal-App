@@ -1,4 +1,4 @@
-# Bible Journal
+# BADWR – Be a Disciple Worth Reproducing
 
 A Scripture-first journaling platform where users read the Bible, ask AI questions, save commentary, add reflections, and compile everything into a structured yearly journal.
 

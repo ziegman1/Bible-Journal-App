@@ -1,4 +1,4 @@
--- Bible Journal - Scripture Database (WEB / World English Bible)
+-- BADWR - Scripture Database (WEB / World English Bible)
 -- Run after 003_ai_usage_rate_limit.sql
 
 -- 1. books

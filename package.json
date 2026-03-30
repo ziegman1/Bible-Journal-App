@@ -12,7 +12,7 @@
     "deploy": "vercel --prod",
     "lint": "eslint",
     "cap:sync": "npx cap sync",
-    "cap:sync:local": "dotenv -e .env.local -- npx cap sync",
+    "cap:sync:local": "dotenv -e .env.local -- npx cap sync ios",
     "mobile:ios": "npx cap open ios",
     "mobile:android": "npx cap open android"
   },

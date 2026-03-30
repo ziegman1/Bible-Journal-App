@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { BadwrLogo } from "@/components/badwr-logo";
 import {
-  APP_MARKETING_NAME,
   APP_SHORT_NAME,
-  getSupportContactHref,
-  getSupportEmail,
+  APP_TAGLINE,
+  getPublicSupportEmail,
+  getPublicSupportMailtoHref,
 } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export function SiteFooter({
   variant?: "default" | "compact";
 }) {
   const year = new Date().getFullYear();
-  const supportEmail = getSupportEmail();
+  const supportEmail = getPublicSupportEmail();
 
   return (
     <footer
@@ -26,6 +27,14 @@ export function SiteFooter({
         className
       )}
     >
+      <div
+        className={cn(
+          "flex justify-center",
+          variant === "compact" ? "mb-1.5" : "mb-2"
+        )}
+      >
+        <BadwrLogo variant={variant === "compact" ? "micro" : "footer"} />
+      </div>
       <nav
         aria-label="Legal and support"
         className={cn(
@@ -52,7 +61,7 @@ export function SiteFooter({
           ·
         </span>
         <a
-          href={getSupportContactHref()}
+          href={getPublicSupportMailtoHref()}
           className="underline underline-offset-2 text-stone-700 dark:text-stone-300 min-h-[44px] min-w-[44px] inline-flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:inline"
         >
           Support
@@ -64,14 +73,15 @@ export function SiteFooter({
           variant === "compact" && "mt-2"
         )}
       >
-        © {year} {APP_SHORT_NAME} · {APP_MARKETING_NAME}
-        {supportEmail ? (
-          <>
-            {" "}
-            <span className="hidden sm:inline">·</span>{" "}
-            <span className="block sm:inline text-xs sm:text-[inherit]">{supportEmail}</span>
-          </>
-        ) : null}
+        © {year} {APP_SHORT_NAME} · {APP_TAGLINE}
+        {" "}
+        <span className="hidden sm:inline">·</span>{" "}
+        <a
+          href={getPublicSupportMailtoHref()}
+          className="block sm:inline text-xs sm:text-[inherit] underline underline-offset-2 text-stone-700 dark:text-stone-300"
+        >
+          {supportEmail}
+        </a>
       </p>
     </footer>
   );

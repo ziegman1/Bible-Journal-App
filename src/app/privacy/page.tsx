@@ -4,8 +4,8 @@ import {
   APP_MARKETING_NAME,
   APP_SHORT_NAME,
   getPrivacyPolicyUrl,
-  getSupportContactHref,
-  isSupportEmailConfigured,
+  getPublicSupportEmail,
+  getPublicSupportMailtoHref,
   LEGAL_DOCUMENTS_LAST_UPDATED,
   LEGAL_DOC_PLACEHOLDERS,
   PLACEHOLDER_LEGAL_ENTITY,
@@ -13,7 +13,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: `How ${APP_SHORT_NAME} (${APP_MARKETING_NAME}) collects, uses, and protects your information.`,
+  description: `How ${APP_MARKETING_NAME} collects, uses, and protects your information.`,
 };
 
 const P = LEGAL_DOC_PLACEHOLDERS.privacy;
@@ -36,30 +36,13 @@ export default function PrivacyPolicyPage() {
       <section>
         <h2>Who we are</h2>
         <p>
-          {APP_SHORT_NAME} (“we,” “us”) operates the web application{" "}
-          <strong>{APP_MARKETING_NAME}</strong> (the “Service”). The operator is described as{" "}
-          <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong>.{" "}
-          {isSupportEmailConfigured() ? (
-            <>
-              Contact:{" "}
-              <a
-                className="text-primary underline underline-offset-2"
-                href={getSupportContactHref()}
-              >
-                our support inbox
-              </a>
-              .
-            </>
-          ) : (
-            <>
-              For contact options, see{" "}
-              <a className="text-primary underline underline-offset-2" href="#legal-contact">
-                Contact
-              </a>{" "}
-              below.
-            </>
-          )}{" "}
-          The public URL of this policy is <strong>{getPrivacyPolicyUrl()}</strong>.
+          <strong>{APP_SHORT_NAME}</strong> (“we,” “us”) operates the Service, including this website
+          and related features. The operator is described as{" "}
+          <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong>. Contact:{" "}
+          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
+            {getPublicSupportEmail()}
+          </a>
+          . The public URL of this policy is <strong>{getPrivacyPolicyUrl()}</strong>.
         </p>
       </section>
 
@@ -190,24 +173,16 @@ export default function PrivacyPolicyPage() {
 
       <section id="legal-contact">
         <h2>Contact</h2>
-        {isSupportEmailConfigured() ? (
-          <p>
-            Questions about this policy:{" "}
-            <a
-              className="text-primary underline underline-offset-2"
-              href={getSupportContactHref()}
-            >
-              contact support
-            </a>
-            .
-          </p>
-        ) : (
-          <p>
-            For questions about this policy, use the contact method your organization publishes for
-            this product. When a support email is configured for production, a mailto link appears in
-            the site footer and in this section.
-          </p>
-        )}
+        <p>
+          Questions about this policy:{" "}
+          <a
+            className="text-primary underline underline-offset-2"
+            href={getPublicSupportMailtoHref()}
+          >
+            contact support
+          </a>
+          .
+        </p>
       </section>
     </LegalPageLayout>
   );

@@ -85,7 +85,7 @@ Set **`NEXT_PUBLIC_SITE_URL`** on production to your **canonical** HTTPS domain 
 ## App ID / display name
 
 - Default **`appId`** in `capacitor.constants.ts` is **`app.logosflow.biblejournal`** so it stays aligned with the **existing** Android and iOS projects in this repo. Rebranding requires updating Gradle, Xcode, and store listings together.
-- Default **`appName`** is **Bible Journal** (matches in-app marketing name).
+- Default **`appName`** is **BADWR** (home-screen label; full marketing copy lives in the web app).
 
 ## Static export (not current architecture)
 

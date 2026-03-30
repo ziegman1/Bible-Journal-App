@@ -1,4 +1,4 @@
--- Bible Journal MVP - Initial Schema
+-- BADWR MVP - Initial Schema
 -- Run this in Supabase SQL Editor or via Supabase CLI
 
 -- Enable UUID extension

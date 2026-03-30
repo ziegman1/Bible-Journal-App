@@ -1,4 +1,4 @@
--- Bible Journal - Study Threads & Schema Extensions
+-- BADWR - Study Threads & Schema Extensions
 -- Run after 001_initial_schema.sql
 
 -- 1. study_threads

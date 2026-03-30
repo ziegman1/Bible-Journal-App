@@ -1,4 +1,4 @@
-# Bible Journal — Mobile (Capacitor)
+# BADWR — Mobile (Capacitor)
 
 **Authoritative guide:** [MOBILE_DEPLOYMENT.md](./MOBILE_DEPLOYMENT.md) — deployment strategy (remote WebView vs static export), env vars, Supabase redirects, and app ID notes.
 
