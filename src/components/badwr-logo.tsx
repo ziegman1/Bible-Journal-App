@@ -5,8 +5,8 @@ import { APP_LOGO_ALT, APP_LOGO_PATH } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 /** Source asset dimensions (fixed ratio for `next/image`). */
-const LOGO_WIDTH = 1200;
-const LOGO_HEIGHT = 630;
+const LOGO_WIDTH = 1024;
+const LOGO_HEIGHT = 541;
 
 const VARIANT_CLASS = {
   /** Landing hero — readable slogan, mobile-first. */

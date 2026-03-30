@@ -10,7 +10,7 @@ export const APP_LOGO_PATH = "/badwr-logo.png";
 
 /** Alt text for logo images (descriptive for screen readers). */
 export const APP_LOGO_ALT =
-  "BADWR logo: a red and gold shield with a sword and the text Be a Disciple Worth Reproducing";
+  "BADWR shield logo — Be a Disciple Worth Reproducing";
 
 /** Primary product name (UI, metadata default title, auth headings). */
 export const APP_NAME = "BADWR";
