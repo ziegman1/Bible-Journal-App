@@ -23,12 +23,6 @@ const VARIANT_CLASS = {
 
 export type BadwrLogoVariant = keyof typeof VARIANT_CLASS;
 
-function logoSrc(): string {
-  const id = process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID?.trim();
-  if (id) return `${APP_LOGO_PATH}?v=${encodeURIComponent(id)}`;
-  return APP_LOGO_PATH;
-}
-
 export function BadwrLogo({
   variant = "auth",
   className,
@@ -41,7 +35,7 @@ export function BadwrLogo({
 }) {
   return (
     <Image
-      src={logoSrc()}
+      src={APP_LOGO_PATH}
       alt={APP_LOGO_ALT}
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
