@@ -18,7 +18,6 @@ export async function IdentityCoreSection({
       </h2>
       <IdentityCoreCard
         displayName={displayName}
-        phaseLabel={mockIdentityCore.phaseLabel}
         nextActionLabel={nextActionLabel}
         nextActionHref={nextActionHref}
         stats={mockIdentityCore.stats}

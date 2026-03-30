@@ -3,7 +3,6 @@
  */
 
 export const mockIdentityCore = {
-  phaseLabel: "Growing season",
   stats: [
     { label: "This week", value: "3 entries" },
     { label: "Reading streak", value: "5 days" },

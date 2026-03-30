@@ -4,13 +4,11 @@ import { buttonVariants } from "@/components/ui/button-variants";
 
 export function IdentityCoreCard({
   displayName,
-  phaseLabel,
   nextActionLabel,
   nextActionHref,
   stats,
 }: {
   displayName: string;
-  phaseLabel: string;
   nextActionLabel: string;
   nextActionHref: string;
   stats: readonly { label: string; value: string }[];
@@ -39,7 +37,6 @@ export function IdentityCoreCard({
       <h2 className="relative mt-1 text-2xl font-serif font-light tracking-wide text-foreground">
         {displayName}
       </h2>
-      <p className="relative mt-1 text-sm tracking-wide text-muted-foreground">{phaseLabel}</p>
 
       <div className="relative mt-5 md:flex md:justify-center">
         <Link

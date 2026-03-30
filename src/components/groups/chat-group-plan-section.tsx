@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { appendSharePromoToPlainText } from "@/lib/share-promo";
 import { Check, Circle } from "lucide-react";
 
 export type ChatGroupWorkspaceClient = {
@@ -59,7 +60,7 @@ function buildChatProposalShareText(input: {
   readingPlan: string;
   acceptUrl: string;
 }) {
-  return [
+  const core = [
     `CHAT proposal for ${input.groupName}`,
     "",
     `When: ${input.weekdayText}${input.meetingTimeText ? ` · ${input.meetingTimeText}` : ""}`,
@@ -68,6 +69,7 @@ function buildChatProposalShareText(input: {
     "Review and agree here:",
     input.acceptUrl,
   ].join("\n");
+  return appendSharePromoToPlainText(core);
 }
 
 export function ChatGroupPlanSection({

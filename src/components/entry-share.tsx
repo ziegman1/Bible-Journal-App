@@ -3,6 +3,7 @@
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatSoapsBodyFields, type SoapsFields } from "@/lib/format-soaps-share";
+import { appendSharePromoToPlainText } from "@/lib/share-promo";
 import { Share2, Mail, MessageCircle } from "lucide-react";
 
 export function ShareViaEmailTextButtons({
@@ -14,8 +15,9 @@ export function ShareViaEmailTextButtons({
   body: string;
   className?: string;
 }) {
-  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  const smsUrl = `sms:?body=${encodeURIComponent(body)}`;
+  const bodyWithPromo = appendSharePromoToPlainText(body);
+  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyWithPromo)}`;
+  const smsUrl = `sms:?body=${encodeURIComponent(bodyWithPromo)}`;
 
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>

@@ -1,5 +1,9 @@
 import { Resend } from "resend";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
+import {
+  appendSharePromoToPlainText,
+  emailInviteFooterHtml,
+} from "@/lib/share-promo";
 
 const IS_PRODUCTION =
   process.env.VERCEL_ENV === "production" ||
@@ -171,13 +175,7 @@ export async function sendGroupInviteEmail(params: {
               </p>
             </td>
           </tr>
-          <tr>
-            <td style="padding:20px 28px 28px 28px;border-top:1px solid #f5f5f4;">
-              <p style="margin:0;font-size:12px;line-height:1.5;color:#a8a29e;">
-                ${isChat ? "Logosflow · CHAT groups" : "Bible Journal · 3/3rds Groups"}
-              </p>
-            </td>
-          </tr>
+          ${emailInviteFooterHtml(isChat ? "Logosflow · CHAT groups" : "Bible Journal · 3/3rds Groups")}
         </table>
       </td>
     </tr>
@@ -204,8 +202,6 @@ export async function sendGroupInviteEmail(params: {
           : "This invite link expires 7 days after it was sent.",
         "",
         "If you didn't expect this message, you can ignore it.",
-        "",
-        "— Logosflow",
       ]
     : [
         textGreeting,
@@ -222,10 +218,8 @@ export async function sendGroupInviteEmail(params: {
           : "This invite link expires 7 days after it was sent.",
         "",
         "If you didn't expect this message, you can ignore it.",
-        "",
-        "— Bible Journal",
       ];
-  const text = textLines.join("\n");
+  const text = appendSharePromoToPlainText(textLines.join("\n"));
 
   try {
     const resend = new Resend(resendApiKey);
@@ -370,11 +364,7 @@ export async function sendChatGrowthInviteEmail(params: {
               </p>
             </td>
           </tr>
-          <tr>
-            <td style="padding:20px 28px 28px 28px;border-top:1px solid #f5f5f4;">
-              <p style="margin:0;font-size:12px;line-height:1.5;color:#a8a29e;">Logosflow · CHAT</p>
-            </td>
-          </tr>
+          ${emailInviteFooterHtml("Logosflow · CHAT")}
         </table>
       </td>
     </tr>
@@ -395,10 +385,8 @@ export async function sendChatGrowthInviteEmail(params: {
     inviteUrl,
     "",
     "If you didn't expect this message, you can ignore it.",
-    "",
-    "— Logosflow",
   ].filter(Boolean);
-  const text = textLines.join("\n");
+  const text = appendSharePromoToPlainText(textLines.join("\n"));
 
   try {
     const resend = new Resend(resendApiKey);
