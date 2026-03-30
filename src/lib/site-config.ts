@@ -5,11 +5,12 @@
 import type { Metadata } from "next";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 
-/** Public logo path (SVG; replace with `/icon.png` if you add a raster asset to `public/`). */
-export const APP_LOGO_PATH = "/badwr-logo.svg";
+/** Public logo path (official brand asset in `public/`). */
+export const APP_LOGO_PATH = "/badwr-logo.png";
 
-/** Alt text for logo images. */
-export const APP_LOGO_ALT = "BADWR logo";
+/** Alt text for logo images (descriptive for screen readers). */
+export const APP_LOGO_ALT =
+  "BADWR logo: a red and gold shield with a sword and the text Be a Disciple Worth Reproducing";
 
 /** Primary product name (UI, metadata default title, auth headings). */
 export const APP_NAME = "BADWR";

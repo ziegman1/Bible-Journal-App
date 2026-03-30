@@ -2,7 +2,6 @@ import Link from "next/link";
 import { BadwrLogo } from "@/components/badwr-logo";
 import {
   APP_SHORT_NAME,
-  APP_TAGLINE,
   getPublicSupportEmail,
   getPublicSupportMailtoHref,
 } from "@/lib/site-config";
@@ -73,7 +72,7 @@ export function SiteFooter({
           variant === "compact" && "mt-2"
         )}
       >
-        © {year} {APP_SHORT_NAME} · {APP_TAGLINE}
+        © {year} {APP_SHORT_NAME}
         {" "}
         <span className="hidden sm:inline">·</span>{" "}
         <a

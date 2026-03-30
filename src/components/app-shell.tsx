@@ -27,6 +27,7 @@ import {
 import { AppBrandLink } from "@/components/app-brand-link";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
+import { APP_NAME } from "@/lib/site-config";
 import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
 
 const navItems = [
@@ -151,9 +152,13 @@ export function AppShell({ displayName, children }: AppShellProps) {
             </Sheet>
             <div className="flex min-w-0 items-center gap-2">
               <BadwrLogo variant="micro" className="md:hidden" />
-              <span className="text-sm text-stone-600 dark:text-stone-400 truncate">
-                {displayName ? `Welcome, ${displayName}` : "BADWR"}
-              </span>
+              {displayName ? (
+                <span className="text-sm text-stone-600 dark:text-stone-400 truncate">
+                  Welcome, {displayName}
+                </span>
+              ) : (
+                <span className="sr-only">{APP_NAME}</span>
+              )}
             </div>
           </div>
           <form action={signOut} className="shrink-0">

@@ -25,7 +25,7 @@ export default async function ForgotPasswordPage({
           <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
             Reset password
           </h1>
-          <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+          <p className="text-sm text-stone-500 dark:text-stone-400">
             Enter your email and we&apos;ll send you a reset link
           </p>
         </div>

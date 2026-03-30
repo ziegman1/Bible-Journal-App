@@ -2,19 +2,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
-import { APP_MARKETING_NAME } from "@/lib/site-config";
 
 export default function SetupPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-950 dark:to-stone-900">
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <div className="max-w-lg text-center space-y-8">
+        <h1 className="sr-only">Supabase not configured</h1>
         <div className="flex justify-center">
           <BadwrLogo variant="hero" priority />
         </div>
-        <h1 className="text-4xl font-serif font-light text-stone-800 dark:text-stone-200 tracking-tight">
-          {APP_MARKETING_NAME}
-        </h1>
         <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 text-left space-y-4">
           <h2 className="text-lg font-medium text-amber-900 dark:text-amber-100">
             Supabase not configured

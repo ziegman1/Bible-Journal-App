@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
-import { APP_MARKETING_NAME } from "@/lib/site-config";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -50,12 +49,10 @@ export default async function OnboardingPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
+          <h1 className="sr-only">Welcome — set up your profile</h1>
           <div className="flex justify-center mb-6">
             <BadwrLogo variant="auth" priority />
           </div>
-          <h1 className="text-2xl font-serif font-light text-center text-stone-800 dark:text-stone-200 mb-8">
-            Welcome to {APP_MARKETING_NAME}
-          </h1>
           <p className="text-center text-stone-600 dark:text-stone-400 mb-8">
             A few quick questions to personalize your experience
           </p>

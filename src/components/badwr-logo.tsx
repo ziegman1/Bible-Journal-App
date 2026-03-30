@@ -4,15 +4,30 @@ import Image from "next/image";
 import { APP_LOGO_ALT, APP_LOGO_PATH } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
-const VARIANT_PX = {
-  hero: { w: 80, h: 80, className: "h-16 w-16 sm:h-20 sm:w-20" },
-  auth: { w: 64, h: 64, className: "h-14 w-14 sm:h-16 sm:w-16" },
-  compact: { w: 36, h: 36, className: "h-9 w-9 shrink-0" },
-  micro: { w: 24, h: 24, className: "h-6 w-6 shrink-0" },
-  footer: { w: 28, h: 28, className: "h-7 w-7 shrink-0 opacity-90" },
+/** Source asset dimensions (fixed ratio for `next/image`). */
+const LOGO_WIDTH = 1200;
+const LOGO_HEIGHT = 630;
+
+const VARIANT_CLASS = {
+  /** Landing hero — readable slogan, mobile-first. */
+  hero: "h-20 w-auto max-w-[min(100%,22rem)] sm:h-28 sm:max-w-xl md:h-32",
+  /** Auth and similar centered stacks. */
+  auth: "h-16 w-auto max-w-[min(100%,18rem)] sm:h-20 sm:max-w-md",
+  /** Sidebar / legal header next to wordmark. */
+  compact: "h-9 w-auto max-w-[5.5rem] shrink-0 sm:h-10 sm:max-w-[6.25rem]",
+  /** Dense chrome (e.g. mobile app bar). */
+  micro: "h-7 w-auto max-w-[4.5rem] shrink-0 sm:h-8 sm:max-w-[5.25rem]",
+  /** Footer — subtle but recognizable. */
+  footer: "h-8 w-auto max-w-[8rem] shrink-0 opacity-95 sm:h-9 sm:max-w-[9rem]",
 } as const;
 
-export type BadwrLogoVariant = keyof typeof VARIANT_PX;
+export type BadwrLogoVariant = keyof typeof VARIANT_CLASS;
+
+function logoSrc(): string {
+  const id = process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID?.trim();
+  if (id) return `${APP_LOGO_PATH}?v=${encodeURIComponent(id)}`;
+  return APP_LOGO_PATH;
+}
 
 export function BadwrLogo({
   variant = "auth",
@@ -24,14 +39,13 @@ export function BadwrLogo({
   /** Set on LCP / above-the-fold heroes. */
   priority?: boolean;
 }) {
-  const v = VARIANT_PX[variant];
   return (
     <Image
-      src={APP_LOGO_PATH}
+      src={logoSrc()}
       alt={APP_LOGO_ALT}
-      width={v.w}
-      height={v.h}
-      className={cn(v.className, "object-contain", className)}
+      width={LOGO_WIDTH}
+      height={LOGO_HEIGHT}
+      className={cn(VARIANT_CLASS[variant], "object-contain object-center", className)}
       priority={priority}
     />
   );
