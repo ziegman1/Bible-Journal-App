@@ -9,6 +9,7 @@ export function IdentityCoreCard({
   prayHref = "/app/prayer",
   prayLabel = "Pray",
   stats,
+  invitationalSubtitle = null,
 }: {
   displayName: string;
   nextActionLabel: string;
@@ -16,7 +17,11 @@ export function IdentityCoreCard({
   prayHref?: string;
   prayLabel?: string;
   stats: readonly { label: string; value: string }[];
+  /** When streak stats are hidden (Guided mode), short invitational line instead of the grid */
+  invitationalSubtitle?: string | null;
 }) {
+  const showStats = stats.length > 0;
+
   return (
     <div
       className={cn(
@@ -63,36 +68,42 @@ export function IdentityCoreCard({
         </Link>
       </div>
 
-      <dl className="relative mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-2">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className={cn(
-              "rounded-lg border border-indigo-100/60 px-3 py-2",
-              "bg-white/60 backdrop-blur-xs",
-              "dark:border-indigo-500/10 dark:bg-white/[0.03]"
-            )}
-          >
-            <dt
-              className="text-[11px] tracking-wide text-muted-foreground"
-              title={
-                s.label.startsWith("SOAPS")
-                  ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
-                  : s.label.startsWith("Prayer")
-                    ? "Consecutive days with at least 60 minutes logged (Prayer Wheel + extra time). Miss a day → streak resets."
-                    : s.label.startsWith("Share")
-                      ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
-                      : s.label.includes("CHAT")
-                        ? "Consecutive weeks you attended both a 3/3rds family meeting and a CHAT meeting (pillar week, Sun–Sat). Miss either in a week → streak resets."
-                        : undefined
-              }
+      {showStats ? (
+        <dl className="relative mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-2">
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className={cn(
+                "rounded-lg border border-indigo-100/60 px-3 py-2",
+                "bg-white/60 backdrop-blur-xs",
+                "dark:border-indigo-500/10 dark:bg-white/[0.03]"
+              )}
             >
-              {s.label}
-            </dt>
-            <dd className="text-sm font-medium text-foreground">{s.value}</dd>
-          </div>
-        ))}
-      </dl>
+              <dt
+                className="text-[11px] tracking-wide text-muted-foreground"
+                title={
+                  s.label.startsWith("SOAPS")
+                    ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
+                    : s.label.startsWith("Prayer")
+                      ? "Consecutive days with at least 60 minutes logged (Prayer Wheel + extra time). Miss a day → streak resets."
+                      : s.label.startsWith("Share")
+                        ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
+                        : s.label.includes("CHAT")
+                          ? "Consecutive weeks you attended both a 3/3rds family meeting and a CHAT meeting (pillar week, Sun–Sat). Miss either in a week → streak resets."
+                          : undefined
+                }
+              >
+                {s.label}
+              </dt>
+              <dd className="text-sm font-medium text-foreground">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : invitationalSubtitle ? (
+        <p className="relative mt-6 text-left text-sm leading-relaxed text-muted-foreground md:text-center">
+          {invitationalSubtitle}
+        </p>
+      ) : null}
     </div>
   );
 }

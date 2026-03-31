@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
+import { insightsKeywordsEmptyCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightsSummary } from "@/lib/insights/types";
 
 interface InsightsKeywordsProps {
   data: InsightsSummary;
+  copyTone?: GrowthCopyTone;
 }
 
-export function InsightsKeywords({ data }: InsightsKeywordsProps) {
+export function InsightsKeywords({ data, copyTone = "accountability" }: InsightsKeywordsProps) {
   const { topKeywords } = data.repeatedWords;
 
   if (topKeywords.length === 0) {
@@ -20,7 +23,7 @@ export function InsightsKeywords({ data }: InsightsKeywordsProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-stone-500 dark:text-stone-400">
-            No reflection, prayer, or application text in this period.
+            {insightsKeywordsEmptyCopy(copyTone)}
           </p>
         </CardContent>
       </Card>

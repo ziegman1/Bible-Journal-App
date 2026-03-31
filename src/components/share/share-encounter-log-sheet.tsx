@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { shareLogSheetDescription, shareSaveSuccessMessage } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 function localDateYmd(d = new Date()): string {
   const y = d.getFullYear();
@@ -31,8 +33,10 @@ function localDateYmd(d = new Date()): string {
 
 export function ShareEncounterLogSheet({
   weeklyShareGoalEncounters,
+  copyTone = "accountability",
 }: {
   weeklyShareGoalEncounters: number;
+  copyTone?: GrowthCopyTone;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -82,7 +86,7 @@ export function ShareEncounterLogSheet({
         setError(res.error);
         return;
       }
-      setMessage("Share saved. It counts toward this week’s pace on your dashboard.");
+      setMessage(shareSaveSuccessMessage(copyTone));
       router.refresh();
     });
   }
@@ -97,10 +101,7 @@ export function ShareEncounterLogSheet({
           <SheetHeader>
             <SheetTitle>Log a share</SheetTitle>
             <SheetDescription>
-              Record a gospel or testimony conversation. Each log counts toward your weekly goal of{" "}
-              {weeklyShareGoalEncounters === 1
-                ? "one person."
-                : `${weeklyShareGoalEncounters} people.`}
+              {shareLogSheetDescription(copyTone, weeklyShareGoalEncounters)}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4 pb-4">

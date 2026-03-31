@@ -16,6 +16,11 @@ import {
 } from "@/components/ui/select";
 import { playBellChime } from "@/lib/sounds/play-bell-chime";
 import { PrayerWheelSvg } from "@/components/prayer/prayer-wheel-svg";
+import {
+  prayerWheelCompleteCopy,
+  prayerWheelSaveErrorWeeklyHint,
+} from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
 function formatMmSs(totalSeconds: number): string {
@@ -24,7 +29,7 @@ function formatMmSs(totalSeconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function PrayerWheelTimer() {
+export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: GrowthCopyTone }) {
   const [phase, setPhase] = useState<"setup" | "running" | "complete" | "save_error">("setup");
   const [minutesPerSegment, setMinutesPerSegment] = useState(5);
   const [currentStep, setCurrentStep] = useState(0);
@@ -288,8 +293,7 @@ export function PrayerWheelTimer() {
                     </Button>
                   </div>
                   <p className="mt-2 text-[11px] text-muted-foreground">
-                    Continue without saving keeps your prayer flow going; that segment won&apos;t count
-                    toward weekly stats until the database is set up.
+                    {prayerWheelSaveErrorWeeklyHint(copyTone)}
                   </p>
                 </div>
               ) : (
@@ -304,9 +308,7 @@ export function PrayerWheelTimer() {
             <div className="space-y-4">
               <h2 className="text-lg font-serif font-light text-foreground">Wheel complete</h2>
               <p className="text-sm text-muted-foreground">
-                You finished all twelve segments ({12 * minutesPerSegment} minutes). Your time is
-                counted toward this week&apos;s prayer stats on the home dashboard (Sun–Sat in your
-                time zone).
+                {prayerWheelCompleteCopy(copyTone, 12 * minutesPerSegment)}
               </p>
               <Button type="button" onClick={stopSession}>
                 Start another session

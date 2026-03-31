@@ -1,12 +1,27 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import { redirect } from "next/navigation";
 import { ExtraPrayerMinutesForm } from "@/components/prayer/extra-prayer-minutes-form";
 import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
 import { ResetWeekPrayerButton } from "@/components/prayer/reset-week-prayer-button";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { prayerToolPageIntro } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
+import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
-export default function PrayerPage() {
+export default async function PrayerPage() {
+  const supabase = await createClient();
+  if (!supabase) redirect("/setup");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let copyTone: GrowthCopyTone = "accountability";
+  if (user) {
+    copyTone = (await fetchUserGrowthPresentation(supabase, user.id)).copyTone;
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 pb-20 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -19,12 +34,7 @@ export default function PrayerPage() {
             Prayer Wheel
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            A guided hour with God, broken into twelve equal parts—praise, waiting, confession,
-            Scripture, petition, intercession, praying the Word, thanksgiving, singing, meditation,
-            listening, and closing praise. Choose how long each part runs; your completed segments
-            add to this week&apos;s prayer time on the dashboard (Sunday–Saturday in your time zone).
-            You can also log extra prayer time
-            below in 5-minute blocks.
+            {prayerToolPageIntro(copyTone)}
           </p>
         </div>
         <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
@@ -32,11 +42,11 @@ export default function PrayerPage() {
         </Link>
       </div>
 
-      <PrayerWheelTimer />
+      <PrayerWheelTimer copyTone={copyTone} />
 
-      <ExtraPrayerMinutesForm />
+      <ExtraPrayerMinutesForm copyTone={copyTone} />
 
-      <ResetWeekPrayerButton />
+      <ResetWeekPrayerButton copyTone={copyTone} />
     </div>
   );
 }

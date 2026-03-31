@@ -5,8 +5,9 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { IdentityCoreSection } from "@/components/dashboard/identity-core-section";
 import { MultiplicationSection } from "@/components/dashboard/multiplication-section";
 import { listGroupsForUser } from "@/app/actions/groups";
-import { createClient } from "@/lib/supabase/server";
 import { nextReadAfterChatSoapsComplete } from "@/lib/chat-soaps/next-read";
+import { getGrowthModePresentation, normalizeGrowthMode } from "@/lib/growth-mode/model";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * App home: dashboard shell (mock data). Previous “Scripture journey” home lived here;
@@ -22,13 +23,15 @@ export default async function DashboardPage() {
   let soapsActionHref = "/app/read/matthew/1";
   const soapsActionLabel = "Start today's SOAPS";
   let primaryChatGroupId: string | null = null;
+  let presentation = getGrowthModePresentation("focused");
 
   if (user && supabase) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, growth_mode")
       .eq("id", user.id)
       .maybeSingle();
+    presentation = getGrowthModePresentation(normalizeGrowthMode(profile?.growth_mode));
     displayName =
       profile?.display_name?.trim() ||
       user.email?.split("@")[0]?.trim() ||
@@ -62,9 +65,15 @@ export default async function DashboardPage() {
           displayName={displayName}
           nextActionHref={soapsActionHref}
           nextActionLabel={soapsActionLabel}
+          presentation={presentation}
         />
       }
-      daily={<DailyPracticeSection primaryChatGroupId={primaryChatGroupId} />}
+      daily={
+        <DailyPracticeSection
+          primaryChatGroupId={primaryChatGroupId}
+          presentation={presentation}
+        />
+      }
       community={<CommunityRingSection />}
       multiplication={<MultiplicationSection />}
     />

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/settings-form";
 import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES } from "@/lib/prayer-wheel/stats";
+import { normalizeGrowthMode } from "@/lib/growth-mode/model";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "display_name, reading_mode, journal_year, ai_style, weekly_share_goal_encounters, weekly_prayer_goal_minutes"
+      "display_name, reading_mode, journal_year, ai_style, growth_mode, weekly_share_goal_encounters, weekly_prayer_goal_minutes"
     )
     .eq("id", user.id)
     .single();
@@ -30,6 +31,7 @@ export default async function SettingsPage() {
         readingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
         journalYear={profile?.journal_year ?? new Date().getFullYear()}
         aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
+        growthMode={normalizeGrowthMode(profile?.growth_mode)}
         weeklyShareGoalEncounters={
           profile?.weekly_share_goal_encounters ?? DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS
         }

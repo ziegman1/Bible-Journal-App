@@ -4,6 +4,9 @@ import { ShareEncounterLogSheet } from "@/components/share/share-encounter-log-s
 import { buttonVariants } from "@/components/ui/button-variants";
 import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
+import { shareToolPageIntro } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
+import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -15,9 +18,11 @@ export default async function SharePage() {
   } = await supabase.auth.getUser();
 
   let weeklyShareGoalEncounters = DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
+  let copyTone: GrowthCopyTone = "accountability";
   if (user) {
     const g = await fetchUserRhythmGoals(supabase, user.id);
     weeklyShareGoalEncounters = g.shareWeeklyGoalEncounters;
+    copyTone = (await fetchUserGrowthPresentation(supabase, user.id)).copyTone;
   }
 
   const goalPhrase =
@@ -30,11 +35,13 @@ export default async function SharePage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-serif font-light text-foreground">Share</h1>
         <p className="text-sm text-muted-foreground">
-          Log each gospel or testimony conversation. Your dashboard shows weekly pace (goal:{" "}
-          {goalPhrase}) and how people responded—red, yellow, green, or already a Christian.
+          {shareToolPageIntro(copyTone, goalPhrase)}
         </p>
       </div>
-      <ShareEncounterLogSheet weeklyShareGoalEncounters={weeklyShareGoalEncounters} />
+      <ShareEncounterLogSheet
+        weeklyShareGoalEncounters={weeklyShareGoalEncounters}
+        copyTone={copyTone}
+      />
       <Link href="/app" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
         ← Dashboard
       </Link>

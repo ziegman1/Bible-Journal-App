@@ -10,6 +10,8 @@ import { InsightsBooksPassages } from "@/components/insights/insights-books-pass
 import { InsightsJournalingActivity } from "@/components/insights/insights-journaling-activity";
 import { InsightsKeywords } from "@/components/insights/insights-keywords";
 import { InsightsAISummary } from "@/components/insights/insights-ai-summary";
+import { insightsPageSubtitle } from "@/lib/growth-mode/copy";
+import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
 
 interface PageProps {
   searchParams: Promise<{ range?: string; start?: string; end?: string }>;
@@ -28,13 +30,15 @@ export default async function InsightsPage({ searchParams }: PageProps) {
   const range = (params.range as InsightsDateRange) ?? "thisYear";
   const bounds = getDateBounds(range, params.start ?? undefined, params.end ?? undefined);
 
-  const [summary, cachedResult] = await Promise.all([
+  const [summary, cachedResult, growthPresentation] = await Promise.all([
     aggregateInsights(supabase, user.id, bounds),
     getCachedInsightSummary(range, bounds.start, bounds.end),
+    fetchUserGrowthPresentation(supabase, user.id),
   ]);
 
   const cachedSummary =
     cachedResult && "summary" in cachedResult ? cachedResult.summary : null;
+  const copyTone = growthPresentation.copyTone;
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,8 +49,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
               Insights
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              A reflection on your journaling journey. Counts use each entry&apos;s
-              date; widen the range or choose All time if a section looks empty.
+              {insightsPageSubtitle(copyTone)}
             </p>
           </div>
           <InsightsDateRangeSelect />
@@ -58,15 +61,16 @@ export default async function InsightsPage({ searchParams }: PageProps) {
 
         <section className="space-y-6">
           <InsightsOverview data={summary} />
-          <InsightsThemes data={summary} />
-          <InsightsBooksPassages data={summary} />
-          <InsightsJournalingActivity data={summary} />
-          <InsightsKeywords data={summary} />
+          <InsightsThemes data={summary} copyTone={copyTone} />
+          <InsightsBooksPassages data={summary} copyTone={copyTone} />
+          <InsightsJournalingActivity data={summary} copyTone={copyTone} />
+          <InsightsKeywords data={summary} copyTone={copyTone} />
           <InsightsAISummary
             range={range}
             startDate={bounds.start}
             endDate={bounds.end}
             initialSummary={cachedSummary}
+            copyTone={copyTone}
           />
         </section>
       </div>

@@ -6,6 +6,7 @@ import { ChatAccountabilityGuide } from "@/components/chat/chat-accountability-g
 import { ChatReadingPaceCard } from "@/components/chat/chat-reading-pace-card";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
+import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
 import { Settings } from "lucide-react";
 
 type PageProps = {
@@ -46,6 +47,7 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
     .select("id", { count: "exact", head: true })
     .eq("group_id", groupId);
   const memberCount = count ?? 0;
+  const growthPresentation = await fetchUserGrowthPresentation(supabase, user.id);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 pb-20 sm:px-6">
@@ -87,7 +89,11 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
       </header>
 
       <div className="space-y-8">
-        <ChatReadingPaceCard groupId={groupId} variant="meeting" />
+        <ChatReadingPaceCard
+          groupId={groupId}
+          variant="meeting"
+          copyTone={growthPresentation.copyTone}
+        />
         <ChatAccountabilityGuide variant="meeting" />
       </div>
     </div>

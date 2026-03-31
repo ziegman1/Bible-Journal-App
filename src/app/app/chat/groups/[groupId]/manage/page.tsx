@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getGroup } from "@/app/actions/groups";
 import { ChatGroupManageView } from "@/components/groups/chat-group-manage-view";
+import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
 import { createClient } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -54,6 +55,8 @@ export default async function ChatGroupManagePage({ params }: PageProps) {
   const senderDisplayName =
     profile?.display_name?.trim() || user.email?.split("@")[0]?.trim() || "A friend";
 
+  const growthPresentation = await fetchUserGrowthPresentation(supabase, user.id);
+
   return (
     <ChatGroupManageView
       groupId={groupId}
@@ -64,6 +67,7 @@ export default async function ChatGroupManagePage({ params }: PageProps) {
       memberCount={memberCount}
       currentUserId={user.id}
       senderDisplayName={senderDisplayName}
+      growthCopyTone={growthPresentation.copyTone}
     />
   );
 }

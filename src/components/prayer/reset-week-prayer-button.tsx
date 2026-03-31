@@ -5,21 +5,21 @@ import { useState } from "react";
 import { resetThisWeeksPrayerTime } from "@/app/actions/prayer-wheel";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { resetWeekPrayerSectionCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
-export function ResetWeekPrayerButton() {
+export function ResetWeekPrayerButton({ copyTone = "accountability" }: { copyTone?: GrowthCopyTone }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneMessage, setDoneMessage] = useState<string | null>(null);
 
+  const copy = resetWeekPrayerSectionCopy(copyTone);
+
   return (
     <div className="rounded-xl border border-border border-dashed bg-muted/30 p-5">
-      <h2 className="text-sm font-medium text-foreground">Reset this week</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Clear all Prayer Wheel segments and extra minutes logged for the current practice week
-        (Sunday–Saturday in your device timezone). Your dashboard prayer total will go back to zero
-        for this week. This cannot be undone.
-      </p>
+      <h2 className="text-sm font-medium text-foreground">{copy.title}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{copy.body}</p>
       <Button
         type="button"
         variant="outline"
@@ -30,7 +30,7 @@ export function ResetWeekPrayerButton() {
           setOpen(true);
         }}
       >
-        Reset this week&apos;s prayer time
+        {copy.buttonLabel}
       </Button>
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       {doneMessage ? (
@@ -39,8 +39,8 @@ export function ResetWeekPrayerButton() {
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
-        title="Reset this week’s prayer time?"
-        description="This removes every Prayer Wheel completion and every extra-minute entry for the current practice week (your device timezone). Past weeks are not affected."
+        title={copy.confirmTitle}
+        description={copy.confirmDescription}
         confirmLabel="Reset"
         cancelLabel="Cancel"
         variant="destructive"

@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, BookMarked } from "lucide-react";
+import { insightsBooksEmptyCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightsSummary } from "@/lib/insights/types";
 
 interface InsightsBooksPassagesProps {
   data: InsightsSummary;
+  copyTone?: GrowthCopyTone;
 }
 
-export function InsightsBooksPassages({ data }: InsightsBooksPassagesProps) {
+export function InsightsBooksPassages({ data, copyTone = "accountability" }: InsightsBooksPassagesProps) {
   const { topBooks, passagesMostRevisited, topChaptersReferenced } =
     data.booksAndPassages;
 
@@ -25,7 +28,7 @@ export function InsightsBooksPassages({ data }: InsightsBooksPassagesProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-stone-500 dark:text-stone-400">
-            No book or passage data in this period.
+            {insightsBooksEmptyCopy(copyTone)}
           </p>
         </CardContent>
       </Card>

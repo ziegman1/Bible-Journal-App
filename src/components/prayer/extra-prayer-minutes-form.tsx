@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { extraPrayerFormDescription, extraPrayerSaveSuccess } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 const OPTIONS = Array.from({ length: 36 }, (_, i) => (i + 1) * 5);
 
-export function ExtraPrayerMinutesForm() {
+export function ExtraPrayerMinutesForm({ copyTone = "accountability" }: { copyTone?: GrowthCopyTone }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [minutes, setMinutes] = useState("15");
@@ -33,7 +35,7 @@ export function ExtraPrayerMinutesForm() {
         setError(res.error);
         return;
       }
-      setMessage(`Saved ${m} minutes toward this week’s prayer total.`);
+      setMessage(extraPrayerSaveSuccess(copyTone, m));
       router.refresh();
     });
   }
@@ -44,10 +46,7 @@ export function ExtraPrayerMinutesForm() {
       className="rounded-xl border border-border bg-card p-5 shadow-sm"
     >
       <h2 className="text-lg font-serif font-light text-foreground">Extra prayer time</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Log other prayer outside the wheel in 5-minute steps. It adds to the same weekly total as
-        the Prayer Wheel on your dashboard.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{extraPrayerFormDescription(copyTone)}</p>
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="space-y-2">
           <Label htmlFor="extra-prayer-min">Minutes</Label>

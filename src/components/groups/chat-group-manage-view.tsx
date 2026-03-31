@@ -6,6 +6,7 @@ import { GroupWorkspaceManageSection } from "@/components/groups/group-workspace
 import { ShareChatGroupSheet } from "@/components/groups/share-chat-group-sheet";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 export async function ChatGroupManageView({
   groupId,
@@ -16,6 +17,7 @@ export async function ChatGroupManageView({
   memberCount,
   currentUserId,
   senderDisplayName,
+  growthCopyTone = "accountability",
 }: {
   groupId: string;
   groupName: string;
@@ -25,6 +27,7 @@ export async function ChatGroupManageView({
   memberCount: number;
   currentUserId: string;
   senderDisplayName: string;
+  growthCopyTone?: GrowthCopyTone;
 }) {
   const ws = await getChatGroupWorkspace(groupId);
   if ("error" in ws) {
@@ -98,7 +101,7 @@ export async function ChatGroupManageView({
         workspace={ws}
       />
 
-      <ChatReadingPaceCard groupId={groupId} variant="manage" />
+      <ChatReadingPaceCard groupId={groupId} variant="manage" copyTone={growthCopyTone} />
 
       <section>
         <Link

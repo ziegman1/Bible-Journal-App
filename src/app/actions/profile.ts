@@ -6,7 +6,8 @@ import {
 } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { ReadingMode, AIStyle } from "@/types/database";
+import { normalizeGrowthMode } from "@/lib/growth-mode/model";
+import type { AIStyle, GrowthMode, ReadingMode } from "@/types/database";
 
 export async function updateProfile(data: {
   display_name?: string;
@@ -16,6 +17,7 @@ export async function updateProfile(data: {
   onboarding_complete?: boolean;
   weekly_share_goal_encounters?: number;
   weekly_prayer_goal_minutes?: number;
+  growth_mode?: GrowthMode;
 }) {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
@@ -42,6 +44,9 @@ export async function updateProfile(data: {
     updates.weekly_prayer_goal_minutes = clampPrayerWeeklyGoalMinutes(
       data.weekly_prayer_goal_minutes
     );
+  }
+  if (data.growth_mode !== undefined) {
+    updates.growth_mode = normalizeGrowthMode(data.growth_mode);
   }
 
   if (Object.keys(updates).length <= 2) return { success: true };

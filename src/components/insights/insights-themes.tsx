@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tags } from "lucide-react";
+import { insightsThemesEmptyCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightsSummary } from "@/lib/insights/types";
 
 interface InsightsThemesProps {
   data: InsightsSummary;
+  copyTone?: GrowthCopyTone;
 }
 
-export function InsightsThemes({ data }: InsightsThemesProps) {
+export function InsightsThemes({ data, copyTone = "accountability" }: InsightsThemesProps) {
   const { topTags } = data.themesAndTags;
 
   if (topTags.length === 0) {
@@ -21,7 +24,7 @@ export function InsightsThemes({ data }: InsightsThemesProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-stone-500 dark:text-stone-400">
-            No tags used in this period. Add tags to journal entries to see themes here.
+            {insightsThemesEmptyCopy(copyTone)}
           </p>
         </CardContent>
       </Card>

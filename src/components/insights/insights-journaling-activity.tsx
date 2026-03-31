@@ -1,12 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
+import { insightsJournalingEmptyCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightsSummary } from "@/lib/insights/types";
 
 interface InsightsJournalingActivityProps {
   data: InsightsSummary;
+  copyTone?: GrowthCopyTone;
 }
 
-export function InsightsJournalingActivity({ data }: InsightsJournalingActivityProps) {
+export function InsightsJournalingActivity({
+  data,
+  copyTone = "accountability",
+}: InsightsJournalingActivityProps) {
   const { frequencyByMonth, frequencyByWeek } = data.journalingActivity;
   const maxMonth = Math.max(1, ...frequencyByMonth.map((f) => f.count));
 
@@ -21,7 +27,7 @@ export function InsightsJournalingActivity({ data }: InsightsJournalingActivityP
         </CardHeader>
         <CardContent>
           <p className="text-sm text-stone-500 dark:text-stone-400">
-            No journal entries in this period.
+            {insightsJournalingEmptyCopy(copyTone)}
           </p>
         </CardContent>
       </Card>

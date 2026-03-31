@@ -2,21 +2,31 @@ import { getIdentityStreakStats } from "@/app/actions/identity-streaks";
 import { BadwrReproductionCard } from "@/components/dashboard/badwr-reproduction-card";
 import { IdentityCoreCard } from "@/components/dashboard/identity-core-card";
 import { mockIdentityCore } from "@/lib/dashboard/mock-dashboard-data";
+import type { GrowthModePresentation } from "@/lib/growth-mode/types";
+
+const GUIDED_IDENTITY_SUBTITLE =
+  "SOAPS, prayer, share, and groups are here when you want them—no scorekeeping on this home view.";
 
 export async function IdentityCoreSection({
   displayName,
   nextActionLabel = "Start today's SOAPS",
   nextActionHref = "/app/read/matthew/1",
+  presentation,
 }: {
   displayName: string;
   nextActionLabel?: string;
   nextActionHref?: string;
+  presentation: GrowthModePresentation;
 }) {
   let stats: { label: string; value: string }[] = [...mockIdentityCore.stats];
-  try {
-    stats = await getIdentityStreakStats();
-  } catch {
-    /* keep mock on failure */
+  if (presentation.showStreakStats) {
+    try {
+      stats = await getIdentityStreakStats();
+    } catch {
+      /* keep mock on failure */
+    }
+  } else {
+    stats = [];
   }
 
   return (
@@ -29,8 +39,11 @@ export async function IdentityCoreSection({
         nextActionLabel={nextActionLabel}
         nextActionHref={nextActionHref}
         stats={stats}
+        invitationalSubtitle={presentation.showStreakStats ? null : GUIDED_IDENTITY_SUBTITLE}
       />
-      <BadwrReproductionCard />
+      {presentation.showBadwrReproductionCard ? (
+        <BadwrReproductionCard copyTone={presentation.copyTone} />
+      ) : null}
     </section>
   );
 }

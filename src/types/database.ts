@@ -1,5 +1,8 @@
+import type { GrowthMode } from "@/lib/growth-mode/types";
+
 export type ReadingMode = "canonical" | "chronological" | "custom" | "free_reading";
 export type AIStyle = "concise" | "balanced" | "in-depth";
+export type { GrowthMode };
 
 export interface Profile {
   id: string;
@@ -7,6 +10,7 @@ export interface Profile {
   reading_mode: ReadingMode;
   journal_year: number;
   ai_style: AIStyle;
+  growth_mode: GrowthMode;
   weekly_share_goal_encounters: number;
   weekly_prayer_goal_minutes: number;
   created_at: string;

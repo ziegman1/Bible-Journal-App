@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Loader2 } from "lucide-react";
 import { generateInsightSummaryAction } from "@/app/actions/insights";
+import { insightsAiSummaryIdleCopy } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightSummaryJSON } from "@/lib/insights/types";
 import type { InsightsDateRange } from "@/lib/insights/types";
 
@@ -13,6 +15,7 @@ interface InsightsAISummaryProps {
   startDate: string;
   endDate: string;
   initialSummary: InsightSummaryJSON | null;
+  copyTone?: GrowthCopyTone;
 }
 
 export function InsightsAISummary({
@@ -20,6 +23,7 @@ export function InsightsAISummary({
   startDate: _startDate,
   endDate: _endDate,
   initialSummary,
+  copyTone = "accountability",
 }: InsightsAISummaryProps) {
   const [summary, setSummary] = useState<InsightSummaryJSON | null>(initialSummary);
   const [loading, setLoading] = useState(false);
@@ -52,8 +56,7 @@ export function InsightsAISummary({
         {!summary && !loading && (
           <div className="space-y-4">
             <p className="text-sm text-stone-600 dark:text-stone-400">
-              Generate an AI-powered summary of your journaling journey. This uses your reflections,
-              prayers, applications, and study threads to create a reflective synthesis.
+              {insightsAiSummaryIdleCopy(copyTone)}
             </p>
             <Button
               onClick={handleGenerate}

@@ -4,12 +4,18 @@ import { ShareDashboardPracticeCard } from "@/components/dashboard/share-dashboa
 import { SoapsDashboardPracticeCard } from "@/components/dashboard/soaps-dashboard-practice-card";
 import { PracticeNodeCard } from "@/components/dashboard/practice-node-card";
 import { mockPracticeNodes } from "@/lib/dashboard/mock-dashboard-data";
+import type { GrowthModePresentation } from "@/lib/growth-mode/types";
 
 export async function DailyPracticeSection({
   primaryChatGroupId = null,
+  presentation,
 }: {
   primaryChatGroupId?: string | null;
+  presentation: GrowthModePresentation;
 }) {
+  const toolsOnly = !presentation.showPracticePaceMeters;
+  const { copyTone } = presentation;
+
   return (
     <section aria-labelledby="dashboard-daily-heading">
       <h2
@@ -21,13 +27,22 @@ export async function DailyPracticeSection({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {mockPracticeNodes.map((node) =>
           node.theme === "soap" ? (
-            <SoapsDashboardPracticeCard key="soaps-pace" />
-          ) :           node.theme === "pray" ? (
-            <PrayDashboardPracticeCard key="pray-wheel" />
+            <SoapsDashboardPracticeCard
+              key="soaps-pace"
+              toolsOnly={toolsOnly}
+              copyTone={copyTone}
+            />
+          ) : node.theme === "pray" ? (
+            <PrayDashboardPracticeCard key="pray-wheel" toolsOnly={toolsOnly} copyTone={copyTone} />
           ) : node.theme === "share" ? (
-            <ShareDashboardPracticeCard key="share-pace" />
+            <ShareDashboardPracticeCard key="share-pace" toolsOnly={toolsOnly} copyTone={copyTone} />
           ) : node.theme === "chat" && primaryChatGroupId ? (
-            <ChatDashboardPracticeCard key="chat-pace" groupId={primaryChatGroupId} />
+            <ChatDashboardPracticeCard
+              key="chat-pace"
+              groupId={primaryChatGroupId}
+              toolsOnly={toolsOnly}
+              copyTone={copyTone}
+            />
           ) : (
             <PracticeNodeCard
               key={node.title}

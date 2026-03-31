@@ -2,6 +2,8 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
 import { ChatReadingPaceMeter } from "@/components/chat/chat-reading-pace-meter";
+import { paceMessageForTone } from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
 const chatCard =
@@ -12,7 +14,54 @@ const chatLabel = "text-indigo-700/70 dark:text-indigo-400/60";
 const chatIconBg =
   "bg-indigo-100/70 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400";
 
-export async function ChatDashboardPracticeCard({ groupId }: { groupId: string }) {
+export async function ChatDashboardPracticeCard({
+  groupId,
+  toolsOnly = false,
+  copyTone = "accountability",
+}: {
+  groupId: string;
+  toolsOnly?: boolean;
+  copyTone?: GrowthCopyTone;
+}) {
+  if (toolsOnly) {
+    return (
+      <Link
+        href={`/app/chat/groups/${groupId}`}
+        className={cn(
+          "group flex min-h-[140px] flex-col rounded-xl border p-4 text-left shadow-sm transition-all duration-200",
+          chatCard,
+          chatHover,
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <span
+            className={cn(
+              "text-[11px] font-semibold uppercase tracking-[0.12em]",
+              chatLabel
+            )}
+          >
+            CHAT
+          </span>
+          <span
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+              chatIconBg
+            )}
+          >
+            <MessageCircle className="size-3.5" />
+          </span>
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-foreground">
+          Accountability group hub—meetings, reading, and conversation.
+        </p>
+        <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+          <p>Open your group when it’s time to connect; reading pace stays out of the way here.</p>
+        </div>
+      </Link>
+    );
+  }
+
   const bundle = await getChatReadingPaceBundle(groupId);
   const hasPace = !("error" in bundle);
 
@@ -54,7 +103,7 @@ export async function ChatDashboardPracticeCard({ groupId }: { groupId: string }
             variant="compact"
             needleDegrees={bundle.pace.needleDegrees}
             status={bundle.pace.status}
-            message={bundle.pace.message}
+            message={paceMessageForTone(bundle.pace.message, copyTone)}
             expectedChapters={bundle.pace.expectedChapters}
             actualChapters={bundle.pace.actualChapters}
             daysElapsed={bundle.pace.daysElapsed}

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/components/onboarding-form";
+import { normalizeGrowthMode } from "@/lib/growth-mode/model";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -19,7 +20,7 @@ export default async function OnboardingPage() {
 
   let { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, reading_mode, journal_year, onboarding_complete")
+    .select("display_name, reading_mode, journal_year, onboarding_complete, growth_mode")
     .eq("id", user.id)
     .single();
 
@@ -34,7 +35,7 @@ export default async function OnboardingPage() {
     );
     const { data: created } = await supabase
       .from("profiles")
-      .select("display_name, reading_mode, journal_year, onboarding_complete")
+      .select("display_name, reading_mode, journal_year, onboarding_complete, growth_mode")
       .eq("id", user.id)
       .single();
     profile = created ?? profile;
@@ -60,6 +61,7 @@ export default async function OnboardingPage() {
             defaultDisplayName={profile?.display_name ?? ""}
             defaultReadingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
             defaultJournalYear={profile?.journal_year ?? new Date().getFullYear()}
+            defaultGrowthMode={normalizeGrowthMode(profile?.growth_mode)}
           />
         </div>
       </div>

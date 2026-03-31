@@ -13,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  GROWTH_MODE_DESCRIPTION,
+  GROWTH_MODE_LABEL,
+  GROWTH_MODES,
+} from "@/lib/growth-mode/model";
+import type { GrowthMode } from "@/lib/growth-mode/types";
+import { cn } from "@/lib/utils";
 
 type ReadingMode = "canonical" | "chronological" | "custom" | "free_reading";
 
@@ -20,12 +27,14 @@ interface OnboardingFormProps {
   defaultDisplayName: string;
   defaultReadingMode: ReadingMode;
   defaultJournalYear: number;
+  defaultGrowthMode: GrowthMode;
 }
 
 export function OnboardingForm({
   defaultDisplayName,
   defaultReadingMode,
   defaultJournalYear,
+  defaultGrowthMode,
 }: OnboardingFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -33,6 +42,7 @@ export function OnboardingForm({
   const [displayName, setDisplayName] = useState(defaultDisplayName);
   const [readingMode, setReadingMode] = useState<ReadingMode>(defaultReadingMode);
   const [journalYear, setJournalYear] = useState(defaultJournalYear);
+  const [growthMode, setGrowthMode] = useState<GrowthMode>(defaultGrowthMode);
 
   const currentYear = new Date().getFullYear();
 
@@ -109,6 +119,32 @@ export function OnboardingForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-base">Growth Mode</Label>
+        <p className="text-sm text-muted-foreground">
+          You can change this anytime in Settings. Focused matches the full goals-and-streaks
+          experience; Guided emphasizes tools with less on-screen tracking.
+        </p>
+        <div className="flex flex-col gap-2">
+          {GROWTH_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setGrowthMode(m)}
+              className={cn(
+                "rounded-lg border p-3 text-left text-sm transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                growthMode === m
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-white dark:bg-stone-900/60"
+              )}
+            >
+              <span className="font-medium text-foreground">{GROWTH_MODE_LABEL[m]}</span>
+              <p className="mt-1 text-muted-foreground">{GROWTH_MODE_DESCRIPTION[m]}</p>
+            </button>
+          ))}
+        </div>
       </div>
       {error && (
         <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2">
