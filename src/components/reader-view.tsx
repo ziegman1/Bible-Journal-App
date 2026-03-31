@@ -1009,23 +1009,40 @@ export function ReaderView({
                   {panelMode === "reflection" ? "SOAPS" : "Ask AI"} — {passageRef}
                 </h2>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
-                {panelMode === "reflection" ? (
-                  <div className="flex-1 min-h-0 py-3">
-                    <InlinePassageReflectionForm
-                      reference={passageRef}
-                      bookName={bookName}
-                      bookId={bookId}
-                      chapter={chapterNum}
-                      verseStart={selectedRange?.start ?? null}
-                      verseEnd={selectedRange?.end ?? null}
-                      passageText={passageTextContent ?? undefined}
-                      chatSoapsGroupId={chatSoapsGroupId ?? undefined}
-                      compact
-                      onClose={() => setPanelOpen(false)}
-                    />
+              {panelMode === "reflection" ? (
+                <>
+                  <div className="shrink-0 border-b border-border px-4 py-3 bg-background">
+                    <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                      Selected passage
+                    </h3>
+                    <div className="mt-2 max-h-[20dvh] overflow-y-auto pr-1 text-stone-600 dark:text-stone-400 text-sm font-serif leading-relaxed">
+                      {passageTextContent ?? (
+                        <p className="text-xs font-sans text-stone-500 dark:text-stone-500">
+                          Select a verse range to display it here.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ) : (
+
+                  <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                    <div className="min-h-0 py-3">
+                      <InlinePassageReflectionForm
+                        reference={passageRef}
+                        bookName={bookName}
+                        bookId={bookId}
+                        chapter={chapterNum}
+                        verseStart={selectedRange?.start ?? null}
+                        verseEnd={selectedRange?.end ?? null}
+                        passageText={undefined}
+                        chatSoapsGroupId={chatSoapsGroupId ?? undefined}
+                        compact
+                        onClose={() => setPanelOpen(false)}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
                   <div className="py-3">
                     <AskAIPanel
                       bookId={bookId}
@@ -1041,8 +1058,8 @@ export function ReaderView({
                       defaultToReflection={false}
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </SheetContent>
         </Sheet>
