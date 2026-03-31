@@ -4,17 +4,16 @@ type Props = {
   header: ReactNode;
   identity: ReactNode;
   daily: ReactNode;
-  context: ReactNode;
   community: ReactNode;
-  growth: ReactNode;
+  multiplication: ReactNode;
 };
 
 const gridStyle = {
-  gridTemplateColumns: "minmax(0, 1.2fr) minmax(320px, 420px) minmax(0, 1.2fr)",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
   gridTemplateAreas: `
-    "header header header"
-    "daily identity context"
-    "community growth context"
+    "header header"
+    "daily identity"
+    "community multiplication"
   `,
 } as const;
 
@@ -22,9 +21,8 @@ export function DashboardLayout({
   header,
   identity,
   daily,
-  context,
   community,
-  growth,
+  multiplication,
 }: Props) {
   return (
     <div
@@ -40,14 +38,11 @@ export function DashboardLayout({
       <div className="min-w-0" style={{ gridArea: "daily" }}>
         {daily}
       </div>
-      <div className="min-w-0 md:self-stretch" style={{ gridArea: "context" }}>
-        {context}
-      </div>
       <div className="min-w-0" style={{ gridArea: "community" }}>
         {community}
       </div>
-      <div className="min-w-0" style={{ gridArea: "growth" }}>
-        {growth}
+      <div className="min-w-0" style={{ gridArea: "multiplication" }}>
+        {multiplication}
       </div>
     </div>
   );

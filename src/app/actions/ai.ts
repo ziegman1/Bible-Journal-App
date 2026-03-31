@@ -1,5 +1,10 @@
 "use server";
 
+/**
+ * Daily AI quota uses `ai_usage.usage_date` as a UTC calendar day (Supabase convention).
+ * Errors intentionally say “midnight UTC”; this is separate from BADWR practice timezone.
+ */
+
 import { createClient } from "@/lib/supabase/server";
 import { askAIAboutPassage } from "@/lib/ai/client";
 import { getChapter } from "@/lib/scripture/provider";

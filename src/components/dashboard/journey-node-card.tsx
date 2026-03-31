@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Eye, Sparkles } from "lucide-react";
+import { GitBranch, Map, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const icons = [Eye, Sparkles] as const;
+const icons = [Sparkles, GitBranch, Map] as const;
 
 const iconColors = [
   "bg-cyan-100/60 text-cyan-600 dark:bg-cyan-900/25 dark:text-cyan-400",
   "bg-amber-100/60 text-amber-600 dark:bg-amber-900/25 dark:text-amber-400",
+  "bg-violet-100/60 text-violet-600 dark:bg-violet-900/25 dark:text-violet-400",
 ] as const;
 
 export function JourneyNodeCard({
@@ -22,7 +23,7 @@ export function JourneyNodeCard({
   statusLabel: string;
   progressLabel?: string;
   href: string;
-  iconIndex: 0 | 1;
+  iconIndex: 0 | 1 | 2;
 }) {
   const Icon = icons[iconIndex];
   return (

@@ -1,3 +1,4 @@
+import { formatInTimeZone } from "date-fns-tz";
 import { BIBLE_BOOKS, getBookById } from "@/lib/scripture/books";
 
 export type ChatReadingPaceInput = {
@@ -8,7 +9,8 @@ export type ChatReadingPaceInput = {
   /** Last completed chapter in SOAPS bookmark flow; omit or null if none. */
   bookmarkBookId: string | null | undefined;
   bookmarkLastCompletedChapter: number | null | undefined;
-  /** Defaults to now (UTC calendar day). */
+  /** IANA zone: “today” and elapsed-day count match BADWR practice rhythm (device cookie on web). */
+  practiceTimeZone: string;
   asOf?: Date;
 };
 
@@ -23,11 +25,37 @@ export type ChatReadingPaceResult = {
   message: string;
 };
 
+/** @deprecated Prefer {@link practiceTodayYmd} for BADWR-visible defaults; kept for rare UTC-only callers. */
 export function utcTodayYmd(asOf: Date = new Date()): string {
   const y = asOf.getUTCFullYear();
   const m = String(asOf.getUTCMonth() + 1).padStart(2, "0");
   const d = String(asOf.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+export function practiceTodayYmd(asOf: Date, timeZone: string): string {
+  return formatInTimeZone(asOf, timeZone, "yyyy-MM-dd");
+}
+
+/**
+ * Inclusive calendar days from `startYmd` through `asOf`’s calendar date in `timeZone`.
+ * Future start dates yield 0 elapsed days.
+ */
+export function practiceCalendarDaysElapsedInclusive(
+  startYmd: string,
+  asOf: Date,
+  timeZone: string
+): number {
+  const parts = startYmd.split("-").map((x) => parseInt(x, 10));
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return 0;
+  const [ys, ms, ds] = parts;
+  const startUtc = Date.UTC(ys!, ms! - 1, ds!);
+  const endYmd = formatInTimeZone(asOf, timeZone, "yyyy-MM-dd");
+  const [ye, me, de] = endYmd.split("-").map(Number);
+  const endUtc = Date.UTC(ye!, me! - 1, de!);
+  const diff = Math.floor((endUtc - startUtc) / 86400000);
+  if (diff < 0) return 0;
+  return diff + 1;
 }
 
 /** Inclusive calendar days from start (UTC) through `asOf` (UTC). Future start dates yield 0 elapsed days. */
@@ -86,7 +114,11 @@ function chapterWord(n: number): string {
 
 export function computeChatReadingPace(input: ChatReadingPaceInput): ChatReadingPaceResult {
   const asOf = input.asOf ?? new Date();
-  const daysElapsed = utcCalendarDaysElapsedInclusive(input.readingStartDateYmd, asOf);
+  const daysElapsed = practiceCalendarDaysElapsedInclusive(
+    input.readingStartDateYmd,
+    asOf,
+    input.practiceTimeZone
+  );
   const cpd = Math.min(15, Math.max(1, Math.floor(input.chaptersPerDay)));
   const expectedChapters = daysElapsed * cpd;
 

@@ -3,8 +3,6 @@
 import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
 import { listGroupsForUser } from "@/app/actions/groups";
 import {
-  BADWR_PRAYER_MINUTES_WEEKLY_GOAL,
-  BADWR_SHARE_WEEKLY_GOAL,
   BADWR_SOAPS_WEEKLY_GOAL,
   buildChatPillar,
   buildPrayPillar,
@@ -33,7 +31,9 @@ import {
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 import { expectedUnitsThroughWeek } from "@/lib/dashboard/weekly-rhythm-pace";
 import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
+import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 export type BadwrReproductionSnapshot = {
   overallPercent: number;
@@ -73,15 +73,19 @@ export async function getBadwrReproductionSnapshot(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const [{ shareWeeklyGoalEncounters, prayerWeeklyGoalMinutes }, tz] = await Promise.all([
+    fetchUserRhythmGoals(supabase, user.id),
+    getPracticeTimeZone(),
+  ]);
   const now = new Date();
   const { startYmd, endYmdInclusive, startIso, endExclusiveIso } =
-    pillarWeekRangeForQuery(now);
+    pillarWeekRangeForQuery(now, tz);
 
-  const daysElapsed = pillarWeekDaysElapsedInclusive(now);
+  const daysElapsed = pillarWeekDaysElapsedInclusive(now, tz);
 
   const soapsExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_SOAPS_WEEKLY_GOAL);
-  const prayerExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_PRAYER_MINUTES_WEEKLY_GOAL);
-  const shareExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_SHARE_WEEKLY_GOAL);
+  const prayerExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, prayerWeeklyGoalMinutes);
+  const shareExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, shareWeeklyGoalEncounters);
   const readingExpectedSoFar = expectedReadingTouchesSoFar(daysElapsed);
 
   const thirdsResult = await listGroupsForUser({ groupKind: "thirds" });
@@ -277,6 +281,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     buildPrayPillar({
       minutesActual: weeklyPrayerMinutes,
       minutesExpectedSoFar: prayerExpectedSoFar,
+      weeklyPrayerGoalMinutes: prayerWeeklyGoalMinutes,
     }),
     buildChatPillar({
       inChatGroup,
@@ -292,6 +297,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     buildSharePillar({
       shareActual,
       shareExpectedSoFar,
+      weeklyShareGoalEncounters: shareWeeklyGoalEncounters,
     }),
   ];
 
@@ -302,7 +308,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
 
   for (const row of journalAllRes.data ?? []) {
     touchEarliest(row.entry_date, earliest);
-    const wk = pillarWeekStartKeyFromDateYmd(row.entry_date);
+    const wk = pillarWeekStartKeyFromDateYmd(row.entry_date, tz);
     if (isQualifyingSoapsEntry(row)) {
       bumpBucket(buckets, wk, { soapsQualifying: 1 });
     }
@@ -312,7 +318,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     const iso = row.read_at;
     if (!iso) continue;
     touchEarliest(iso, earliest);
-    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso), tz);
     bumpBucket(buckets, wk, { readingSessions: 1 });
   }
 
@@ -320,7 +326,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     const iso = row.completed_at;
     if (!iso) continue;
     touchEarliest(iso, earliest);
-    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso), tz);
     bumpBucket(buckets, wk, { prayerMinutes: row.duration_minutes ?? 0 });
   }
 
@@ -328,7 +334,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     const iso = row.logged_at;
     if (!iso) continue;
     touchEarliest(iso, earliest);
-    const wk = pillarWeekStartKeyFromInstant(new Date(iso));
+    const wk = pillarWeekStartKeyFromInstant(new Date(iso), tz);
     bumpBucket(buckets, wk, { prayerMinutes: row.minutes ?? 0 });
   }
 
@@ -336,7 +342,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     const ymd = row.encounter_date;
     if (!ymd) continue;
     touchEarliest(ymd, earliest);
-    const wk = pillarWeekStartKeyFromDateYmd(ymd);
+    const wk = pillarWeekStartKeyFromDateYmd(ymd, tz);
     bumpBucket(buckets, wk, { shares: 1 });
   }
 
@@ -356,7 +362,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
       const joined = m.joined_at;
       if (!joined) continue;
       touchEarliest(joined, earliest);
-      const pillar = pillarWeekStartKeyFromInstant(new Date(joined));
+      const pillar = pillarWeekStartKeyFromInstant(new Date(joined), tz);
       const calYmd = joined.slice(0, 10);
       if (chatGroupId && m.group_id === chatGroupId) {
         if (!chatEngagedWeekStartYmd || pillar < chatEngagedWeekStartYmd) {
@@ -381,14 +387,14 @@ export async function getBadwrReproductionSnapshot(): Promise<
   const attendedThirdsWeekStarts = new Set<string>();
   for (const mtg of allCompletedMeetings) {
     if (!attendedMeetingIdSet.has(mtg.id)) continue;
-    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(mtg.meeting_date));
+    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(mtg.meeting_date, tz));
   }
   for (const row of soloFinalizedRes.data ?? []) {
     const m = row.week_start_monday.slice(0, 10);
     const soloEnd = ymdAddCalendarDays(m, 6);
-    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(m));
-    const kEnd = pillarWeekStartKeyFromDateYmd(soloEnd);
-    if (kEnd !== pillarWeekStartKeyFromDateYmd(m)) {
+    attendedThirdsWeekStarts.add(pillarWeekStartKeyFromDateYmd(m, tz));
+    const kEnd = pillarWeekStartKeyFromDateYmd(soloEnd, tz);
+    if (kEnd !== pillarWeekStartKeyFromDateYmd(m, tz)) {
       attendedThirdsWeekStarts.add(kEnd);
     }
   }
@@ -403,7 +409,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
 
   let firstSunday = startYmd;
   if (earliest.min) {
-    firstSunday = pillarWeekStartKeyFromDateYmd(earliest.min);
+    firstSunday = pillarWeekStartKeyFromDateYmd(earliest.min, tz);
     if (firstSunday > startYmd) firstSunday = startYmd;
   }
 
@@ -413,6 +419,9 @@ export async function getBadwrReproductionSnapshot(): Promise<
     pillarWeekStartYmids,
     currentPillarWeekStartYmd: startYmd,
     now,
+    practiceTimeZone: tz,
+    weeklyShareGoalEncounters: shareWeeklyGoalEncounters,
+    weeklyPrayerGoalMinutes: prayerWeeklyGoalMinutes,
     buckets,
     chatEngagedWeekStartYmd,
     currentChatPillar: weeklyPillars[2],

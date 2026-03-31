@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PracticeTimeZoneSync } from "@/components/practice-timezone-sync";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { buildRootMetadata, THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "@/lib/site-config";
@@ -42,6 +43,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <PracticeTimeZoneSync />
           {children}
           <Toaster />
         </ThemeProvider>

@@ -45,73 +45,30 @@ export const mockPracticeNodes = [
 
 export const mockCommunityNodes = [
   {
-    title: "My 3/3 Family",
+    title: "3/3rds Family",
     description: "Your 3/3rds groups and meetings.",
     countLabel: "2 groups",
     href: "/app/groups",
   },
-  {
-    title: "New 3/3",
-    description: "Start a new 3/3rds workspace.",
-    href: "/app/groups/new",
-  },
-  {
-    title: "Model/Assist",
-    description: "Help others learn the rhythm.",
-    href: "/app/assist",
-  },
 ] as const;
 
-export const mockJourneyNodes = [
-  {
-    title: "Watch Phase",
-    description: "Observe how God is forming you and others.",
-    statusLabel: "In progress",
-    progressLabel: "Week 3 of 8",
-    href: "/app/growth/watch",
-  },
+export const mockMultiplicationNodes = [
   {
     title: "Transformed Person",
     description: "Fruit, habits, and next faithful steps.",
     statusLabel: "Reflect",
     href: "/app/growth",
   },
-] as const;
-
-export const mockInsightTiles = [
   {
-    title: "Continue reading",
-    value: "John 15",
-    supportingText: "Pick up where you left off",
-    href: "/app/read",
-    variant: "default" as const,
+    title: "MAWL",
+    description: "Model, Assist, Watch, Lead—multiply helpers of others.",
+    statusLabel: "Open",
+    href: "/app/assist",
   },
   {
-    title: "Journal",
-    value: "1 draft",
-    supportingText: "Finish your latest entry",
-    href: "/app/journal",
-    variant: "default" as const,
+    title: "Gen Map",
+    description: "BADWR pathway and multiplication flow.",
+    statusLabel: "Explore",
+    href: "/app/pathway",
   },
-  {
-    title: "CHAT this week",
-    value: "Agenda ready",
-    supportingText: "Accountability questions",
-    href: "/app/chat",
-    variant: "success" as const,
-  },
-  {
-    title: "Insights",
-    value: "Themes updated",
-    supportingText: "Review your patterns",
-    href: "/app/insights",
-    variant: "default" as const,
-  },
-] as const;
-
-export const mockQuickActions = [
-  { label: "Read", href: "/app/read" },
-  { label: "Journal", href: "/app/journal" },
-  { label: "SOAPS", href: "/app/soaps" },
-  { label: "CHAT", href: "/app/chat" },
 ] as const;

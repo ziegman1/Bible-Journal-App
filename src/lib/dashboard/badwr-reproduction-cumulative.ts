@@ -1,6 +1,4 @@
 import {
-  BADWR_PRAYER_MINUTES_WEEKLY_GOAL,
-  BADWR_SHARE_WEEKLY_GOAL,
   BADWR_SOAPS_WEEKLY_GOAL,
   buildPrayPillar,
   buildSharePillar,
@@ -41,11 +39,12 @@ function mean(values: number[]): number {
 function daysElapsedForHistoricalWeek(
   weekStartSundayYmd: string,
   currentPillarWeekStartYmd: string,
-  now: Date
+  now: Date,
+  practiceTimeZone: string
 ): number {
   if (weekStartSundayYmd < currentPillarWeekStartYmd) return 7;
   if (weekStartSundayYmd > currentPillarWeekStartYmd) return 1;
-  return pillarWeekDaysElapsedInclusive(now);
+  return pillarWeekDaysElapsedInclusive(now, practiceTimeZone);
 }
 
 export type CumulativeBadwrResult = {
@@ -58,6 +57,9 @@ export function computeCumulativeBadwr(input: {
   pillarWeekStartYmids: string[];
   currentPillarWeekStartYmd: string;
   now: Date;
+  practiceTimeZone: string;
+  weeklyShareGoalEncounters: number;
+  weeklyPrayerGoalMinutes: number;
   buckets: Map<string, WeekRhythmBucket>;
   chatEngagedWeekStartYmd: string | null;
   currentChatPillar: BadwrPillarModel;
@@ -71,6 +73,9 @@ export function computeCumulativeBadwr(input: {
     pillarWeekStartYmids,
     currentPillarWeekStartYmd,
     now,
+    practiceTimeZone,
+    weeklyShareGoalEncounters,
+    weeklyPrayerGoalMinutes,
     buckets,
     chatEngagedWeekStartYmd,
     currentChatPillar,
@@ -92,14 +97,16 @@ export function computeCumulativeBadwr(input: {
 
   for (const weekStart of pillarWeekStartYmids) {
     const b = buckets.get(weekStart) ?? emptyBucket();
-    const days = daysElapsedForHistoricalWeek(weekStart, currentPillarWeekStartYmd, now);
+    const days = daysElapsedForHistoricalWeek(
+      weekStart,
+      currentPillarWeekStartYmd,
+      now,
+      practiceTimeZone
+    );
 
     const soapsExpectedSoFar = expectedUnitsThroughWeek(days, BADWR_SOAPS_WEEKLY_GOAL);
-    const prayerExpectedSoFar = expectedUnitsThroughWeek(
-      days,
-      BADWR_PRAYER_MINUTES_WEEKLY_GOAL
-    );
-    const shareExpectedSoFar = expectedUnitsThroughWeek(days, BADWR_SHARE_WEEKLY_GOAL);
+    const prayerExpectedSoFar = expectedUnitsThroughWeek(days, weeklyPrayerGoalMinutes);
+    const shareExpectedSoFar = expectedUnitsThroughWeek(days, weeklyShareGoalEncounters);
     const readingExpectedSoFar = expectedReadingTouchesSoFar(days);
 
     wordScores.push(
@@ -115,6 +122,7 @@ export function computeCumulativeBadwr(input: {
       buildPrayPillar({
         minutesActual: b.prayerMinutes,
         minutesExpectedSoFar: prayerExpectedSoFar,
+        weeklyPrayerGoalMinutes,
       }).score
     );
 
@@ -122,6 +130,7 @@ export function computeCumulativeBadwr(input: {
       buildSharePillar({
         shareActual: b.shares,
         shareExpectedSoFar,
+        weeklyShareGoalEncounters,
       }).score
     );
 

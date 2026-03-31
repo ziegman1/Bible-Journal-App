@@ -1,11 +1,27 @@
-import { SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
+import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import type { ThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
+import { DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES } from "@/lib/prayer-wheel/stats";
 
 export const BADWR_SOAPS_WEEKLY_GOAL = 5;
 export const BADWR_READING_CHAPTERS_PER_DAY = 4;
 export const BADWR_READING_MAX_PER_WEEK = 35;
-export const BADWR_PRAYER_MINUTES_WEEKLY_GOAL = 60;
-export const BADWR_SHARE_WEEKLY_GOAL = SHARE_WEEKLY_GOAL_ENCOUNTERS;
+
+/** @deprecated Use profile `weekly_prayer_goal_minutes`; default fallback only. */
+export const BADWR_PRAYER_MINUTES_WEEKLY_GOAL = DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES;
+
+/** @deprecated Use profile `weekly_share_goal_encounters`; default fallback only. */
+export const BADWR_SHARE_WEEKLY_GOAL = DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
+
+function prayWeeklyHint(minutes: number): string {
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const h = minutes / 60;
+    if (h === 1) {
+      return "Use the Prayer Wheel or your list—build toward about an hour a week.";
+    }
+    return `Use the Prayer Wheel or your list—build toward about ${h} hours a week.`;
+  }
+  return `Use the Prayer Wheel or your list—build toward about ${minutes} minutes a week.`;
+}
 
 export type BadwrPillarTier = "strong" | "ok" | "attention";
 
@@ -60,15 +76,18 @@ export function buildWordSoapsPillar(input: {
 export function buildPrayPillar(input: {
   minutesActual: number;
   minutesExpectedSoFar: number;
+  /** Profile weekly goal; drives hint copy. */
+  weeklyPrayerGoalMinutes?: number;
 }): BadwrPillarModel {
   const score = ratioToScore(input.minutesActual, Math.max(1, input.minutesExpectedSoFar));
+  const goalMin = input.weeklyPrayerGoalMinutes ?? DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES;
   return {
     id: "pray",
     label: "Pray",
     shortLabel: "Prayer",
     score,
     tier: tierForScore(score),
-    hint: "Use the Prayer Wheel or your list—build toward about an hour a week.",
+    hint: prayWeeklyHint(goalMin),
     href: "/app/prayer",
   };
 }
@@ -165,15 +184,18 @@ export function buildThirdsPillar(input: {
 export function buildSharePillar(input: {
   shareActual: number;
   shareExpectedSoFar: number;
+  weeklyShareGoalEncounters?: number;
 }): BadwrPillarModel {
   const score = ratioToScore(input.shareActual, Math.max(1, input.shareExpectedSoFar));
+  const g = input.weeklyShareGoalEncounters ?? DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
+  const people = g === 1 ? "person" : "people";
   return {
     id: "share",
     label: "Share",
     shortLabel: "Share",
     score,
     tier: tierForScore(score),
-    hint: "Log each gospel or testimony share on the Share page—aim for five people a week.",
+    hint: `Log each gospel or testimony share on the Share page—aim for ${g} ${people} a week.`,
     href: "/app/share",
   };
 }

@@ -12,6 +12,7 @@ import {
   type MeetingAttendanceRow,
 } from "@/lib/dashboard/identity-streaks";
 import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
 
 export type IdentityStreakStat = { label: string; value: string };
@@ -54,8 +55,9 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     ];
   }
 
+  const tz = await getPracticeTimeZone();
   const now = new Date();
-  const todayYmd = pillarTodayYmd(now);
+  const todayYmd = pillarTodayYmd(now, tz);
   const oldestYmd = ymdAddCalendarDays(todayYmd, -LOOKBACK_DAYS);
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
 
@@ -136,7 +138,8 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
 
   const prayerByDay = buildPrayerMinutesByPillarDay(
     wheelRes.data ?? [],
-    extraRes.data ?? []
+    extraRes.data ?? [],
+    tz
   );
   const prayerStreak = prayerStreakFromDailyMinutes(prayerByDay, todayYmd);
 
@@ -147,6 +150,7 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
 
   const weekStreak = thirdsChatWeeklyStreak({
     now,
+    practiceTimeZone: tz,
     thirdsGroupIds,
     chatGroupId,
     meetings: meetingRowsForStreak,

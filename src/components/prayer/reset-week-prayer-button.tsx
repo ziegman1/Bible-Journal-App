@@ -16,9 +16,9 @@ export function ResetWeekPrayerButton() {
     <div className="rounded-xl border border-border border-dashed bg-muted/30 p-5">
       <h2 className="text-sm font-medium text-foreground">Reset this week</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Clear all Prayer Wheel segments and extra minutes logged for the current week (UTC
-        Monday–Sunday). Your dashboard prayer total will go back to zero for this week. This cannot
-        be undone.
+        Clear all Prayer Wheel segments and extra minutes logged for the current practice week
+        (Sunday–Saturday in your device timezone). Your dashboard prayer total will go back to zero
+        for this week. This cannot be undone.
       </p>
       <Button
         type="button"
@@ -40,7 +40,7 @@ export function ResetWeekPrayerButton() {
         open={open}
         onOpenChange={setOpen}
         title="Reset this week’s prayer time?"
-        description="This removes every Prayer Wheel completion and every extra-minute entry for the current UTC week. Past weeks are not affected."
+        description="This removes every Prayer Wheel completion and every extra-minute entry for the current practice week (your device timezone). Past weeks are not affected."
         confirmLabel="Reset"
         cancelLabel="Cancel"
         variant="destructive"

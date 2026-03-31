@@ -305,7 +305,8 @@ export function PrayerWheelTimer() {
               <h2 className="text-lg font-serif font-light text-foreground">Wheel complete</h2>
               <p className="text-sm text-muted-foreground">
                 You finished all twelve segments ({12 * minutesPerSegment} minutes). Your time is
-                counted toward this week&apos;s prayer stats on the home dashboard.
+                counted toward this week&apos;s prayer stats on the home dashboard (Sun–Sat in your
+                time zone).
               </p>
               <Button type="button" onClick={stopSession}>
                 Start another session

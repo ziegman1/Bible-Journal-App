@@ -22,7 +22,8 @@ export default function PrayerPage() {
             A guided hour with God, broken into twelve equal parts—praise, waiting, confession,
             Scripture, petition, intercession, praying the Word, thanksgiving, singing, meditation,
             listening, and closing praise. Choose how long each part runs; your completed segments
-            add to this week&apos;s prayer time on the dashboard. You can also log extra prayer time
+            add to this week&apos;s prayer time on the dashboard (Sunday–Saturday in your time zone).
+            You can also log extra prayer time
             below in 5-minute blocks.
           </p>
         </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { getPrayerWheelDashboardStats } from "@/app/actions/prayer-wheel";
 import { buildPrayerWheelWeeklyPace } from "@/lib/prayer-wheel/weekly-pace";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,10 @@ const prayIconBg =
   "bg-violet-100/70 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400";
 
 export async function PrayDashboardPracticeCard() {
-  const stats = await getPrayerWheelDashboardStats();
+  const [stats, tz] = await Promise.all([
+    getPrayerWheelDashboardStats(),
+    getPracticeTimeZone(),
+  ]);
 
   if ("error" in stats) {
     return (
@@ -61,7 +65,8 @@ export async function PrayDashboardPracticeCard() {
     weeklyGoalMinutes,
     fullWheelsThisWeek,
   } = stats;
-  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes);
+  const now = new Date();
+  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes, now, tz, weeklyGoalMinutes);
   const ariaDesc = `${pace.message} ${pace.expectedSoFar} minutes expected so far toward ${weeklyGoalMinutes}; you have logged ${pace.actual} minutes total. ${fullWheelsThisWeek} full wheel${fullWheelsThisWeek === 1 ? "" : "s"} this week.`;
 
   return (

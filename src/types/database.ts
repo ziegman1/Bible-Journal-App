@@ -7,6 +7,8 @@ export interface Profile {
   reading_mode: ReadingMode;
   journal_year: number;
   ai_style: AIStyle;
+  weekly_share_goal_encounters: number;
+  weekly_prayer_goal_minutes: number;
   created_at: string;
   updated_at: string;
 }

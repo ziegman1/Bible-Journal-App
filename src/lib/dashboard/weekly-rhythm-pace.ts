@@ -20,6 +20,8 @@ function clamp(n: number, lo: number, hi: number): number {
 /**
  * Linear pace through the pillar week (Sun–Sat calendar days in pillar TZ, see `pillar-week.ts`).
  * `expectedSoFar = floor(daysElapsed * weeklyGoal / 7)` capped at goal.
+ *
+ * When `practiceTimeZone` is set, "today" and week length follow that IANA zone (browser cookie on web).
  */
 export function expectedUnitsThroughWeek(
   daysElapsed: number,
@@ -35,8 +37,10 @@ export function expectedUnitsThroughWeek(
 export function computeWeeklyRhythmPace(input: {
   actual: number;
   weeklyGoal: number;
-  /** 1–7; omit to use “today” in pillar week (site-config TZ) */
+  /** 1–7; omit to use “today” in pillar week */
   daysElapsed?: number;
+  /** IANA timezone for Sun–Sat week boundaries; omit = site default */
+  practiceTimeZone?: string;
   /** Degrees per unit of delta (sessions ~9, minutes ~0.85) */
   needleSensitivity: number;
   /** e.g. "SOAPS session" / "minute" */
@@ -47,7 +51,8 @@ export function computeWeeklyRhythmPace(input: {
   asOf?: Date;
 }): WeeklyRhythmPaceResult {
   const daysElapsed =
-    input.daysElapsed ?? pillarWeekDaysElapsedInclusive(input.asOf ?? new Date());
+    input.daysElapsed ??
+    pillarWeekDaysElapsedInclusive(input.asOf ?? new Date(), input.practiceTimeZone);
   const weeklyGoal = Math.max(0, Math.floor(input.weeklyGoal));
   const actual = Math.max(0, input.actual);
   const expectedSoFar = expectedUnitsThroughWeek(daysElapsed, weeklyGoal);

@@ -3,7 +3,7 @@ import { Share2 } from "lucide-react";
 import { getShareDashboardStats } from "@/app/actions/share-encounters";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
 import { ShareDashboardStoplights } from "@/components/dashboard/share-dashboard-stoplights";
-import { SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
+import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { cn } from "@/lib/utils";
 
 const shareCard =
@@ -47,7 +47,8 @@ export async function ShareDashboardPracticeCard() {
           </span>
         </div>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-foreground">
-          Log gospel and testimony conversations toward five people a week.
+          Log gospel and testimony conversations toward your weekly share goal (default{" "}
+          {DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS} people).
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
           <p>Sign in to track weekly share pace and responses.</p>
@@ -56,8 +57,8 @@ export async function ShareDashboardPracticeCard() {
     );
   }
 
-  const { receivedCounts, ...pace } = stats;
-  const ariaDesc = `${pace.message} ${pace.expectedSoFar} shares expected so far toward ${SHARE_WEEKLY_GOAL_ENCOUNTERS} this week; you have logged ${pace.actual}. Responses: ${receivedCounts.red_light} no, ${receivedCounts.yellow_light} maybe, ${receivedCounts.green_light} yes, ${receivedCounts.already_christian} already Christian.`;
+  const { receivedCounts, weeklyGoal, ...pace } = stats;
+  const ariaDesc = `${pace.message} ${pace.expectedSoFar} shares expected so far toward ${weeklyGoal} this week; you have logged ${pace.actual}. Responses: ${receivedCounts.red_light} no, ${receivedCounts.yellow_light} maybe, ${receivedCounts.green_light} yes, ${receivedCounts.already_christian} already Christian.`;
 
   return (
     <Link
@@ -85,7 +86,7 @@ export async function ShareDashboardPracticeCard() {
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-foreground">
-        Gospel, testimony, and how they responded—pace toward {SHARE_WEEKLY_GOAL_ENCOUNTERS}/week.
+        Gospel, testimony, and how they responded—pace toward {weeklyGoal}/week.
       </p>
 
       <div className="mt-3 border-t border-border/60 pt-3">
@@ -98,7 +99,7 @@ export async function ShareDashboardPracticeCard() {
           needleDegrees={pace.needleDegrees}
           status={pace.status}
           message={pace.message}
-          detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} logged · day ${pace.daysElapsed} of 7 · goal ${SHARE_WEEKLY_GOAL_ENCOUNTERS}/wk`}
+          detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} logged · day ${pace.daysElapsed} of 7 · goal ${weeklyGoal}/wk`}
           ariaDescription={ariaDesc}
         />
       </div>

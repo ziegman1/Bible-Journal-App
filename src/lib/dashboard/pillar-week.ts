@@ -1,12 +1,18 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { FALLBACK_PRACTICE_TIMEZONE } from "@/lib/timezone/practice-timezone-shared";
 
 /**
- * IANA timezone for SOAPS / prayer / share / BADWR practice weekly resets.
- * Week = Sunday 00:00:00 through Saturday end of day (calendar days in this zone).
- * Override with NEXT_PUBLIC_PILLAR_WEEK_TIMEZONE.
+ * Default IANA timezone for SOAPS / prayer / share / BADWR practice weeks when no per-user
+ * cookie is set (see {@link getPracticeTimeZone}, {@link PracticeTimeZoneSync}).
+ * Week = Sunday 00:00:00 through Saturday (calendar days in this zone). DST is automatic.
  */
-export const PILLAR_WEEK_TIMEZONE =
-  process.env.NEXT_PUBLIC_PILLAR_WEEK_TIMEZONE?.trim() || "America/Chicago";
+export const PILLAR_WEEK_TIMEZONE = FALLBACK_PRACTICE_TIMEZONE;
+
+function resolveTz(timeZone?: string): string {
+  const z = timeZone?.trim();
+  if (z) return z;
+  return PILLAR_WEEK_TIMEZONE;
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -20,7 +26,7 @@ export function ymdAddCalendarDays(ymd: string, deltaDays: number): string {
   return `${u.getUTCFullYear()}-${pad2(u.getUTCMonth() + 1)}-${pad2(u.getUTCDate())}`;
 }
 
-/** 0 = Sunday … 6 = Saturday in `tz` (uses ISO weekday digit — not locale-dependent). */
+/** 0 = Sunday … 6 = Saturday in `tz`. */
 function zonedWeekdaySun0(now: Date, tz: string): number {
   const iso = Number.parseInt(formatInTimeZone(now, tz, "i"), 10); // 1 Mon … 7 Sun
   if (iso === 7) return 0;
@@ -28,37 +34,41 @@ function zonedWeekdaySun0(now: Date, tz: string): number {
 }
 
 /**
- * Instant when the current pillar week began: Sunday 00:00:00 in {@link PILLAR_WEEK_TIMEZONE}.
+ * Instant when the current pillar week began: Sunday 00:00:00 in the practice timezone.
  */
-export function startOfPillarWeek(now: Date = new Date()): Date {
-  const tz = PILLAR_WEEK_TIMEZONE;
+export function startOfPillarWeek(now: Date = new Date(), timeZone?: string): Date {
+  const tz = resolveTz(timeZone);
   const todayYmd = formatInTimeZone(now, tz, "yyyy-MM-dd");
   const wd = zonedWeekdaySun0(now, tz);
   const sundayYmd = ymdAddCalendarDays(todayYmd, -wd);
   return fromZonedTime(`${sundayYmd}T00:00:00`, tz);
 }
 
-/** Start of the *next* pillar week (exclusive end for timestamp ranges). */
-export function endOfPillarWeekExclusive(now: Date = new Date()): Date {
-  const start = startOfPillarWeek(now);
-  const sundayYmd = formatInTimeZone(start, PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+/** Start of the next pillar week (exclusive end for timestamp ranges). */
+export function endOfPillarWeekExclusive(now: Date = new Date(), timeZone?: string): Date {
+  const tz = resolveTz(timeZone);
+  const start = startOfPillarWeek(now, tz);
+  const sundayYmd = formatInTimeZone(start, tz, "yyyy-MM-dd");
   const nextSunday = ymdAddCalendarDays(sundayYmd, 7);
-  return fromZonedTime(`${nextSunday}T00:00:00`, PILLAR_WEEK_TIMEZONE);
+  return fromZonedTime(`${nextSunday}T00:00:00`, tz);
 }
 
-/** Last calendar day inside the pillar week (Saturday), for inclusive `DATE` filters. */
-export function pillarWeekInclusiveEndYmd(now: Date = new Date()): string {
-  const startYmd = formatInTimeZone(startOfPillarWeek(now), PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+/** Last calendar day inside the pillar week (Saturday). */
+export function pillarWeekInclusiveEndYmd(now: Date = new Date(), timeZone?: string): string {
+  const tz = resolveTz(timeZone);
+  const startYmd = formatInTimeZone(startOfPillarWeek(now, tz), tz, "yyyy-MM-dd");
   return ymdAddCalendarDays(startYmd, 6);
 }
 
 /**
- * 1–7: calendar day index within the pillar week (Sunday = 1 … Saturday = 7) in {@link PILLAR_WEEK_TIMEZONE}.
- * Uses date difference, not raw milliseconds, so DST and “day of week” are not skewed by 24h chunks.
+ * 1–7: Sunday = 1 … Saturday = 7 in the practice timezone.
  */
-export function pillarWeekDaysElapsedInclusive(now: Date = new Date()): number {
-  const tz = PILLAR_WEEK_TIMEZONE;
-  const start = startOfPillarWeek(now);
+export function pillarWeekDaysElapsedInclusive(
+  now: Date = new Date(),
+  timeZone?: string
+): number {
+  const tz = resolveTz(timeZone);
+  const start = startOfPillarWeek(now, tz);
   const startYmd = formatInTimeZone(start, tz, "yyyy-MM-dd");
   const todayYmd = formatInTimeZone(now, tz, "yyyy-MM-dd");
   const [y0, m0, d0] = startYmd.split("-").map(Number);
@@ -69,35 +79,43 @@ export function pillarWeekDaysElapsedInclusive(now: Date = new Date()): number {
   return Math.min(7, Math.max(1, calendarDaysSinceStart + 1));
 }
 
-export function pillarWeekRangeForQuery(now: Date = new Date()): {
+export function pillarWeekRangeForQuery(
+  now: Date = new Date(),
+  timeZone?: string
+): {
   startYmd: string;
   endYmdInclusive: string;
   startIso: string;
   endExclusiveIso: string;
 } {
-  const start = startOfPillarWeek(now);
-  const tz = PILLAR_WEEK_TIMEZONE;
+  const tz = resolveTz(timeZone);
+  const start = startOfPillarWeek(now, tz);
   const startYmd = formatInTimeZone(start, tz, "yyyy-MM-dd");
   return {
     startYmd,
-    endYmdInclusive: pillarWeekInclusiveEndYmd(now),
+    endYmdInclusive: pillarWeekInclusiveEndYmd(now, tz),
     startIso: start.toISOString(),
-    endExclusiveIso: endOfPillarWeekExclusive(now).toISOString(),
+    endExclusiveIso: endOfPillarWeekExclusive(now, tz).toISOString(),
   };
 }
 
-/** Pillar-week bucket id (Sunday `yyyy-MM-dd` in pillar TZ) for a UTC instant. */
-export function pillarWeekStartKeyFromInstant(inst: Date): string {
-  return formatInTimeZone(startOfPillarWeek(inst), PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+/** Pillar-week bucket id (Sunday `yyyy-MM-dd` in practice TZ) for an instant. */
+export function pillarWeekStartKeyFromInstant(
+  inst: Date,
+  timeZone?: string
+): string {
+  const tz = resolveTz(timeZone);
+  return formatInTimeZone(startOfPillarWeek(inst, tz), tz, "yyyy-MM-dd");
 }
 
 /**
- * Pillar-week bucket for a calendar `DATE` column (treated as noon in pillar TZ to avoid boundary drift).
+ * Pillar week for a calendar `DATE` (noon in practice TZ avoids boundary drift).
  */
-export function pillarWeekStartKeyFromDateYmd(entryYmd: string): string {
+export function pillarWeekStartKeyFromDateYmd(entryYmd: string, timeZone?: string): string {
+  const tz = resolveTz(timeZone);
   const ymd = entryYmd.slice(0, 10);
-  const anchor = fromZonedTime(`${ymd}T12:00:00`, PILLAR_WEEK_TIMEZONE);
-  return pillarWeekStartKeyFromInstant(anchor);
+  const anchor = fromZonedTime(`${ymd}T12:00:00`, tz);
+  return pillarWeekStartKeyFromInstant(anchor, tz);
 }
 
 /** Every pillar-week Sunday `yyyy-MM-dd` from `firstSundayYmd` through `lastSundayYmd` inclusive. */

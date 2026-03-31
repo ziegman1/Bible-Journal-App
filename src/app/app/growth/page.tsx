@@ -10,12 +10,6 @@ export default function GrowthPlaceholderPage() {
       <p className="text-sm text-muted-foreground">
         Reflection on transformation and next steps will live here.
       </p>
-      <Link
-        href="/app/growth/watch"
-        className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
-      >
-        Watch phase
-      </Link>
       <div>
         <Link href="/app" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
           ← Dashboard

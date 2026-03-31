@@ -11,7 +11,9 @@ import {
 import { buildShareWeeklyPace } from "@/lib/dashboard/share-weekly-pace";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
 import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
+import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 export type ShareDashboardStats = WeeklyRhythmPaceResult & {
   receivedCounts: ShareReceivedCounts;
@@ -27,8 +29,12 @@ export async function getShareDashboardStats(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const [{ shareWeeklyGoalEncounters }, tz] = await Promise.all([
+    fetchUserRhythmGoals(supabase, user.id),
+    getPracticeTimeZone(),
+  ]);
   const now = new Date();
-  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now);
+  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now, tz);
 
   const { data: rows, error } = await supabase
     .from("share_encounters")
@@ -48,7 +54,7 @@ export async function getShareDashboardStats(): Promise<
   }
 
   const actual = rows?.length ?? 0;
-  const pace = buildShareWeeklyPace(actual, now);
+  const pace = buildShareWeeklyPace(actual, now, tz, shareWeeklyGoalEncounters);
   return { ...pace, receivedCounts };
 }
 

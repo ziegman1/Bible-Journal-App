@@ -6,6 +6,7 @@ import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
 import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
 import { createClient } from "@/lib/supabase/server";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 export async function getSoapsWeeklyPace(): Promise<
   { error: string } | WeeklyRhythmPaceResult
@@ -17,8 +18,9 @@ export async function getSoapsWeeklyPace(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const tz = await getPracticeTimeZone();
   const now = new Date();
-  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now);
+  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now, tz);
 
   const { data: rows, error } = await supabase
     .from("journal_entries")
@@ -39,5 +41,6 @@ export async function getSoapsWeeklyPace(): Promise<
     unitPlural: "sessions",
     goalLabel: `${SOAPS_WEEKLY_GOAL_SESSIONS} SOAPS sessions`,
     asOf: now,
+    practiceTimeZone: tz,
   });
 }

@@ -1,6 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
 import {
-  PILLAR_WEEK_TIMEZONE,
   pillarWeekStartKeyFromDateYmd,
   startOfPillarWeek,
   ymdAddCalendarDays,
@@ -8,15 +7,15 @@ import {
 import type { SoapsJournalRow } from "@/lib/dashboard/soaps-entry";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 
-/** Daily prayer goal for streak (≥1 hr logged that calendar day in pillar TZ). */
+/** Daily prayer goal for streak (≥1 hr logged that calendar day in practice TZ). */
 export const PRAYER_STREAK_MIN_MINUTES_PER_DAY = 60;
 
-export function pillarTodayYmd(now: Date = new Date()): string {
-  return formatInTimeZone(now, PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+export function pillarTodayYmd(now: Date, practiceTimeZone: string): string {
+  return formatInTimeZone(now, practiceTimeZone, "yyyy-MM-dd");
 }
 
-function isoToPillarYmd(iso: string): string {
-  return formatInTimeZone(new Date(iso), PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+function isoToPracticeYmd(iso: string, practiceTimeZone: string): string {
+  return formatInTimeZone(new Date(iso), practiceTimeZone, "yyyy-MM-dd");
 }
 
 /**
@@ -60,15 +59,16 @@ export function buildSoapsQualifyingDaySet(
 
 export function buildPrayerMinutesByPillarDay(
   wheel: readonly { completed_at: string; duration_minutes: number | null }[],
-  extra: readonly { logged_at: string; minutes: number | null }[]
+  extra: readonly { logged_at: string; minutes: number | null }[],
+  practiceTimeZone: string
 ): Map<string, number> {
   const m = new Map<string, number>();
   for (const row of wheel) {
-    const day = isoToPillarYmd(row.completed_at);
+    const day = isoToPracticeYmd(row.completed_at, practiceTimeZone);
     m.set(day, (m.get(day) ?? 0) + (row.duration_minutes ?? 0));
   }
   for (const row of extra) {
-    const day = isoToPillarYmd(row.logged_at);
+    const day = isoToPracticeYmd(row.logged_at, practiceTimeZone);
     m.set(day, (m.get(day) ?? 0) + (row.minutes ?? 0));
   }
   return m;
@@ -100,14 +100,15 @@ export type MeetingAttendanceRow = {
 function weekKeysAttendedByGroup(
   meetings: readonly MeetingAttendanceRow[],
   attendedMeetingIds: ReadonlySet<string>,
-  groupIds: ReadonlySet<string>
+  groupIds: ReadonlySet<string>,
+  practiceTimeZone: string
 ): Set<string> {
   const out = new Set<string>();
   for (const mt of meetings) {
     if (mt.status !== "completed") continue;
     if (!groupIds.has(mt.group_id)) continue;
     if (!attendedMeetingIds.has(mt.meeting_id)) continue;
-    const wk = pillarWeekStartKeyFromDateYmd(mt.meeting_date);
+    const wk = pillarWeekStartKeyFromDateYmd(mt.meeting_date, practiceTimeZone);
     out.add(wk);
   }
   return out;
@@ -118,24 +119,36 @@ function weekKeysAttendedByGroup(
  */
 export function thirdsChatWeeklyStreak(params: {
   now: Date;
+  practiceTimeZone: string;
   thirdsGroupIds: readonly string[];
   chatGroupId: string | null;
   meetings: readonly MeetingAttendanceRow[];
   attendedMeetingIds: ReadonlySet<string>;
 }): number {
-  const { now, thirdsGroupIds, chatGroupId, meetings, attendedMeetingIds } = params;
+  const { now, practiceTimeZone, thirdsGroupIds, chatGroupId, meetings, attendedMeetingIds } =
+    params;
   if (thirdsGroupIds.length === 0 || !chatGroupId) return 0;
 
   const thirdsSet = new Set(thirdsGroupIds);
   const chatSet = new Set([chatGroupId]);
 
-  const thirdsWeeks = weekKeysAttendedByGroup(meetings, attendedMeetingIds, thirdsSet);
-  const chatWeeks = weekKeysAttendedByGroup(meetings, attendedMeetingIds, chatSet);
+  const thirdsWeeks = weekKeysAttendedByGroup(
+    meetings,
+    attendedMeetingIds,
+    thirdsSet,
+    practiceTimeZone
+  );
+  const chatWeeks = weekKeysAttendedByGroup(
+    meetings,
+    attendedMeetingIds,
+    chatSet,
+    practiceTimeZone
+  );
 
   const both = (weekStartYmd: string) =>
     thirdsWeeks.has(weekStartYmd) && chatWeeks.has(weekStartYmd);
 
-  let wk = formatInTimeZone(startOfPillarWeek(now), PILLAR_WEEK_TIMEZONE, "yyyy-MM-dd");
+  let wk = formatInTimeZone(startOfPillarWeek(now, practiceTimeZone), practiceTimeZone, "yyyy-MM-dd");
   let count = 0;
 
   if (both(wk)) {

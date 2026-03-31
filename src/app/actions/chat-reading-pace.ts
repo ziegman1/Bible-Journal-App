@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import {
   computeChatReadingPace,
-  utcTodayYmd,
+  practiceTodayYmd,
   type ChatReadingPaceResult,
 } from "@/lib/chat-soaps/reading-pace";
 import { getBookById } from "@/lib/scripture/books";
 import { createClient } from "@/lib/supabase/server";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 export type ChatReadingPaceSettings = {
   reading_start_date: string;
@@ -46,6 +47,8 @@ export async function getChatReadingPaceBundle(
     .maybeSingle();
   if (!mem) return { error: "Not a member" };
 
+  const tz = await getPracticeTimeZone();
+
   let { data: paceRow } = await supabase
     .from("chat_group_reading_pace")
     .select("*")
@@ -53,7 +56,7 @@ export async function getChatReadingPaceBundle(
     .maybeSingle();
 
   if (!paceRow) {
-    const today = utcTodayYmd();
+    const today = practiceTodayYmd(new Date(), tz);
     await supabase.from("chat_group_reading_pace").insert({
       group_id: groupId,
       reading_start_date: today,
@@ -81,7 +84,7 @@ export async function getChatReadingPaceBundle(
   const readingStartDateYmd =
     typeof paceRow.reading_start_date === "string"
       ? paceRow.reading_start_date.slice(0, 10)
-      : utcTodayYmd();
+      : practiceTodayYmd(new Date(), tz);
 
   const pace = computeChatReadingPace({
     readingStartDateYmd,
@@ -90,6 +93,7 @@ export async function getChatReadingPaceBundle(
     planStartChapter: paceRow.plan_start_chapter,
     bookmarkBookId: progress?.book_id,
     bookmarkLastCompletedChapter: progress?.last_completed_chapter,
+    practiceTimeZone: tz,
   });
 
   return {

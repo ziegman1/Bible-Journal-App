@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PRAYER_WEEKLY_GOAL_MINUTES, prayerfulnessPercent } from "@/lib/prayer-wheel/stats";
+import { prayerfulnessPercent } from "@/lib/prayer-wheel/stats";
 import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
+import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 export type PrayerWheelDashboardStats = {
   /** Prayer Wheel segments + à la carte minutes */
@@ -29,7 +31,11 @@ export async function getPrayerWheelDashboardStats(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery();
+  const [{ prayerWeeklyGoalMinutes }, tz] = await Promise.all([
+    fetchUserRhythmGoals(supabase, user.id),
+    getPracticeTimeZone(),
+  ]);
+  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery(new Date(), tz);
 
   const { data: rows, error } = await supabase
     .from("prayer_wheel_segment_completions")
@@ -62,8 +68,8 @@ export async function getPrayerWheelDashboardStats(): Promise<
     weeklyWheelMinutes,
     weeklyExtraMinutes,
     fullWheelsThisWeek,
-    prayerfulnessPercent: prayerfulnessPercent(weeklyMinutes, PRAYER_WEEKLY_GOAL_MINUTES),
-    weeklyGoalMinutes: PRAYER_WEEKLY_GOAL_MINUTES,
+    prayerfulnessPercent: prayerfulnessPercent(weeklyMinutes, prayerWeeklyGoalMinutes),
+    weeklyGoalMinutes: prayerWeeklyGoalMinutes,
   };
 }
 
@@ -141,7 +147,8 @@ export async function resetThisWeeksPrayerTime(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery();
+  const tz = await getPracticeTimeZone();
+  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery(new Date(), tz);
 
   const { data: segRemoved, error: segErr } = await supabase
     .from("prayer_wheel_segment_completions")

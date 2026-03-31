@@ -1,25 +1,24 @@
 import { JourneyNodeCard } from "@/components/dashboard/journey-node-card";
-import { mockJourneyNodes } from "@/lib/dashboard/mock-dashboard-data";
+import { mockMultiplicationNodes } from "@/lib/dashboard/mock-dashboard-data";
 
-export function GrowthJourneySection() {
+export function MultiplicationSection() {
   return (
-    <section aria-labelledby="dashboard-growth-heading">
+    <section aria-labelledby="dashboard-multiplication-heading">
       <h2
-        id="dashboard-growth-heading"
+        id="dashboard-multiplication-heading"
         className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
       >
-        Growth journey
+        Multiplication
       </h2>
       <div className="flex flex-col gap-3">
-        {mockJourneyNodes.map((node, i) => (
+        {mockMultiplicationNodes.map((node, i) => (
           <JourneyNodeCard
             key={node.title}
             title={node.title}
             description={node.description}
             statusLabel={node.statusLabel}
-            progressLabel={"progressLabel" in node ? node.progressLabel : undefined}
             href={node.href}
-            iconIndex={i as 0 | 1}
+            iconIndex={i as 0 | 1 | 2}
           />
         ))}
       </div>

@@ -1,4 +1,7 @@
-/** Monday-start week in UTC (matches prayer wheel weekly stats). */
+/**
+ * Monday-start week in UTC. Used for personal 3/3 solo tracking and related participation metrics,
+ * not for BADWR pillar weeks (SOAPS / prayer / share / reproduction use Sun–Sat in practice timezone).
+ */
 
 export function startOfUtcWeekMonday(now: Date = new Date()): Date {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

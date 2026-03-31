@@ -29,7 +29,11 @@ function localDateYmd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-export function ShareEncounterLogSheet() {
+export function ShareEncounterLogSheet({
+  weeklyShareGoalEncounters,
+}: {
+  weeklyShareGoalEncounters: number;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -93,8 +97,10 @@ export function ShareEncounterLogSheet() {
           <SheetHeader>
             <SheetTitle>Log a share</SheetTitle>
             <SheetDescription>
-              Record a gospel or testimony conversation. Each log counts toward your weekly goal of
-              five people.
+              Record a gospel or testimony conversation. Each log counts toward your weekly goal of{" "}
+              {weeklyShareGoalEncounters === 1
+                ? "one person."
+                : `${weeklyShareGoalEncounters} people.`}
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-4 px-4 pb-4">

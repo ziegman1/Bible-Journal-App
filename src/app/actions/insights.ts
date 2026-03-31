@@ -1,5 +1,9 @@
 "use server";
 
+/**
+ * Daily AI quota for insight generation uses UTC `usage_date` (same convention as `ai.ts` actions).
+ */
+
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { aggregateInsights, getDateBounds } from "@/lib/insights/aggregate";

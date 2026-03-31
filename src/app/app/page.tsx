@@ -1,10 +1,9 @@
 import { CommunityRingSection } from "@/components/dashboard/community-ring-section";
-import { ContextInsightSection } from "@/components/dashboard/context-insight-section";
 import { DailyPracticeSection } from "@/components/dashboard/daily-practice-section";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { GrowthJourneySection } from "@/components/dashboard/growth-journey-section";
 import { IdentityCoreSection } from "@/components/dashboard/identity-core-section";
+import { MultiplicationSection } from "@/components/dashboard/multiplication-section";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { createClient } from "@/lib/supabase/server";
 import { nextReadAfterChatSoapsComplete } from "@/lib/chat-soaps/next-read";
@@ -66,9 +65,8 @@ export default async function DashboardPage() {
         />
       }
       daily={<DailyPracticeSection primaryChatGroupId={primaryChatGroupId} />}
-      context={<ContextInsightSection />}
       community={<CommunityRingSection />}
-      growth={<GrowthJourneySection />}
+      multiplication={<MultiplicationSection />}
     />
   );
 }

@@ -58,7 +58,8 @@ export function ChatReadingPaceSettingsForm({
     <form onSubmit={onSubmit} className="space-y-4 border-t border-border pt-4">
       <p className="text-sm text-muted-foreground">
         These settings apply to the whole group. Each person&apos;s pace meter uses their own SOAPS
-        bookmark vs this schedule.
+        bookmark vs this schedule. Elapsed “days” follow that person&apos;s practice timezone (same as
+        the home dashboard rhythm).
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
