@@ -174,8 +174,14 @@ export function ReaderView({
     }
 
     const update = () => {
-      // Height lost to keyboard (and browser UI) relative to layout viewport.
-      const inset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop ?? 0));
+      // Height lost to keyboard (and browser UI) relative to the layout viewport.
+      // On iOS, `window.innerHeight` may shrink with the keyboard, so prefer the
+      // layout viewport height (`documentElement.clientHeight`) as the baseline.
+      const layoutH =
+        document.documentElement?.clientHeight && document.documentElement.clientHeight > 0
+          ? document.documentElement.clientHeight
+          : window.innerHeight;
+      const inset = Math.max(0, layoutH - vv.height - (vv.offsetTop ?? 0));
       setKeyboardInsetPx(Math.min(500, Math.round(inset)));
     };
 
@@ -1045,7 +1051,7 @@ export function ReaderView({
                     <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
                       Selected passage
                     </h3>
-                    <div className="mt-2 max-h-[20dvh] overflow-y-auto pr-1 text-stone-600 dark:text-stone-400 text-sm font-serif leading-relaxed">
+                    <div className="mt-2 max-h-[17dvh] overflow-y-auto pr-1 text-stone-600 dark:text-stone-400 text-sm font-serif leading-relaxed">
                       {passageTextContent ?? (
                         <p className="text-xs font-sans text-stone-500 dark:text-stone-500">
                           Select a verse range to display it here.
