@@ -88,6 +88,7 @@ export function ReaderView({
   const [anchorVerse, setAnchorVerse] = useState<number | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<"ask" | "reflection">("ask");
+  const [keyboardInsetPx, setKeyboardInsetPx] = useState(0);
   const [highlights, setHighlights] = useState<Set<number>>(initialHighlights);
   const [highlightIds, setHighlightIds] = useState<Map<number, string>>(initialHighlightIds);
   const [favorites, setFavorites] = useState<Map<number, string>>(initialFavorites);
@@ -159,6 +160,35 @@ export function ReaderView({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [panelOpen]);
+
+  // Mobile keyboard avoidance: use VisualViewport to pad scroll areas above keyboard.
+  useEffect(() => {
+    if (!isMobile || !panelOpen) {
+      setKeyboardInsetPx(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) {
+      setKeyboardInsetPx(0);
+      return;
+    }
+
+    const update = () => {
+      // Height lost to keyboard (and browser UI) relative to layout viewport.
+      const inset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop ?? 0));
+      setKeyboardInsetPx(Math.min(500, Math.round(inset)));
+    };
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, [isMobile, panelOpen]);
 
   // Measure right panel header height (for alignment offset)
   useEffect(() => {
@@ -1024,7 +1054,13 @@ export function ReaderView({
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                  <div
+                    className="flex-1 min-h-0 overflow-y-auto px-4"
+                    style={{
+                      paddingBottom: `calc(max(2rem, env(safe-area-inset-bottom)) + ${keyboardInsetPx}px)`,
+                      scrollPaddingBottom: `calc(max(2rem, env(safe-area-inset-bottom)) + ${keyboardInsetPx}px)`,
+                    }}
+                  >
                     <div className="min-h-0 py-3">
                       <InlinePassageReflectionForm
                         reference={passageRef}
@@ -1042,7 +1078,13 @@ export function ReaderView({
                   </div>
                 </>
               ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto px-4"
+                  style={{
+                    paddingBottom: `calc(max(2rem, env(safe-area-inset-bottom)) + ${keyboardInsetPx}px)`,
+                    scrollPaddingBottom: `calc(max(2rem, env(safe-area-inset-bottom)) + ${keyboardInsetPx}px)`,
+                  }}
+                >
                   <div className="py-3">
                     <AskAIPanel
                       bookId={bookId}
