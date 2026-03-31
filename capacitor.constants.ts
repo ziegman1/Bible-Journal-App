@@ -19,6 +19,16 @@ function normalizeHttpUrl(raw: string): string {
   return trimmed;
 }
 
+function withCacheBust(url: string): string {
+  // Keep base origin/path; add a stable cache-busting query param for native shells.
+  // If a query already exists, append with '&'. Avoid duplicating if already present.
+  const value = process.env.CAPACITOR_CACHE_BUST?.trim() || "20260331";
+  if (!value) return url;
+  if (url.includes("native_build=") || url.includes("v=")) return url;
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}v=${encodeURIComponent(value)}`;
+}
+
 /**
  * URL the WebView loads (your deployed Next.js site). This project does **not** use a static
  * `next export` output; Capacitor must load the live SSR app over HTTPS.
@@ -31,16 +41,16 @@ function normalizeHttpUrl(raw: string): string {
  */
 export function resolveCapacitorServerUrl(): string {
   const explicit = process.env.CAPACITOR_SERVER_URL?.trim();
-  if (explicit) return normalizeHttpUrl(explicit);
+  if (explicit) return withCacheBust(normalizeHttpUrl(explicit));
 
   const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (site) return normalizeHttpUrl(site);
+  if (site) return withCacheBust(normalizeHttpUrl(site));
 
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) {
     const host = vercel.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    return `https://${host}`;
+    return withCacheBust(`https://${host}`);
   }
 
-  return "https://www.badwr.app";
+  return withCacheBust("https://www.badwr.app");
 }
