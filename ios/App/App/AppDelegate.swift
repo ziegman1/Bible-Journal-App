@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Reduce stale WKWebView caching for remote-hosted apps (server.url).
+        // Keep cookies/storage intact; only clear memory/disk HTTP cache layers.
+        URLCache.shared.removeAllCachedResponses()
+        let cacheTypes: Set<String> = [
+            WKWebsiteDataTypeMemoryCache,
+            WKWebsiteDataTypeDiskCache,
+        ]
+        WKWebsiteDataStore.default().removeData(ofTypes: cacheTypes, modifiedSince: Date.distantPast) { }
         return true
     }
 
