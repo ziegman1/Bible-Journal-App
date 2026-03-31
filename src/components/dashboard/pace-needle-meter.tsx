@@ -1,6 +1,12 @@
 "use client";
 
 import type { WeeklyRhythmStatus } from "@/lib/dashboard/weekly-rhythm-pace";
+import {
+  paceMeterArcPositionLabels,
+  paceMeterRhythmHeadingLine,
+  paceMeterSvgAriaLabel,
+} from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
 export type PaceNeedleMeterProps = {
@@ -15,8 +21,13 @@ export type PaceNeedleMeterProps = {
   /** Screen reader summary */
   ariaDescription: string;
   className?: string;
-  /** Override the uppercase line (default: On pace / Ahead of pace / Behind pace) */
+  /**
+   * When set (e.g. BADWR reproduction narrative), shown as the uppercase line and used for aria.
+   * Overrides rhythm-based heading from {@link copyTone}.
+   */
   statusHeading?: string;
+  /** Growth Mode copy tone; omit for full Focused/accountability behavior. */
+  copyTone?: GrowthCopyTone;
 };
 
 export function PaceNeedleMeter({
@@ -29,10 +40,25 @@ export function PaceNeedleMeter({
   ariaDescription,
   className,
   statusHeading,
+  copyTone,
 }: PaceNeedleMeterProps) {
-  const statusLabel =
-    statusHeading ??
-    (status === "on_pace" ? "On pace" : status === "ahead" ? "Ahead of pace" : "Behind pace");
+  const tone: GrowthCopyTone = copyTone ?? "accountability";
+  const arc = paceMeterArcPositionLabels(tone);
+
+  const narrativeHeading =
+    statusHeading != null && statusHeading.trim() !== "" ? statusHeading.trim() : null;
+  const rhythmHeading = narrativeHeading == null ? paceMeterRhythmHeadingLine(status, tone) : null;
+  const showHeadingLine = narrativeHeading != null || rhythmHeading != null;
+  const headingText = narrativeHeading ?? rhythmHeading ?? "";
+
+  const ariaLabel = paceMeterSvgAriaLabel(
+    tone,
+    status,
+    message,
+    ariaDescription,
+    narrativeHeading
+  );
+
   const compact = variant === "compact";
 
   return (
@@ -45,7 +71,7 @@ export function PaceNeedleMeter({
             compact ? "h-24 max-w-[200px]" : "h-32 max-w-[220px]"
           )}
           role="img"
-          aria-label={`${statusLabel}. ${ariaDescription}`}
+          aria-label={ariaLabel}
         >
           <path
             d="M 28 100 A 72 72 0 0 1 172 100"
@@ -55,16 +81,16 @@ export function PaceNeedleMeter({
             strokeLinecap="round"
             className="text-border"
           />
-          {!compact ? (
+          {!compact && arc.show ? (
             <>
               <text x="24" y="108" className="fill-muted-foreground text-[10px] font-medium">
-                Behind
+                {arc.left}
               </text>
               <text x="86" y="22" className="fill-muted-foreground text-[10px] font-medium">
-                On pace
+                {arc.center}
               </text>
               <text x="158" y="108" className="fill-muted-foreground text-[10px] font-medium">
-                Ahead
+                {arc.right}
               </text>
             </>
           ) : null}
@@ -89,9 +115,11 @@ export function PaceNeedleMeter({
         </svg>
       </div>
       <div className={cn("text-center", compact ? "space-y-0.5" : "space-y-1")}>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {statusLabel}
-        </p>
+        {showHeadingLine ? (
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {headingText}
+          </p>
+        ) : null}
         <p className={cn("text-foreground", compact ? "text-xs leading-snug" : "text-sm")}>
           {message}
         </p>

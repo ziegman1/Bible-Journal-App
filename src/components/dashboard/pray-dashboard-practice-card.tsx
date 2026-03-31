@@ -152,6 +152,7 @@ export async function PrayDashboardPracticeCard({
           needleDegrees={pace.needleDegrees}
           status={pace.status}
           message={paceMessage}
+          copyTone={copyTone}
           detailLineCompact={`${pace.expectedSoFar} min expected · ${pace.actual} min total · day ${pace.daysElapsed} of 7 · goal ${weeklyGoalMinutes} min/wk${weeklyExtraMinutes > 0 ? ` · +${weeklyExtraMinutes} extra` : ""}${fullWheelsThisWeek > 0 ? ` · ${fullWheelsThisWeek} wheel${fullWheelsThisWeek === 1 ? "" : "s"}` : ""}`}
           ariaDescription={ariaDesc}
         />

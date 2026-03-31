@@ -140,6 +140,7 @@ export async function SoapsDashboardPracticeCard({
           needleDegrees={pace.needleDegrees}
           status={pace.status}
           message={paceMessage}
+          copyTone={copyTone}
           detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} done · day ${pace.daysElapsed} of 7 · goal ${SOAPS_WEEKLY_GOAL_SESSIONS}/wk`}
           ariaDescription={ariaDesc}
         />

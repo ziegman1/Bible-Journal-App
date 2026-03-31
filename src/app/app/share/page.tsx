@@ -4,7 +4,7 @@ import { ShareEncounterLogSheet } from "@/components/share/share-encounter-log-s
 import { buttonVariants } from "@/components/ui/button-variants";
 import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
-import { shareToolPageIntro } from "@/lib/growth-mode/copy";
+import { ANONYMOUS_SHARE_COPY_TONE, shareToolPageIntro } from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +18,7 @@ export default async function SharePage() {
   } = await supabase.auth.getUser();
 
   let weeklyShareGoalEncounters = DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
-  let copyTone: GrowthCopyTone = "accountability";
+  let copyTone: GrowthCopyTone = ANONYMOUS_SHARE_COPY_TONE;
   if (user) {
     const g = await fetchUserRhythmGoals(supabase, user.id);
     weeklyShareGoalEncounters = g.shareWeeklyGoalEncounters;

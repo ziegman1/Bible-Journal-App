@@ -60,7 +60,7 @@ export default async function InsightsPage({ searchParams }: PageProps) {
         </p>
 
         <section className="space-y-6">
-          <InsightsOverview data={summary} />
+          <InsightsOverview data={summary} copyTone={copyTone} />
           <InsightsThemes data={summary} copyTone={copyTone} />
           <InsightsBooksPassages data={summary} copyTone={copyTone} />
           <InsightsJournalingActivity data={summary} copyTone={copyTone} />

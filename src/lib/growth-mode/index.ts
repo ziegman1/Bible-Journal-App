@@ -16,7 +16,9 @@ export {
   shouldShowStreaks,
   shouldUseGentleLanguage,
 } from "@/lib/growth-mode/model";
+export type { PaceRhythmStatus } from "@/lib/growth-mode/copy";
 export {
+  ANONYMOUS_SHARE_COPY_TONE,
   badwrCombinedMessage,
   badwrReproductionHeading,
   chatReadingPaceCardDescription,
@@ -26,16 +28,22 @@ export {
   insightsBooksEmptyCopy,
   insightsJournalingEmptyCopy,
   insightsKeywordsEmptyCopy,
+  insightsOverviewReflectionLine,
+  insightsOverviewStatLabels,
   insightsPageSubtitle,
   insightsThemesEmptyCopy,
   paceMessageForTone,
-  paceStatusLabelForTone,
+  paceMeterArcPositionLabels,
+  paceMeterRhythmHeadingLine,
+  paceMeterSvgAriaLabel,
   prayerToolPageIntro,
   prayerWheelCompleteCopy,
   prayerWheelSaveErrorWeeklyHint,
   readingPaceMessageForTone,
   resetWeekPrayerSectionCopy,
+  shareLogOpenButtonLabel,
   shareLogSheetDescription,
+  shareLogSheetTitle,
   shareSaveSuccessMessage,
   shareToolPageIntro,
 } from "@/lib/growth-mode/copy";

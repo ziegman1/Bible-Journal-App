@@ -70,6 +70,7 @@ export async function BadwrReproductionCard({
           variant="compact"
           needleDegrees={needleDegrees}
           status={paceStatus}
+          copyTone={copyTone}
           statusHeading={heading}
           message={combinedMessage}
           detailLineCompact={

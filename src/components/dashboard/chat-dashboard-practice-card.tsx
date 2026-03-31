@@ -108,6 +108,7 @@ export async function ChatDashboardPracticeCard({
             actualChapters={bundle.pace.actualChapters}
             daysElapsed={bundle.pace.daysElapsed}
             chaptersPerDay={bundle.settings.chapters_per_day}
+            copyTone={copyTone}
           />
         </div>
       ) : (

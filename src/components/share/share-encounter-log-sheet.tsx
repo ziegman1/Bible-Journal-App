@@ -21,7 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { shareLogSheetDescription, shareSaveSuccessMessage } from "@/lib/growth-mode/copy";
+import {
+  shareLogOpenButtonLabel,
+  shareLogSheetDescription,
+  shareLogSheetTitle,
+  shareSaveSuccessMessage,
+} from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 function localDateYmd(d = new Date()): string {
@@ -94,12 +99,12 @@ export function ShareEncounterLogSheet({
   return (
     <>
       <Button type="button" onClick={() => setOpen(true)} className="w-full sm:w-auto">
-        Log a share
+        {shareLogOpenButtonLabel(copyTone)}
       </Button>
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="right" className="flex w-full max-h-dvh flex-col overflow-y-auto sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Log a share</SheetTitle>
+            <SheetTitle>{shareLogSheetTitle(copyTone)}</SheetTitle>
             <SheetDescription>
               {shareLogSheetDescription(copyTone, weeklyShareGoalEncounters)}
             </SheetDescription>

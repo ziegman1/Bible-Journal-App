@@ -1,6 +1,7 @@
 "use client";
 
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 type Props = {
   needleDegrees: number;
@@ -12,8 +13,7 @@ type Props = {
   chaptersPerDay: number;
   className?: string;
   variant?: "default" | "compact";
-  /** Passed to {@link PaceNeedleMeter} for softer On pace / Ahead / Behind labels */
-  statusHeading?: string;
+  copyTone?: GrowthCopyTone;
 };
 
 export function ChatReadingPaceMeter({
@@ -26,7 +26,7 @@ export function ChatReadingPaceMeter({
   chaptersPerDay,
   className,
   variant = "default",
-  statusHeading,
+  copyTone,
 }: Props) {
   const ariaDescription = `${message} Expected ${expectedChapters} chapters over ${daysElapsed} day${daysElapsed === 1 ? "" : "s"} at ${chaptersPerDay} per day; you have completed ${actualChapters}.`;
   const compact = variant === "compact";
@@ -39,7 +39,7 @@ export function ChatReadingPaceMeter({
       variant={variant}
       className={className}
       ariaDescription={ariaDescription}
-      statusHeading={statusHeading}
+      copyTone={copyTone}
       detailLine={
         compact
           ? undefined

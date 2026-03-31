@@ -153,6 +153,7 @@ export async function ShareDashboardPracticeCard({
           needleDegrees={pace.needleDegrees}
           status={pace.status}
           message={paceMessage}
+          copyTone={copyTone}
           detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} logged · day ${pace.daysElapsed} of 7 · goal ${weeklyGoal}/wk`}
           ariaDescription={ariaDesc}
         />

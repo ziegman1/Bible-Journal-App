@@ -1,5 +1,101 @@
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
+/** CHAT + weekly needles use the same status union. */
+export type PaceRhythmStatus = "ahead" | "on_pace" | "behind";
+
+/**
+ * Logged-out Share defaults to Guided (invitational) — welcoming entry point.
+ * Authenticated users use their saved growth mode via {@link fetchUserGrowthPresentation}.
+ */
+export const ANONYMOUS_SHARE_COPY_TONE: GrowthCopyTone = "invitational";
+
+/** Arc tick labels (default/full meter only). Guided: hidden. */
+export function paceMeterArcPositionLabels(tone: GrowthCopyTone): {
+  show: boolean;
+  left: string;
+  center: string;
+  right: string;
+} {
+  if (tone === "invitational") {
+    return { show: false, left: "", center: "", right: "" };
+  }
+  if (tone === "balanced") {
+    return { show: true, left: "Starting", center: "Steady", right: "Growing" };
+  }
+  return { show: true, left: "Behind", center: "On pace", right: "Ahead" };
+}
+
+/**
+ * Uppercase status line under the needle. `null` = omit entirely (Guided).
+ * Ignored when parent passes a non-empty `statusHeading` (e.g. BADWR reproduction narrative).
+ */
+export function paceMeterRhythmHeadingLine(
+  status: PaceRhythmStatus,
+  tone: GrowthCopyTone
+): string | null {
+  if (tone === "invitational") return null;
+  if (tone === "balanced") {
+    if (status === "behind") return "Starting";
+    if (status === "on_pace") return "Steady";
+    return "Growing";
+  }
+  if (status === "on_pace") return "On pace";
+  if (status === "ahead") return "Ahead of pace";
+  return "Behind pace";
+}
+
+/** Accessible summary for the pace SVG. */
+export function paceMeterSvgAriaLabel(
+  tone: GrowthCopyTone,
+  status: PaceRhythmStatus,
+  message: string,
+  ariaDescription: string,
+  explicitStatusHeading?: string | null
+): string {
+  if (explicitStatusHeading != null && explicitStatusHeading.trim() !== "") {
+    return `${explicitStatusHeading.trim()}. ${ariaDescription}`;
+  }
+  if (tone === "invitational") {
+    return `Rhythm at a glance. ${message} ${ariaDescription}`;
+  }
+  const line = paceMeterRhythmHeadingLine(status, tone);
+  if (line) return `${line}. ${ariaDescription}`;
+  return `${message}. ${ariaDescription}`;
+}
+
+export function insightsOverviewReflectionLine(tone: GrowthCopyTone): string | null {
+  if (tone === "invitational") {
+    return "These simply reflect your journey so far—not a ranking or a score.";
+  }
+  if (tone === "balanced") {
+    return "A snapshot of your journey in this period—for reflection, not comparison.";
+  }
+  return null;
+}
+
+export function insightsOverviewStatLabels(tone: GrowthCopyTone): {
+  journal: string;
+  threads: string;
+  aiQuestions: string;
+  books: string;
+} {
+  const standard = {
+    journal: "Journal entries",
+    threads: "Study threads",
+    aiQuestions: "AI questions asked",
+    books: "Books studied",
+  };
+  if (tone === "invitational") {
+    return {
+      journal: "Moments recorded",
+      threads: "Ongoing reflections",
+      aiQuestions: "Questions you explored",
+      books: "Books studied",
+    };
+  }
+  return standard;
+}
+
 /** Tone down pace / needle messages for non-focused modes. */
 export function paceMessageForTone(message: string, tone: GrowthCopyTone): string {
   if (tone === "accountability") return message;
@@ -45,22 +141,6 @@ export function readingPaceMessageForTone(message: string, tone: GrowthCopyTone)
   return message;
 }
 
-/** Overrides PaceNeedleMeter's On pace / Ahead / Behind heading when non-focused. */
-export function paceStatusLabelForTone(
-  status: "ahead" | "on_pace" | "behind",
-  tone: GrowthCopyTone
-): string | undefined {
-  if (tone === "accountability") return undefined;
-  if (tone === "balanced") {
-    if (status === "behind") return "Room to grow";
-    if (status === "ahead") return "Ahead of rhythm";
-    return "In rhythm";
-  }
-  if (status === "behind") return "Keep going";
-  if (status === "ahead") return "Extra margin";
-  return "Shared rhythm";
-}
-
 export function shareToolPageIntro(tone: GrowthCopyTone, goalPhrase: string): string {
   if (tone === "accountability") {
     return `Log each gospel or testimony conversation. Your dashboard shows weekly pace (goal: ${goalPhrase}) and how people responded—red, yellow, green, or already a Christian.`;
@@ -96,6 +176,17 @@ export function shareSaveSuccessMessage(tone: GrowthCopyTone): string {
     return "Saved. It's in your log and updates your light weekly rhythm if you use that view.";
   }
   return "Saved. Thank you for noting this conversation.";
+}
+
+/** Primary CTA to open the share sheet. */
+export function shareLogOpenButtonLabel(tone: GrowthCopyTone): string {
+  if (tone === "invitational") return "Note a conversation";
+  return "Log a share";
+}
+
+export function shareLogSheetTitle(tone: GrowthCopyTone): string {
+  if (tone === "invitational") return "Record a conversation";
+  return "Log a share";
 }
 
 export function prayerToolPageIntro(tone: GrowthCopyTone): string {

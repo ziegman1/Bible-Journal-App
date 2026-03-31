@@ -1,13 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, BookMarked, MessageSquare, MessageCircle } from "lucide-react";
+import {
+  insightsOverviewReflectionLine,
+  insightsOverviewStatLabels,
+} from "@/lib/growth-mode/copy";
+import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import type { InsightsSummary } from "@/lib/insights/types";
 
 interface InsightsOverviewProps {
   data: InsightsSummary;
+  copyTone?: GrowthCopyTone;
 }
 
-export function InsightsOverview({ data }: InsightsOverviewProps) {
+export function InsightsOverview({ data, copyTone = "accountability" }: InsightsOverviewProps) {
   const { overview } = data;
+  const reflection = insightsOverviewReflectionLine(copyTone);
+  const labels = insightsOverviewStatLabels(copyTone);
 
   return (
     <Card className="bg-card border-border">
@@ -15,6 +23,9 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
         <CardTitle className="text-base font-serif font-light text-stone-800 dark:text-stone-200">
           Overview
         </CardTitle>
+        {reflection ? (
+          <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">{reflection}</p>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -25,7 +36,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
                 {overview.totalJournalEntries}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Journal entries
+                {labels.journal}
               </p>
             </div>
           </div>
@@ -36,7 +47,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
                 {overview.totalStudyThreads}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Study threads
+                {labels.threads}
               </p>
             </div>
           </div>
@@ -47,7 +58,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
                 {overview.totalAIQuestions}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                AI questions asked
+                {labels.aiQuestions}
               </p>
             </div>
           </div>
@@ -58,7 +69,7 @@ export function InsightsOverview({ data }: InsightsOverviewProps) {
                 {overview.booksStudiedCount}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Books studied
+                {labels.books}
               </p>
             </div>
           </div>
