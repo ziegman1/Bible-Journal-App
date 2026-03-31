@@ -89,6 +89,7 @@ export function ReaderView({
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<"ask" | "reflection">("ask");
   const [keyboardInsetPx, setKeyboardInsetPx] = useState(0);
+  const keyboardBaselineHRef = useRef<number | null>(null);
   const [highlights, setHighlights] = useState<Set<number>>(initialHighlights);
   const [highlightIds, setHighlightIds] = useState<Map<number, string>>(initialHighlightIds);
   const [favorites, setFavorites] = useState<Map<number, string>>(initialFavorites);
@@ -165,8 +166,20 @@ export function ReaderView({
   useEffect(() => {
     if (!isMobile || !panelOpen) {
       setKeyboardInsetPx(0);
+      keyboardBaselineHRef.current = null;
       return;
     }
+
+    // Capture a baseline layout viewport height before the keyboard opens.
+    // Some iOS contexts under-report keyboard changes in `visualViewport`.
+    if (keyboardBaselineHRef.current == null) {
+      const baseline =
+        document.documentElement?.clientHeight && document.documentElement.clientHeight > 0
+          ? document.documentElement.clientHeight
+          : window.innerHeight;
+      keyboardBaselineHRef.current = baseline;
+    }
+
     const vv = window.visualViewport;
     if (!vv) {
       setKeyboardInsetPx(0);
@@ -181,18 +194,23 @@ export function ReaderView({
         document.documentElement?.clientHeight && document.documentElement.clientHeight > 0
           ? document.documentElement.clientHeight
           : window.innerHeight;
-      const inset = Math.max(0, layoutH - vv.height - (vv.offsetTop ?? 0));
-      setKeyboardInsetPx(Math.min(500, Math.round(inset)));
+      const vvInset = Math.max(0, layoutH - vv.height - (vv.offsetTop ?? 0));
+      const baseline = keyboardBaselineHRef.current ?? layoutH;
+      const layoutInset = Math.max(0, baseline - layoutH);
+      const inset = Math.max(vvInset, layoutInset);
+      setKeyboardInsetPx(Math.min(600, Math.round(inset)));
     };
 
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     window.addEventListener("orientationchange", update);
+    window.addEventListener("resize", update);
     return () => {
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
       window.removeEventListener("orientationchange", update);
+      window.removeEventListener("resize", update);
     };
   }, [isMobile, panelOpen]);
 
