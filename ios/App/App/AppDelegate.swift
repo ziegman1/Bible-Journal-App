@@ -6,6 +6,7 @@ import WebKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private var didForceReloadFromOrigin = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Reduce stale WKWebView caching for remote-hosted apps (server.url).
@@ -34,7 +35,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Force a single reload-from-origin per launch to bypass any stale WKWebView caches
+        // without changing the remote server.url shape (keeps loading inside the WebView).
+        if didForceReloadFromOrigin { return }
+        didForceReloadFromOrigin = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let cap = self.window?.rootViewController as? CAPBridgeViewController {
+                cap.webView?.reloadFromOrigin()
+            }
+        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
