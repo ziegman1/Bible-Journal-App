@@ -59,12 +59,12 @@ export function SiteFooter({
         <span className="opacity-40" aria-hidden>
           ·
         </span>
-        <a
-          href={getPublicSupportMailtoHref()}
+        <Link
+          href="/support"
           className="underline underline-offset-2 text-stone-700 dark:text-stone-300 min-h-[44px] min-w-[44px] inline-flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:inline"
         >
           Support
-        </a>
+        </Link>
       </nav>
       <p
         className={cn(

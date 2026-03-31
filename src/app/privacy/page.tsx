@@ -7,8 +7,7 @@ import {
   getPublicSupportEmail,
   getPublicSupportMailtoHref,
   LEGAL_DOCUMENTS_LAST_UPDATED,
-  LEGAL_DOC_PLACEHOLDERS,
-  PLACEHOLDER_LEGAL_ENTITY,
+  PUBLIC_APP_WEBSITE,
 } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -16,55 +15,48 @@ export const metadata: Metadata = {
   description: `How ${APP_MARKETING_NAME} collects, uses, and protects your information.`,
 };
 
-const P = LEGAL_DOC_PLACEHOLDERS.privacy;
-
 export default function PrivacyPolicyPage() {
-  return (
-    <LegalPageLayout
-      title="Privacy Policy"
-      lastUpdated={LEGAL_DOCUMENTS_LAST_UPDATED}
-    >
-      <p className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-950 dark:text-amber-100">
-        <strong>Template notice.</strong> Replace all{" "}
-        <code className="text-[0.8em]">TODO — Legal:</code> lines and{" "}
-        <code className="text-[0.8em]">PLACEHOLDER_LEGAL_ENTITY</code> in{" "}
-        <code className="text-[0.8em]">src/lib/site-config.ts</code> with
-        accurate, counsel-reviewed text before you rely on this policy. This document is not legal
-        advice.
-      </p>
+  const mail = getPublicSupportEmail();
+  const mailto = getPublicSupportMailtoHref();
 
+  return (
+    <LegalPageLayout title="Privacy Policy" lastUpdated={LEGAL_DOCUMENTS_LAST_UPDATED}>
       <section>
-        <h2>Who we are</h2>
+        <h2>Overview</h2>
         <p>
-          <strong>{APP_SHORT_NAME}</strong> (“we,” “us”) operates the Service, including this website
-          and related features. The operator is described as{" "}
-          <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong>. Contact:{" "}
-          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
-            {getPublicSupportEmail()}
+          <strong>{APP_SHORT_NAME}</strong> (<strong>{APP_MARKETING_NAME}</strong>) helps you with
+          discipleship practices—including journaling, prayer, logging share conversations, groups,
+          and related tools. This policy explains what information we may handle and how we use it.
+          The public URL of this policy is <strong>{getPrivacyPolicyUrl()}</strong>. Our website is{" "}
+          <a
+            className="text-primary underline underline-offset-2"
+            href={PUBLIC_APP_WEBSITE}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {PUBLIC_APP_WEBSITE.replace(/^https:\/\//, "")}
           </a>
-          . The public URL of this policy is <strong>{getPrivacyPolicyUrl()}</strong>.
+          .
         </p>
       </section>
 
       <section>
-        <h2>Information we collect</h2>
+        <h2>Information we may collect</h2>
         <ul>
           <li>
-            <strong>Account data:</strong> such as email address, display name, and authentication
-            credentials processed by our auth provider — {P.authProviderDetail}
+            <strong>Account information</strong> — such as email address, display name, and data
+            needed to sign you in and keep your account working (processed with the help of our
+            authentication and hosting providers).
           </li>
           <li>
-            <strong>Content you provide:</strong> journal entries, reflections, reading activity,
-            prayer logs, group participation, and other materials you submit inside the Service.
+            <strong>Content you create</strong> — journal entries, reflections, prayer or share
+            logs, reading activity, group participation, and other material you save in the app.
           </li>
           <li>
-            <strong>Technical &amp; usage data:</strong> device/browser type, approximate location
-            derived from IP (if collected by our host or analytics), timestamps, pages viewed,
-            diagnostic logs, and error reports — {P.technicalInfrastructure}
-          </li>
-          <li>
-            <strong>Communications:</strong> messages you send to support and (if applicable)
-            transactional emails we send you.
+            <strong>Usage-related data</strong> — information needed to run and improve the service,
+            such as basic device or browser details, timestamps, diagnostic or error information,
+            and similar technical data our infrastructure may log in the ordinary course of
+            operation.
           </li>
         </ul>
       </section>
@@ -72,114 +64,72 @@ export default function PrivacyPolicyPage() {
       <section>
         <h2>How we use information</h2>
         <ul>
-          <li>Provide, secure, and improve the Service and its features</li>
-          <li>Authenticate accounts and maintain sessions</li>
-          <li>Store and sync your user-generated content</li>
-          <li>Operate groups, invites, and collaboration features you choose to use</li>
-          <li>Respond to support requests and enforce our Terms of Service</li>
-          <li>Comply with law or protect rights and safety, as required</li>
-          <li>{P.additionalPurposes}</li>
+          <li>Provide app features you choose to use</li>
+          <li>Keep the service reliable and improve how it works</li>
+          <li>Maintain security and help prevent abuse</li>
+          <li>Support journaling, prayer, share logging, groups, and related features</li>
+          <li>Respond when you contact us and enforce our Terms of Service when needed</li>
         </ul>
       </section>
 
       <section>
-        <h2>Cookies, local storage, and similar technologies</h2>
+        <h2>We do not sell your personal data</h2>
         <p>
-          The Service may use cookies, browser local storage, or similar mechanisms to keep you
-          signed in and to remember preferences. Session cookies from our authentication provider are
-          typically essential for the Service to function. {P.cookieDetails}
+          {APP_SHORT_NAME} does not sell your personal information. We use data to operate and
+          improve the app, not to sell it to data brokers.
         </p>
       </section>
 
       <section>
-        <h2>Third parties and processors</h2>
-        <p>We rely on vendors to run the Service, including (update to match your stack):</p>
-        <ul>
-          <li>
-            <strong>Hosting &amp; application:</strong> {P.hostingVendor}
-          </li>
-          <li>
-            <strong>Database &amp; authentication:</strong> {P.databaseAuthVendor}
-          </li>
-          <li>
-            <strong>Email / transactional messages:</strong> {P.emailVendor}
-          </li>
-          <li>
-            <strong>AI or scripture APIs (if enabled):</strong> {P.aiAndScriptureVendors}
-          </li>
-        </ul>
-        <p>{P.vendorPrivacyLinks}</p>
-      </section>
-
-      <section>
-        <h2>User-generated content</h2>
+        <h2>Service providers and legal requests</h2>
         <p>
-          You control what you write in your journal and related features. Other members may see
-          content you share in groups according to those features’ designs. Do not post unlawful or
-          harmful material; see the Terms of Service.
-        </p>
-      </section>
-
-      <section>
-        <h2>Retention</h2>
-        <p>
-          We retain information while your account is active and for a reasonable period afterward to
-          resolve disputes, enforce agreements, and meet legal obligations. {P.retentionSchedule}
+          We may share information with trusted service providers (for example hosting,
+          authentication, email, or similar services) only as needed to run {APP_SHORT_NAME}. Those
+          providers are expected to use the information only for the services they provide to us. We
+          may also disclose information if we believe in good faith it is required by law or to
+          protect the safety and rights of users or the public.
         </p>
       </section>
 
       <section>
         <h2>Security</h2>
         <p>
-          We implement reasonable administrative, technical, and organizational measures to protect
-          information. No method of transmission or storage is completely secure. {P.securitySummary}
+          We take reasonable steps designed to protect your information. No online service can
+          promise perfect security; if you have concerns, contact us using the email below.
         </p>
       </section>
 
       <section>
-        <h2>Your rights and choices</h2>
+        <h2>Your choices and deletion</h2>
         <p>
-          Depending on where you live, you may have rights to access, correct, delete, export, or
-          restrict processing of your personal data, and to object to certain uses. To exercise
-          rights, contact us using the information in the Contact section. {P.regionalPrivacyRights}
+          You may contact us to request help with your account or to ask about deleting your data.
+          We will respond in line with applicable law and what we can reasonably do with our
+          systems.
         </p>
       </section>
 
       <section>
         <h2>Children</h2>
-        <p>{P.childAgeThreshold}</p>
         <p>
-          We do not knowingly collect personal information from people who do not meet the
-          eligibility requirements stated in your final policy. If you believe we have collected
-          information improperly, contact us. {P.childrensPrivacyRules}
-        </p>
-      </section>
-
-      <section>
-        <h2>International transfers</h2>
-        <p>
-          If your data is processed in countries other than your own, describe safeguards (e.g.,
-          Standard Contractual Clauses) here: {P.internationalTransfers}
+          {APP_SHORT_NAME} is not intended for young children. If you believe we have collected
+          information from a child inappropriately, please contact us.
         </p>
       </section>
 
       <section>
         <h2>Changes</h2>
         <p>
-          We may update this Privacy Policy from time to time. We will post the new version here and
-          update the “Last updated” date. {P.materialChangeNotice}
+          We may update this policy from time to time. We will post the revised version here and
+          update the &quot;Last updated&quot; note at the top.
         </p>
       </section>
 
-      <section id="legal-contact">
+      <section id="contact">
         <h2>Contact</h2>
         <p>
-          Questions about this policy:{" "}
-          <a
-            className="text-primary underline underline-offset-2"
-            href={getPublicSupportMailtoHref()}
-          >
-            contact support
+          Questions about privacy:{" "}
+          <a className="text-primary underline underline-offset-2" href={mailto}>
+            {mail}
           </a>
           .
         </p>

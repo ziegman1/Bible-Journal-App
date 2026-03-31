@@ -3,11 +3,11 @@ import { LegalPageLayout } from "@/components/legal-page-layout";
 import {
   APP_MARKETING_NAME,
   APP_SHORT_NAME,
+  getPublicSupportEmail,
   getPublicSupportMailtoHref,
   getTermsOfServiceUrl,
   LEGAL_DOCUMENTS_LAST_UPDATED,
-  LEGAL_DOC_PLACEHOLDERS,
-  PLACEHOLDER_LEGAL_ENTITY,
+  PUBLIC_APP_WEBSITE,
 } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -15,172 +15,113 @@ export const metadata: Metadata = {
   description: `Terms governing use of ${APP_MARKETING_NAME}.`,
 };
 
-const T = LEGAL_DOC_PLACEHOLDERS.terms;
-
 export default function TermsOfServicePage() {
+  const mail = getPublicSupportEmail();
+  const mailto = getPublicSupportMailtoHref();
+
   return (
-    <LegalPageLayout
-      title="Terms of Service"
-      lastUpdated={LEGAL_DOCUMENTS_LAST_UPDATED}
-    >
-      <p className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-950 dark:text-amber-100">
-        <strong>Template notice.</strong> Replace all{" "}
-        <code className="text-[0.8em]">TODO — Legal:</code> lines and{" "}
-        <code className="text-[0.8em]">PLACEHOLDER_LEGAL_ENTITY</code> in{" "}
-        <code className="text-[0.8em]">src/lib/site-config.ts</code> with accurate,
-        counsel-reviewed terms before you rely on this document. This is not legal advice.
-      </p>
-
+    <LegalPageLayout title="Terms of Service" lastUpdated={LEGAL_DOCUMENTS_LAST_UPDATED}>
       <section>
-        <h2>Agreement to terms</h2>
+        <h2>Agreement</h2>
         <p>
-          These Terms of Service (“Terms”) govern your access to and use of{" "}
-          <strong>{APP_SHORT_NAME}</strong> (the “Service”) by <strong>{PLACEHOLDER_LEGAL_ENTITY}</strong>{" "}
-          (“we,” “us”). By creating an account or using the Service, you agree to these Terms. The
-          current Terms are available at <strong>{getTermsOfServiceUrl()}</strong>. If you do not
-          agree, do not use the Service.
+          These Terms of Service (&quot;Terms&quot;) apply to <strong>{APP_SHORT_NAME}</strong> (
+          <strong>{APP_MARKETING_NAME}</strong>), available at{" "}
+          <a
+            className="text-primary underline underline-offset-2"
+            href={PUBLIC_APP_WEBSITE}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {PUBLIC_APP_WEBSITE.replace(/^https:\/\//, "")}
+          </a>
+          . By creating an account or using the service, you agree to use it responsibly and to
+          these Terms. The current Terms are at <strong>{getTermsOfServiceUrl()}</strong>. If you
+          do not agree, please do not use the service.
         </p>
       </section>
 
       <section>
-        <h2>Eligibility</h2>
-        <p>
-          You represent that you meet the minimum age and capacity requirements in{" "}
-          <strong>{T.eligibilityJurisdiction}</strong> and that you are not barred from using the
-          Service under applicable law.
-        </p>
+        <h2>Your responsibility</h2>
+        <ul>
+          <li>
+            You are responsible for what you write, upload, or share in the app, including journal
+            entries, prayers, share logs, and group participation.
+          </li>
+          <li>
+            You are responsible for keeping your login credentials secure and for activity under
+            your account. Tell us promptly at{" "}
+            <a className="text-primary underline underline-offset-2" href={mailto}>
+              {mail}
+            </a>{" "}
+            if you suspect unauthorized access.
+          </li>
+        </ul>
       </section>
 
       <section>
-        <h2>Accounts</h2>
+        <h2>The service &quot;as is&quot;</h2>
         <p>
-          You are responsible for safeguarding your credentials and for activity under your account.
-          Notify us promptly at{" "}
-          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
-            support
-          </a>{" "}
-          of unauthorized use. We may suspend or terminate accounts that violate these Terms or harm
-          the Service or other users.
+          {APP_SHORT_NAME} is provided <strong>as is</strong> and <strong>as available</strong>. We
+          do not guarantee specific spiritual outcomes, uninterrupted access, or that the app will
+          meet every expectation. The app offers tools for discipleship and reflection; it is not a
+          substitute for professional pastoral care, medical advice, or legal advice.
         </p>
       </section>
 
       <section>
         <h2>Acceptable use</h2>
-        <p>You agree not to:</p>
+        <p>You agree not to misuse the service—for example:</p>
         <ul>
-          <li>Violate any law or third-party rights</li>
-          <li>Harass, abuse, defraud, or impersonate others</li>
-          <li>Upload malware or attempt to disrupt or probe our systems</li>
-          <li>
-            Scrape, overload, or automate access in a way that impairs the Service (except as we
-            expressly allow)
-          </li>
-          <li>
-            Reverse engineer or attempt to extract source code except where prohibited law does not
-            allow this restriction
-          </li>
-          <li>
-            Use the Service to build a competing product using our proprietary materials without
-            permission
-          </li>
+          <li>Breaking the law or violating others&apos; rights</li>
+          <li>Harassing others or attempting to harm the service or its users</li>
+          <li>Trying to break in, overload, or scrape the service beyond normal personal use</li>
         </ul>
-        <p>{T.extraAcceptableUse}</p>
       </section>
 
       <section>
-        <h2>Intellectual property</h2>
+        <h2>Enforcement</h2>
         <p>
-          The Service, including its branding, design, and original software, is owned by us and our
-          licensors. Public-domain or licensed scripture text may appear for reading; third-party
-          rights in such text remain with their owners or licensors as applicable.{" "}
-          {T.scriptureLicensing}
-        </p>
-      </section>
-
-      <section>
-        <h2>Your content</h2>
-        <p>
-          You retain ownership of content you create. To operate the Service, you grant us a
-          non-exclusive license to host, store, process, display, and transmit your content solely
-          to provide and improve the Service for you, per features you use (including sync and group
-          sharing). {T.aiTraining}
+          We may suspend or remove accounts that violate these Terms, misuse {APP_SHORT_NAME}, or
+          create risk for the community, subject to applicable law.
         </p>
       </section>
 
       <section>
         <h2>Third-party services</h2>
         <p>
-          The Service may integrate third-party providers (hosting, auth, email, etc.). Their terms
-          and privacy policies apply to their processing. {T.thirdPartyList}
-        </p>
-      </section>
-
-      <section>
-        <h2>Disclaimers</h2>
-        <p>
-          THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE.” TO THE MAXIMUM EXTENT PERMITTED BY LAW,
-          WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A
-          PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE SERVICE OFFERS SPIRITUAL PRACTICE TOOLS AND
-          DISCIPLESHIP FEATURES; IT IS NOT A SUBSTITUTE FOR PROFESSIONAL PASTORAL, MEDICAL, OR
-          LEGAL ADVICE. {T.disclaimerJurisdiction}
+          The app relies on vendors (such as hosting and authentication). Their own terms and
+          privacy policies apply to how they process data on their side.
         </p>
       </section>
 
       <section>
         <h2>Limitation of liability</h2>
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE WILL NOT BE LIABLE FOR ANY INDIRECT,
-          INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR LOSS OF PROFITS, DATA, OR
-          GOODWILL. OUR AGGREGATE LIABILITY ARISING OUT OF THESE TERMS OR THE SERVICE WILL NOT
-          EXCEED THE GREATER OF <strong>{T.liabilityCapFees}</strong> OR{" "}
-          <strong>{T.liabilityMinimumSafeHarbor}</strong>, EXCEPT WHERE LIABILITY CANNOT BE LIMITED BY
-          LAW (E.G., GROSS NEGLIGENCE OR WILLFUL MISCONDUCT, WHERE APPLICABLE).
-        </p>
-      </section>
-
-      <section>
-        <h2>Indemnity</h2>
-        <p>
-          You will defend and indemnify us against claims arising from your content or your misuse of
-          the Service, to the extent permitted by <strong>{T.indemnityJurisdiction}</strong>.
-        </p>
-      </section>
-
-      <section>
-        <h2>Termination</h2>
-        <p>
-          You may stop using the Service at any time. We may suspend or terminate access for breach,
-          risk, or operational reasons. {T.dataExportOnTermination}
-        </p>
-      </section>
-
-      <section>
-        <h2>Governing law &amp; disputes</h2>
-        <p>
-          These Terms are governed by the laws of <strong>{T.governingLawRegion}</strong>, without
-          regard to conflict-of-law rules. Disputes will be resolved in{" "}
-          <strong>{T.disputeResolution}</strong>. Consumers in certain regions may have non-waivable
-          rights — {T.euConsumerDisputes}
+          To the fullest extent permitted by law, we are not liable for indirect or consequential
+          damages arising from your use of {APP_SHORT_NAME}. Our total liability for claims related
+          to the service is limited to the greater of (a) amounts you paid us for the service in the
+          12 months before the claim, or (b) fifty U.S. dollars (USD), except where the law does not
+          allow that limit.
         </p>
       </section>
 
       <section>
         <h2>Changes</h2>
         <p>
-          We may modify these Terms. We will post updates here and note the “Last updated” date.
-          Continued use after changes constitutes acceptance where law allows, subject to{" "}
-          {T.materialTermsChangeNotice}
+          We may update these Terms. We will post the new version here and update the date above.
+          Continuing to use the service after changes means you accept the updated Terms where the
+          law allows.
         </p>
       </section>
 
       <section>
         <h2>Contact</h2>
         <p>
-          <a className="text-primary underline underline-offset-2" href={getPublicSupportMailtoHref()}>
-            Contact support
-          </a>{" "}
-          for questions about these Terms (or see the Privacy Policy contact section if no mailbox is
-          configured yet).
+          Questions about these Terms:{" "}
+          <a className="text-primary underline underline-offset-2" href={mailto}>
+            {mail}
+          </a>
+          .
         </p>
       </section>
     </LegalPageLayout>

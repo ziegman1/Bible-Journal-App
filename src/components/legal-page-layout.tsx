@@ -3,7 +3,7 @@ import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_NAME } from "@/lib/site-config";
 
-/** Shared chrome for /privacy and /terms — mobile-first readable column. */
+/** Shared chrome for /privacy, /terms, and /support — mobile-first readable column. */
 export function LegalPageLayout({
   title,
   lastUpdated,
