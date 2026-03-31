@@ -145,7 +145,7 @@ export function InlinePassageReflectionForm({
   return (
     <div
       ref={formRef}
-      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col min-h-0 h-full overflow-hidden" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
+      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col min-h-0" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
     >
       {passageText ? (
         <div className={compact ? "shrink-0" : "md:w-1/2 md:min-w-0 shrink-0"}>
@@ -166,10 +166,10 @@ export function InlinePassageReflectionForm({
         className={`flex-1 min-w-0 ${
           passageText
             ? compact
-              ? "min-h-0 overflow-y-auto pr-1 pt-4"
+              ? "min-h-0 pt-4"
               : "space-y-5 md:border-l md:border-stone-200 md:dark:border-stone-800 md:pl-4"
             : compact
-              ? "min-h-0 overflow-y-auto pr-1"
+              ? "min-h-0"
               : "space-y-5"
         }`}
       >
