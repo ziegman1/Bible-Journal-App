@@ -139,9 +139,24 @@ export function InlinePassageReflectionForm({
   return (
     <div
       ref={formRef}
-      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
+      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col max-h-[70dvh] overflow-hidden" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
     >
-      {passageText && (
+      {passageText && compact ? (
+        <div className="shrink-0">
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-3 bg-card border-b border-border">
+            <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
+              Selected passage
+            </h3>
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-500">
+              Type the verses word for word in Scripture below (you can copy from here if
+              helpful).
+            </p>
+            <div className="mt-3 max-h-[25dvh] overflow-auto pr-1 text-stone-600 dark:text-stone-400 text-sm font-serif leading-relaxed">
+              {passageText}
+            </div>
+          </div>
+        </div>
+      ) : passageText ? (
         <div className={compact ? "shrink-0" : "md:w-1/2 md:min-w-0 shrink-0"}>
           <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
             Selected passage
@@ -154,21 +169,24 @@ export function InlinePassageReflectionForm({
             {passageText}
           </div>
         </div>
-      )}
+      ) : null}
+
       <div
-        className={`flex-1 min-w-0 space-y-5 ${
+        className={`flex-1 min-w-0 ${
           passageText
             ? compact
-              ? "border-t border-border pt-4"
-              : "md:border-l md:border-stone-200 md:dark:border-stone-800 md:pl-4"
-            : ""
+              ? "min-h-0 overflow-y-auto pr-1 pt-4"
+              : "space-y-5 md:border-l md:border-stone-200 md:dark:border-stone-800 md:pl-4"
+            : compact
+              ? "min-h-0 overflow-y-auto pr-1"
+              : "space-y-5"
         }`}
       >
         <h3 className="text-sm font-semibold text-stone-800 dark:text-stone-200">
           SOAPS{passageText ? "" : ` — ${reference}`}
         </h3>
 
-        <div className="space-y-4">
+        <div className={compact ? "space-y-4" : "space-y-4"}>
           <SoapsFieldRow letter="S" label="Scripture" htmlFor="inline-scripture">
             <Textarea
               id="inline-scripture"
