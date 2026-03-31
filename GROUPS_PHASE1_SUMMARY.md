@@ -56,7 +56,7 @@ As written, 007 is a single migration that supports both phases.
    - (008_preset_stories_seed.sql is Phase 2 only; skip for Phase 1)
 
 2. **Environment**
-   - `NEXT_PUBLIC_SITE_URL` set for invite links (e.g. `https://www.logosflow.app`)
+   - `NEXT_PUBLIC_SITE_URL` set for invite links (e.g. `https://www.badwr.app`)
 
 3. **Auth redirect**
    - Add `/app/groups/invite/*` to Supabase Auth → URL Configuration → Redirect URLs if needed (invite accept redirects after login)

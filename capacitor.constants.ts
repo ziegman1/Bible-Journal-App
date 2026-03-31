@@ -5,9 +5,9 @@
  * Native `appId` must stay in sync with:
  * - `android/app/build.gradle` → `applicationId`
  * - `ios/.../project.pbxproj` → `PRODUCT_BUNDLE_IDENTIFIER`
- * When rebranding, update all three (or set CAPACITOR_APP_ID after native updates).
+ * Keep in sync with synced `capacitor.config.json` under ios/android (or set `CAPACITOR_APP_ID`).
  */
-export const DEFAULT_CAPACITOR_APP_ID = "app.logosflow.biblejournal";
+export const DEFAULT_CAPACITOR_APP_ID = "app.badwr.beadiscipleworthreproducing";
 
 export const DEFAULT_CAPACITOR_APP_NAME = "BADWR";
 

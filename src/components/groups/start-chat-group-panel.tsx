@@ -62,7 +62,7 @@ export function StartChatGroupPanel({
     }
     if (currentUserEmail && em === currentUserEmail) {
       setErr(
-        "Use a different email than your Logosflow account. Invite a friend’s address, or create the group and share the invite link to another device/account."
+        "Use a different email than your BADWR account. Invite a friend’s address, or create the group and share the invite link to another device/account."
       );
       return;
     }
@@ -133,7 +133,7 @@ export function StartChatGroupPanel({
         </CardTitle>
         <CardDescription className="text-stone-600 dark:text-stone-400">
           Create a small accountability group (up to three people), email an invite, then
-          share the same link by text if you like. They sign up or sign in with Logosflow
+          share the same link by text if you like. They sign up or sign in with BADWR
           like any other invite.
         </CardDescription>
       </CardHeader>

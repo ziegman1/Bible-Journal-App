@@ -113,7 +113,7 @@ export default async function GroupsPage() {
       {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID ? (
         <p
           className="text-[10px] text-stone-400 dark:text-stone-500 pt-4 border-t border-border font-mono"
-          title="If this is empty on logosflow.app but shows an id on biblejournalapp.vercel.app, the custom domain is pointed at a different deployment."
+          title="If this list is empty on www.badwr.app but shows data on your *.vercel.app preview, the custom domain may point at a different Vercel project or deployment."
         >
           Deploy: {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID}
         </p>

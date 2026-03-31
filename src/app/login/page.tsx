@@ -21,7 +21,11 @@ export default async function LoginPage({
         <div className="text-center space-y-4">
           <h1 className="sr-only">Sign in</h1>
           <div className="flex justify-center">
-            <BadwrLogo variant="auth" priority />
+            <BadwrLogo
+              variant="auth"
+              priority
+              className="h-[7.2rem] w-[7.2rem] sm:h-[8.4rem] sm:w-[8.4rem]"
+            />
           </div>
         </div>
 

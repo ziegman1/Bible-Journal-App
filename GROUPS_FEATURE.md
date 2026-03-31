@@ -2,7 +2,7 @@
 
 ## Overview
 
-The 3/3rds Groups feature adds structured disciple-making groups to BADWR / LogosFlow. Users can form groups, invite members, run meetings using the Look Back / Look Up / Look Forward process, record responses, and carry commitments forward for accountability.
+The 3/3rds Groups feature adds structured disciple-making groups to BADWR. Users can form groups, invite members, run meetings using the Look Back / Look Up / Look Forward process, record responses, and carry commitments forward for accountability.
 
 ## Database Schema
 

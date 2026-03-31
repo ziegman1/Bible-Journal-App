@@ -80,7 +80,7 @@ dotenv -e .env.local -- npx tsx scripts/verify-auth-site-config.ts
 
 | Asset | Notes |
 |-------|--------|
-| **Web favicon / Apple / OG** | Generated routes: `src/app/icon.tsx`, `src/app/apple-icon.tsx`, `src/app/opengraph-image.tsx` — adjust or replace with static files per `public/store-assets/README.md` |
+| **Web favicon / Apple / OG** | Static: `public/favicon.ico`, `public/icon.png`, `public/apple-icon.png`; `src/app/icon.png`, `src/app/favicon.ico`; `src/app/opengraph-image.png`, `src/app/twitter-image.png`. Regenerate favicons: `npm run assets:favicon`. See `public/store-assets/README.md`. |
 | **PWA manifest** | `src/app/manifest.ts` — uses `site-config` names & colors |
 | **Capacitor splash** | iOS `Assets.xcassets`, Android `drawable*` — see `public/store-assets/README.md` and [MOBILE_DEPLOYMENT.md](./MOBILE_DEPLOYMENT.md) |
 | **App Store screenshots** | Capture against **staging/production** with final branding; sizes per current [Apple screenshot specs](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications) |

@@ -48,28 +48,28 @@ async function main() {
 
   await testCase(
     "explicit https URL",
-    { NEXT_PUBLIC_SITE_URL: "https://www.logosflow.app" },
-    "https://www.logosflow.app"
+    { NEXT_PUBLIC_SITE_URL: "https://www.badwr.app" },
+    "https://www.badwr.app"
   );
   await testCase(
     "host only → https",
-    { NEXT_PUBLIC_SITE_URL: "www.logosflow.app" },
-    "https://www.logosflow.app"
+    { NEXT_PUBLIC_SITE_URL: "www.badwr.app" },
+    "https://www.badwr.app"
   );
   await testCase(
     "trailing slash stripped",
-    { NEXT_PUBLIC_SITE_URL: "https://www.logosflow.app/" },
-    "https://www.logosflow.app"
+    { NEXT_PUBLIC_SITE_URL: "https://www.badwr.app/" },
+    "https://www.badwr.app"
   );
   await testCase(
     "VERCEL_URL fallback (no SITE_URL)",
-    { VERCEL_URL: "bible-journal-abc.vercel.app" },
-    "https://bible-journal-abc.vercel.app"
+    { VERCEL_URL: "badwr-abc.vercel.app" },
+    "https://badwr-abc.vercel.app"
   );
   await testCase(
     "VERCEL_URL with scheme stripped",
-    { VERCEL_URL: "https://bible-journal-abc.vercel.app" },
-    "https://bible-journal-abc.vercel.app"
+    { VERCEL_URL: "https://badwr-abc.vercel.app" },
+    "https://badwr-abc.vercel.app"
   );
   await testCase(
     "localhost when neither set",

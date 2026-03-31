@@ -1,4 +1,4 @@
-package app.logosflow.biblejournal;
+package app.badwr.beadiscipleworthreproducing;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { isPublicDiagnosticsBlocked } from "@/lib/diagnostics-api-gate";
 
-/** Lightweight check that Supabase URL is reachable. Does not expose credentials. */
+/** Lightweight check that Supabase URL is reachable. Disabled in production (see diagnostics-api-gate). */
 export async function GET() {
+  if (isPublicDiagnosticsBlocked()) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 

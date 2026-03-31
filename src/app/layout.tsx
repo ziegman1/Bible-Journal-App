@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Title, description, Open Graph, Twitter, and favicons (`/favicon.ico`, `/icon.png`, `/apple-icon.png`).
+ * @see buildRootMetadata in `@/lib/site-config`
+ */
 export const metadata: Metadata = buildRootMetadata();
 
 export const viewport: Viewport = {

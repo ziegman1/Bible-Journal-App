@@ -1,24 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { APP_LOGO_ALT, APP_LOGO_PATH } from "@/lib/site-config";
+import {
+  APP_LOGO_ALT,
+  APP_LOGO_PATH_DARK,
+  APP_LOGO_PATH_LIGHT,
+} from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
-/** Source asset dimensions (fixed ratio for `next/image`). */
+/** Source asset dimensions — square UI logos (light PNG and dark JPEG are both 1024×1024). */
 const LOGO_WIDTH = 1024;
-const LOGO_HEIGHT = 541;
+const LOGO_HEIGHT = 1024;
 
 const VARIANT_CLASS = {
-  /** Landing hero — readable slogan, mobile-first. */
-  hero: "h-20 w-auto max-w-[min(100%,22rem)] sm:h-28 sm:max-w-xl md:h-32",
-  /** Auth and similar centered stacks. */
-  auth: "h-16 w-auto max-w-[min(100%,18rem)] sm:h-20 sm:max-w-md",
-  /** Sidebar / legal header next to wordmark. */
-  compact: "h-9 w-auto max-w-[5.5rem] shrink-0 sm:h-10 sm:max-w-[6.25rem]",
-  /** Dense chrome (e.g. mobile app bar). */
-  micro: "h-7 w-auto max-w-[4.5rem] shrink-0 sm:h-8 sm:max-w-[5.25rem]",
-  /** Footer — subtle but recognizable. */
-  footer: "h-8 w-auto max-w-[8rem] shrink-0 opacity-95 sm:h-9 sm:max-w-[9rem]",
+  /** Landing hero */
+  hero: "h-28 w-28 sm:h-36 sm:w-36 md:h-40 md:w-40",
+  /** Login, signup, onboarding */
+  auth: "h-24 w-24 sm:h-28 sm:w-28",
+  /** Sidebar / legal header */
+  compact: "h-10 w-10 shrink-0 sm:h-11 sm:w-11",
+  /** Mobile app bar */
+  micro: "h-8 w-8 shrink-0 sm:h-9 sm:w-9",
+  /** Footer */
+  footer: "h-9 w-9 shrink-0 opacity-95 sm:h-10 sm:w-10",
 } as const;
 
 export type BadwrLogoVariant = keyof typeof VARIANT_CLASS;
@@ -33,14 +37,30 @@ export function BadwrLogo({
   /** Set on LCP / above-the-fold heroes. */
   priority?: boolean;
 }) {
+  const base = cn(
+    VARIANT_CLASS[variant],
+    "object-contain object-center",
+    className,
+  );
+
   return (
-    <Image
-      src={APP_LOGO_PATH}
-      alt={APP_LOGO_ALT}
-      width={LOGO_WIDTH}
-      height={LOGO_HEIGHT}
-      className={cn(VARIANT_CLASS[variant], "object-contain object-center", className)}
-      priority={priority}
-    />
+    <span className="inline-flex shrink-0">
+      <Image
+        src={APP_LOGO_PATH_LIGHT}
+        alt={APP_LOGO_ALT}
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        className={cn(base, "badwr-logo-light")}
+        priority={priority}
+      />
+      <Image
+        src={APP_LOGO_PATH_DARK}
+        alt={APP_LOGO_ALT}
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        className={cn(base, "badwr-logo-dark")}
+        priority={priority}
+      />
+    </span>
   );
 }

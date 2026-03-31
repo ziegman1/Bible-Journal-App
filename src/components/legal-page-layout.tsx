@@ -16,7 +16,7 @@ export function LegalPageLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="shrink-0 border-b border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center px-4 py-4">
+        <div className="mx-auto flex max-w-2xl items-center px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
           <Link
             href="/"
             aria-label={`${APP_NAME} home`}

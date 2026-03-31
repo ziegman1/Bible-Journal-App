@@ -1,5 +1,5 @@
 {
-  "name": "bible-journal",
+  "name": "badwr",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,7 @@
     "start": "next start",
     "deploy": "vercel --prod",
     "lint": "eslint",
+    "assets:favicon": "python3 scripts/generate-favicon-assets.py",
     "cap:sync": "npx cap sync",
     "cap:sync:local": "dotenv -e .env.local -- npx cap sync ios",
     "mobile:ios": "npx cap open ios",

@@ -120,13 +120,13 @@ export default async function InviteAcceptPage({ params }: PageProps) {
         <p className="text-stone-600 dark:text-stone-400">
           <strong>{row.inviter_name ?? "Someone"}</strong> invited you to join{" "}
           <strong>{row.group_name ?? "a group"}</strong>
-          {isChat ? " on Logosflow" : ""}.
+          {isChat ? " on BADWR" : ""}.
         </p>
         {isChat && (
           <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
             CHAT groups are 2–3 people meeting weekly for accountability: check your
             progress, hear the Word, act on it, and tell others. You’ll use the same sign-in
-            or sign-up as any other Logosflow invite.
+            or sign-up as for any other BADWR invite.
           </p>
         )}
         <p className="text-stone-600 dark:text-stone-400">

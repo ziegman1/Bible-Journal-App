@@ -33,7 +33,7 @@ export function appendSharePromoToPlainText(body: string): string {
 
 /**
  * Bottom block for transactional HTML emails (invite messages, etc.).
- * `productTagline` is the existing brand line, e.g. "Logosflow · CHAT".
+ * `productTagline` is the existing brand line, e.g. "BADWR · CHAT".
  */
 export function emailInviteFooterHtml(productTagline: string): string {
   const url = getPublicSiteBaseUrl();

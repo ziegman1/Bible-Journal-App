@@ -9,7 +9,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | **Replace placeholder** – get from [Supabase Dashboard → Project Settings → API](https://supabase.com/dashboard/project/_/settings/api) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon/public key | Added (sb_publishable_...) |
 | `OPENAI_API_KEY` | For Ask AI feature | Add if using AI |
-| `NEXT_PUBLIC_SITE_URL` | Auth / invite email links (e.g. `https://www.logosflow.app`) | **Required in production** on Vercel (see below) |
+| `NEXT_PUBLIC_SITE_URL` | Auth / invite email links (e.g. `https://www.badwr.app`) | **Required in production** on Vercel (see below) |
 
 **Important:** Replace `https://YOUR_PROJECT_REF.supabase.co` in `.env.local` with your actual Supabase project URL (e.g. `https://abcdefgh.supabase.co`).
 
@@ -47,10 +47,10 @@ Creates: insight_summaries table for caching AI-generated insight summaries (use
 4. **Validate import:** `npm run validate-web` (checks 66 books, James, Jude, verse counts).
 5. **Auth → Providers:** Enable Email in Authentication → Providers.
 6. **Auth → URL Configuration** (critical for email confirmation links):
-   - **Site URL:** `https://www.logosflow.app` (must be production for live users)
-   - **Redirect URLs:** add `https://www.logosflow.app/auth/callback`, `http://localhost:3000/auth/callback`, `http://localhost:3001/auth/callback`
+   - **Site URL:** `https://www.badwr.app` (must be production for live users)
+   - **Redirect URLs:** add `https://www.badwr.app/auth/callback`, `http://localhost:3000/auth/callback`, `http://localhost:3001/auth/callback`
    - If Site URL is localhost, confirmation emails will link to localhost and users get a blank screen.
-   - **Vercel:** Set `NEXT_PUBLIC_SITE_URL=https://www.logosflow.app` for every Production deploy. The app also falls back to `VERCEL_URL` if this is missing, but your **canonical domain** should be explicit. Old emails that already contain `localhost` cannot be fixed—ask the user to sign up again from production or use “Resend confirmation” after fixing env + Supabase Site URL.
+   - **Vercel:** Set `NEXT_PUBLIC_SITE_URL=https://www.badwr.app` for every Production deploy. The app also falls back to `VERCEL_URL` if this is missing, but your **canonical domain** should be explicit. Old emails that already contain `localhost` cannot be fixed—ask the user to sign up again from production or use “Resend confirmation” after fixing env + Supabase Site URL.
 7. **Restart dev server** after updating `.env.local`.
 8. **If you see "Unable to connect" / "fetch failed":**
    - Resume a paused Supabase project (Dashboard → Project Settings → General)

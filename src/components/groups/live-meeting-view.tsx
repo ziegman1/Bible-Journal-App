@@ -512,7 +512,7 @@ export function LiveMeetingView({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-white px-3 py-2 shadow-sm sm:px-4">
+      <header className="sticky top-0 z-20 border-b border-border bg-white px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] shadow-sm sm:px-4">
         <div className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="flex min-w-0 items-start gap-2 sm:flex-1 sm:items-center">
             <Link

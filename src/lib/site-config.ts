@@ -5,8 +5,29 @@
 import type { Metadata } from "next";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 
-/** Public logo path (official brand asset in `public/`). */
-export const APP_LOGO_PATH = "/badwr-logo.png";
+/**
+ * Square logo — light background (day / default). Used by favicon script and `BadwrLogo` in light theme.
+ * File: `public/badwr-logo-square.png`.
+ */
+export const APP_LOGO_PATH_LIGHT = "/badwr-logo-square.png";
+
+/**
+ * Square logo — dark background (night). JPEG 1024×1024; `BadwrLogo` switches via `next-themes`.
+ * File: `public/badwr-logo-square-dark.jpg`.
+ */
+export const APP_LOGO_PATH_DARK = "/badwr-logo-square-dark.jpg";
+
+/** @deprecated Prefer {@link APP_LOGO_PATH_LIGHT} — alias kept for scripts expecting `APP_LOGO_PATH`. */
+export const APP_LOGO_PATH = APP_LOGO_PATH_LIGHT;
+
+/**
+ * Wide share / marketing art for link previews (light). Crawlers ignore dark mode; keep one canonical OG asset.
+ * File: `public/badwr-logo-og.png`.
+ */
+export const APP_SHARE_IMAGE_PATH = "/badwr-logo-og.png";
+
+/** Wide logo on dark background — optional (e.g. in-app or future themed previews). `public/badwr-logo-og-dark.png`. */
+export const APP_SHARE_IMAGE_PATH_DARK = "/badwr-logo-og-dark.png";
 
 /** Alt text for logo images (descriptive for screen readers). */
 export const APP_LOGO_ALT =
@@ -40,12 +61,17 @@ export const DEFAULT_PUBLIC_SUPPORT_EMAIL = "support@badwr.app";
  */
 export const LEGAL_DOCUMENTS_LAST_UPDATED = "March 29, 2026";
 
+/*
+ * === PRE-SUBMISSION LEGAL (App Store / counsel) ===
+ * Before public distribution: replace PLACEHOLDER_LEGAL_ENTITY and every TODO in LEGAL_DOC_PLACEHOLDERS
+ * below with counsel-reviewed copy. Do not ship with placeholders if policies are presented as final.
+ */
+
 /**
- * Replace with your real operating entity before relying on policies (counsel should review).
- * This string appears in Privacy and Terms — it is a template, not a statement of incorporation.
+ * Operator identity for Privacy/Terms — not a claim of incorporation until counsel replaces this.
  */
 export const PLACEHOLDER_LEGAL_ENTITY =
-  "TODO — Legal: Legal name of the Service operator, entity type (e.g. sole proprietorship, LLC), and principal jurisdiction.";
+  "[Operator legal name, entity type, and principal jurisdiction to be added before public App Store distribution.]";
 
 /**
  * Template fragments for Privacy and Terms. Edit here only — pages import these keys.
@@ -224,6 +250,14 @@ export function buildRootMetadata(): Metadata {
     applicationName: APP_SHORT_NAME,
     title,
     description: APP_DESCRIPTION,
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      ],
+      shortcut: "/favicon.ico",
+      apple: "/apple-icon.png",
+    },
     openGraph: {
       title: `${APP_SHORT_NAME} · ${APP_TAGLINE}`,
       description: APP_DESCRIPTION,

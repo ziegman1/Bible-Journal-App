@@ -185,6 +185,25 @@
   }
 }
 
+/**
+ * BadwrLogo uses two <img> sources. Tailwind `dark:hidden` compiles to `:is(.dark *)`, which
+ * can fail to apply on some WKWebView builds; tie visibility to `html.dark` from next-themes.
+ */
+@layer components {
+  img.badwr-logo-light {
+    display: block;
+  }
+  img.badwr-logo-dark {
+    display: none;
+  }
+  html.dark img.badwr-logo-light {
+    display: none !important;
+  }
+  html.dark img.badwr-logo-dark {
+    display: block !important;
+  }
+}
+
 /* Process map — subtle diagonal energy drift (top-left → bottom-right) */
 @keyframes pm-map-energy-sweep {
   0% {

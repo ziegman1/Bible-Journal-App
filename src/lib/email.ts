@@ -45,9 +45,9 @@ function buildInviteSubject(inviterName: string): string {
 function buildChatInviteSubject(inviterName: string): string {
   const trimmed = inviterName.trim();
   if (trimmed && trimmed !== GENERIC_INVITER_LABEL) {
-    return `${trimmed} invited you to a CHAT group on Logosflow`;
+    return `${trimmed} invited you to a CHAT group on BADWR`;
   }
-  return "You're invited to a CHAT accountability group on Logosflow";
+  return "You're invited to a CHAT accountability group on BADWR";
 }
 
 export async function sendGroupInviteEmail(params: {
@@ -144,7 +144,7 @@ export async function sendGroupInviteEmail(params: {
                 ${
                   isChat
                     ? `<strong style="color:#1c1917;">${inviterHtml}</strong> invited you to join the CHAT accountability group
-                <strong style="color:#1c1917;">${groupHtml}</strong> on <strong style="color:#1c1917;">Logosflow</strong>.`
+                <strong style="color:#1c1917;">${groupHtml}</strong> on <strong style="color:#1c1917;">BADWR</strong>.`
                     : `<strong style="color:#1c1917;">${inviterHtml}</strong> invited you to join the 3/3rds group
                 <strong style="color:#1c1917;">${groupHtml}</strong> in <strong style="color:#1c1917;">BADWR</strong>.`
                 }
@@ -175,7 +175,7 @@ export async function sendGroupInviteEmail(params: {
               </p>
             </td>
           </tr>
-          ${emailInviteFooterHtml(isChat ? "Logosflow · CHAT groups" : "BADWR · 3/3rds Groups")}
+          ${emailInviteFooterHtml(isChat ? "BADWR · CHAT groups" : "BADWR · 3/3rds Groups")}
         </table>
       </td>
     </tr>
@@ -189,7 +189,7 @@ export async function sendGroupInviteEmail(params: {
     ? [
         textGreeting,
         "",
-        `${inviterName} invited you to join the CHAT group "${groupName}" on Logosflow.`,
+        `${inviterName} invited you to join the CHAT group "${groupName}" on BADWR.`,
         "",
         "CHAT groups are 2–3 same-gender friends meeting weekly for accountability: Check progress, Hear the Word, Act on it, Tell others.",
         "",
@@ -364,7 +364,7 @@ export async function sendChatGrowthInviteEmail(params: {
               </p>
             </td>
           </tr>
-          ${emailInviteFooterHtml("Logosflow · CHAT")}
+          ${emailInviteFooterHtml("BADWR · CHAT")}
         </table>
       </td>
     </tr>

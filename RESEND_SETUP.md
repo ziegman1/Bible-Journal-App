@@ -29,35 +29,21 @@ RESEND_FROM_EMAIL=BADWR <onboarding@resend.dev>
 
 `onboarding@resend.dev` works for local development but **fails or is blocked in production**.
 
-For production (e.g. www.logosflow.app):
+For production (e.g. www.badwr.app):
 
 1. Go to [resend.com/domains](https://resend.com/domains)
-2. Add your domain (e.g. `logosflow.app`)
+2. Add your domain (e.g. `badwr.app`)
 3. Add the DNS records Resend provides (SPF, DKIM) to your domain's DNS
 4. Wait for verification (usually 5–15 minutes)
 5. Set in Vercel:
    ```
-   RESEND_FROM_EMAIL=BADWR <invites@logosflow.app>
+   RESEND_FROM_EMAIL=BADWR <invites@badwr.app>
    ```
    (Use a subdomain like `invites@` or `noreply@`)
 
 ## 4. Test the Setup
 
-### Option A: Debug endpoint
-
-Visit (while logged in or in dev):
-
-```
-https://www.logosflow.app/api/debug-resend
-```
-
-This returns env status. Add `?to=your@email.com` to send a test email:
-
-```
-https://www.logosflow.app/api/debug-resend?to=your@email.com
-```
-
-### Option B: Send a real invite
+### Send a real invite
 
 1. Create a 3/3rds group
 2. Go to Members → Invite by email
