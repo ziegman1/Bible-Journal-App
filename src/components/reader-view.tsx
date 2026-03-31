@@ -1000,41 +1000,49 @@ export function ReaderView({
         >
           <SheetContent
             side="bottom"
-            className="max-h-[85vh] overflow-y-auto rounded-t-xl"
+            className="h-[100dvh] max-h-[100dvh] overflow-hidden rounded-none sm:rounded-t-xl pt-[env(safe-area-inset-top)]"
             showCloseButton={true}
           >
-            <div className="pb-8">
-              <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                {panelMode === "reflection" ? "SOAPS" : "Ask AI"} — {passageRef}
-              </h2>
-              {panelMode === "reflection" ? (
-                <InlinePassageReflectionForm
-                  reference={passageRef}
-                  bookName={bookName}
-                  bookId={bookId}
-                  chapter={chapterNum}
-                  verseStart={selectedRange?.start ?? null}
-                  verseEnd={selectedRange?.end ?? null}
-                  passageText={passageTextContent ?? undefined}
-                  chatSoapsGroupId={chatSoapsGroupId ?? undefined}
-                  compact
-                  onClose={() => setPanelOpen(false)}
-                />
-              ) : (
-                <AskAIPanel
-                  bookId={bookId}
-                  bookName={bookName}
-                  chapter={chapterNum}
-                  verseStart={selectedRange?.start ?? null}
-                  verseEnd={selectedRange?.end ?? null}
-                  reference={passageRef}
-                  passageText={passageTextContent ?? undefined}
-                  open={true}
-                  onOpenChange={setPanelOpen}
-                  aiStyle={aiStyle}
-                  defaultToReflection={false}
-                />
-              )}
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="shrink-0 border-b border-border px-4 py-3">
+                <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                  {panelMode === "reflection" ? "SOAPS" : "Ask AI"} — {passageRef}
+                </h2>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                {panelMode === "reflection" ? (
+                  <div className="flex-1 min-h-0 py-3">
+                    <InlinePassageReflectionForm
+                      reference={passageRef}
+                      bookName={bookName}
+                      bookId={bookId}
+                      chapter={chapterNum}
+                      verseStart={selectedRange?.start ?? null}
+                      verseEnd={selectedRange?.end ?? null}
+                      passageText={passageTextContent ?? undefined}
+                      chatSoapsGroupId={chatSoapsGroupId ?? undefined}
+                      compact
+                      onClose={() => setPanelOpen(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="py-3">
+                    <AskAIPanel
+                      bookId={bookId}
+                      bookName={bookName}
+                      chapter={chapterNum}
+                      verseStart={selectedRange?.start ?? null}
+                      verseEnd={selectedRange?.end ?? null}
+                      reference={passageRef}
+                      passageText={passageTextContent ?? undefined}
+                      open={true}
+                      onOpenChange={setPanelOpen}
+                      aiStyle={aiStyle}
+                      defaultToReflection={false}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </SheetContent>
         </Sheet>

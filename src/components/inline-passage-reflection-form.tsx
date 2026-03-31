@@ -139,7 +139,7 @@ export function InlinePassageReflectionForm({
   return (
     <div
       ref={formRef}
-      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col max-h-[70dvh] overflow-hidden" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
+      className={`flex gap-4 rounded-lg border border-border bg-card p-4 ${compact ? "flex-col min-h-0 h-full overflow-hidden" : "flex-col md:flex-row"} ${!compact ? "mt-2 mb-4" : ""}`}
     >
       {passageText && compact ? (
         <div className="shrink-0">
