@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { ProcessNodeType } from "@/lib/process-map/nodes";
+import { useProcessMapScale } from "./process-map-scale-context";
 import { ProcessNodeSvgVisual } from "./process-node-visual-svg";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -297,11 +298,15 @@ function NodeArmorPlaque({
 }
 
 export function ProcessNode({ id, label, x, y, href, size, type, child }: Props) {
+  const scale = useProcessMapScale();
   const isChild = child ?? id.startsWith("t_");
   const glow = nodeGlow[type];
   const shape = shapeFor(type, size, isChild);
   const fontSize =
     size >= 150 ? 14 : size >= 120 ? 13 : size >= 100 ? 12 : size >= 70 ? 11 : size >= 50 ? 10 : 9;
+  const scaledFont = Math.max(7, fontSize * scale);
+  const w = shape.w * scale;
+  const h = shape.h * scale;
 
   const positionStyle = {
     position: "absolute" as const,
@@ -318,8 +323,8 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
         href && "cursor-pointer",
       )}
       style={{
-        width: shape.w,
-        height: shape.h,
+        width: w,
+        height: h,
         letterSpacing: isChild ? "0.03em" : "0.05em",
         opacity: isChild ? 0.88 : 1,
         borderRadius: shape.radius,
@@ -343,10 +348,10 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
         id={id}
         type={type}
         isChild={isChild}
-        w={shape.w}
-        h={shape.h}
+        w={w}
+        h={h}
         label={label}
-        fontSize={fontSize}
+        fontSize={scaledFont}
         hasHref={!!href}
       />
       {(type === "identity" || type === "transformed") && (
@@ -360,7 +365,7 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
           <span
             className="block font-extrabold"
             style={{
-              fontSize: type === "identity" ? 13 : 12.5,
+              fontSize: (type === "identity" ? 13 : 12.5) * scale,
               letterSpacing: "0.1em",
               background:
                 type === "identity"
@@ -383,8 +388,8 @@ export function ProcessNode({ id, label, x, y, href, size, type, child }: Props)
         <NodeArmorPlaque
           label={label}
           type={type}
-          nodeWidth={shape.w}
-          nodeHeight={shape.h}
+          nodeWidth={w}
+          nodeHeight={h}
         />
       )}
     </span>

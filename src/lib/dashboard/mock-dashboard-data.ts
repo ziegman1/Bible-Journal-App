@@ -4,10 +4,10 @@
 
 export const mockIdentityCore = {
   stats: [
-    { label: "This week", value: "3 entries" },
-    { label: "Reading streak", value: "5 days" },
-    { label: "Groups", value: "2 active" },
-    { label: "Prayer list", value: "4 people" },
+    { label: "SOAPS streak", value: "0 days" },
+    { label: "Prayer streak", value: "0 days" },
+    { label: "Share streak", value: "0 days" },
+    { label: "3/3 + CHAT week streak", value: "0 weeks" },
   ],
 } as const;
 

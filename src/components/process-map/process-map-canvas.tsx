@@ -1,3 +1,6 @@
+"use client";
+
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   PROCESS_MAP_EDGES,
   PROCESS_NODES,
@@ -7,6 +10,10 @@ import {
 } from "@/lib/process-map/nodes";
 import { cn } from "@/lib/utils";
 import { ProcessNode } from "./process-node";
+import {
+  ProcessMapScaleProvider,
+  useProcessMapScale,
+} from "./process-map-scale-context";
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  Curved path helper
@@ -1273,6 +1280,7 @@ const ANNOTATION_STYLES: Record<
 };
 
 function ProcessMapAnnotations() {
+  const s = useProcessMapScale();
   const byId = new Map(PROCESS_NODES.map((n) => [n.id, n]));
 
   return (
@@ -1302,12 +1310,12 @@ function ProcessMapAnnotations() {
                   background: style.bg,
                   border: style.border,
                   boxShadow: style.shadow,
-                  fontSize: style.fontSize,
-                  paddingLeft: style.px,
-                  paddingRight: style.px,
-                  paddingTop: style.py,
-                  paddingBottom: style.py,
-                  borderRadius: style.radius,
+                  fontSize: style.fontSize * s,
+                  paddingLeft: style.px * s,
+                  paddingRight: style.px * s,
+                  paddingTop: style.py * s,
+                  paddingBottom: style.py * s,
+                  borderRadius: style.radius * s,
                   color: style.color,
                   letterSpacing: style.letterSpacing,
                 }}
@@ -1334,7 +1342,7 @@ function ProcessMapAnnotations() {
             <span
               className="inline-flex items-center whitespace-nowrap italic"
               style={{
-                fontSize: style.fontSize,
+                fontSize: style.fontSize * s,
                 color: style.color,
                 letterSpacing: style.letterSpacing,
               }}
@@ -1378,6 +1386,7 @@ function ProcessMapPlaque({
   offsetXPx?: number;
   offsetYPx?: number;
 }) {
+  const s = useProcessMapScale();
   const isTitle = variant === "title";
   const rows = lines?.length ? lines : text ? [text] : [];
 
@@ -1387,15 +1396,15 @@ function ProcessMapPlaque({
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        transform: `translate(calc(-50% + ${offsetXPx}px), calc(-50% + ${offsetYPx}px))`,
+        transform: `translate(calc(-50% + ${offsetXPx * s}px), calc(-50% + ${offsetYPx * s}px))`,
       }}
     >
       {/* Outer frame shell */}
       <div
         className="relative"
         style={{
-          padding: isTitle ? "3px" : "2.6px",
-          borderRadius: isTitle ? 8 : 6,
+          padding: isTitle ? `${3 * s}px` : `${2.6 * s}px`,
+          borderRadius: isTitle ? 8 * s : 6 * s,
           background:
             "linear-gradient(180deg, rgba(55,65,95,0.70) 0%, rgba(28,33,55,0.80) 100%)",
           boxShadow: [
@@ -1412,15 +1421,15 @@ function ProcessMapPlaque({
             rows.length <= 1 && "whitespace-nowrap",
           )}
           style={{
-            borderRadius: isTitle ? 6 : 5.2,
+            borderRadius: isTitle ? 6 * s : 5.2 * s,
             background:
               "linear-gradient(180deg, rgba(22,28,48,0.92) 0%, rgba(14,18,34,0.96) 100%)",
-            border: "1px solid rgba(100,116,160,0.18)",
-            paddingLeft: isTitle ? 18 : 13,
-            paddingRight: isTitle ? 18 : 13,
-            paddingTop: isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2,
-            paddingBottom: isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2,
-            gap: rows.length > 1 ? 2 : 0,
+            border: `${Math.max(0.5, s)}px solid rgba(100,116,160,0.18)`,
+            paddingLeft: (isTitle ? 18 : 13) * s,
+            paddingRight: (isTitle ? 18 : 13) * s,
+            paddingTop: (isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2) * s,
+            paddingBottom: (isTitle ? 7 : rows.length > 1 ? 7.8 : 5.2) * s,
+            gap: rows.length > 1 ? 2 * s : 0,
             boxShadow: [
               "inset 0 1px 0 rgba(148,163,184,0.10)",
               "inset 0 -1px 0 rgba(0,0,0,0.22)",
@@ -1445,7 +1454,7 @@ function ProcessMapPlaque({
           <span
             className="relative flex flex-col items-center font-bold uppercase leading-tight"
             style={{
-              fontSize: isTitle ? 13 : 11.7,
+              fontSize: (isTitle ? 13 : 11.7) * s,
               letterSpacing: isTitle ? "0.14em" : "0.08em",
               color: isTitle
                 ? "rgba(203,213,225,0.90)"
@@ -1483,6 +1492,7 @@ function ProcessMapPlaque({
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 function ProcessMapChrome() {
+  const s = useProcessMapScale();
   return (
     <>
       <div
@@ -1494,9 +1504,9 @@ function ProcessMapChrome() {
         }}
       >
         <span
-          className="inline-flex items-center whitespace-nowrap font-semibold uppercase"
+          className="inline-flex items-center whitespace-nowrap font-semibold uppercase max-md:whitespace-normal max-md:text-center max-md:max-w-[min(92vw,280px)] max-md:leading-tight"
           style={{
-            fontSize: 21,
+            fontSize: 21 * s,
             letterSpacing: "0.12em",
             color: "rgba(226,232,240,0.94)",
             textShadow: "0 1px 3px rgba(0,0,0,0.42)",
@@ -2025,29 +2035,51 @@ function ProcessMapBackground() {
   );
 }
 
+const MAP_DESIGN_WIDTH_PX = 940;
+const MAP_SCALE_MIN = 0.32;
+
 export function ProcessMapCanvas() {
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w <= 0) return;
+      setScale(Math.min(1, Math.max(MAP_SCALE_MIN, w / MAP_DESIGN_WIDTH_PX)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div
-      className="relative mx-auto w-full max-w-[980px] overflow-hidden rounded-xl border border-white/[0.06]"
-      style={{ aspectRatio: "16 / 10" }}
-    >
-      <ProcessMapBackground />
-      <ProcessMapConnections />
-      <ProcessMapAnnotations />
-      <ProcessMapChrome />
-      {PROCESS_NODES.map((n) => (
-        <ProcessNode
-          key={n.id}
-          id={n.id}
-          label={n.label}
-          x={n.x}
-          y={n.y}
-          href={n.href}
-          size={n.size}
-          type={n.type}
-          child={n.child}
-        />
-      ))}
-    </div>
+    <ProcessMapScaleProvider value={scale}>
+      <div
+        ref={shellRef}
+        className="relative mx-auto w-full max-w-[980px] overflow-hidden rounded-xl border border-white/[0.06] aspect-[3/4] landscape:aspect-[16/10] lg:aspect-[16/10]"
+      >
+        <ProcessMapBackground />
+        <ProcessMapConnections />
+        <ProcessMapAnnotations />
+        <ProcessMapChrome />
+        {PROCESS_NODES.map((n) => (
+          <ProcessNode
+            key={n.id}
+            id={n.id}
+            label={n.label}
+            x={n.x}
+            y={n.y}
+            href={n.href}
+            size={n.size}
+            type={n.type}
+            child={n.child}
+          />
+        ))}
+      </div>
+    </ProcessMapScaleProvider>
   );
 }

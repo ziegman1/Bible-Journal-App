@@ -6,11 +6,15 @@ export function IdentityCoreCard({
   displayName,
   nextActionLabel,
   nextActionHref,
+  prayHref = "/app/prayer",
+  prayLabel = "Pray",
   stats,
 }: {
   displayName: string;
   nextActionLabel: string;
   nextActionHref: string;
+  prayHref?: string;
+  prayLabel?: string;
   stats: readonly { label: string; value: string }[];
 }) {
   return (
@@ -38,15 +42,24 @@ export function IdentityCoreCard({
         {displayName}
       </h2>
 
-      <div className="relative mt-5 md:flex md:justify-center">
+      <div className="relative mt-5 flex flex-wrap items-center justify-center gap-3">
         <Link
           href={nextActionHref}
           className={cn(
             buttonVariants({ size: "default" }),
-            "shadow-md shadow-indigo-500/10 dark:shadow-indigo-400/5"
+            "shadow-md shadow-indigo-500/10 dark:shadow-indigo-400/5 min-h-11 touch-manipulation"
           )}
         >
           {nextActionLabel}
+        </Link>
+        <Link
+          href={prayHref}
+          className={cn(
+            buttonVariants({ size: "default", variant: "outline" }),
+            "border-indigo-300/80 bg-white/70 dark:border-indigo-500/35 dark:bg-white/[0.04] min-h-11 touch-manipulation"
+          )}
+        >
+          {prayLabel}
         </Link>
       </div>
 
@@ -60,7 +73,22 @@ export function IdentityCoreCard({
               "dark:border-indigo-500/10 dark:bg-white/[0.03]"
             )}
           >
-            <dt className="text-[11px] tracking-wide text-muted-foreground">{s.label}</dt>
+            <dt
+              className="text-[11px] tracking-wide text-muted-foreground"
+              title={
+                s.label.startsWith("SOAPS")
+                  ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
+                  : s.label.startsWith("Prayer")
+                    ? "Consecutive days with at least 60 minutes logged (Prayer Wheel + extra time). Miss a day → streak resets."
+                    : s.label.startsWith("Share")
+                      ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
+                      : s.label.includes("CHAT")
+                        ? "Consecutive weeks you attended both a 3/3rds family meeting and a CHAT meeting (pillar week, Sun–Sat). Miss either in a week → streak resets."
+                        : undefined
+              }
+            >
+              {s.label}
+            </dt>
             <dd className="text-sm font-medium text-foreground">{s.value}</dd>
           </div>
         ))}

@@ -864,6 +864,9 @@ export async function updateMeetingStatus(
     `/app/groups/${meeting.group_id}/meetings/${meetingId}/summary`
   );
   revalidatePath(`/app/groups/${meeting.group_id}`);
+  if (status === "completed") {
+    revalidatePath("/app");
+  }
   return { success: true };
 }
 
