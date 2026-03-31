@@ -99,6 +99,7 @@ export function ReaderView({
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const rightHeaderRef = useRef<HTMLDivElement>(null);
+  const mobileSheetScrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const isScrollingRef = useRef(false);
   const [rightHeaderHeight, setRightHeaderHeight] = useState<number>(0);
@@ -213,6 +214,51 @@ export function ReaderView({
       window.removeEventListener("resize", update);
     };
   }, [isMobile, panelOpen]);
+
+  // Extra iOS reliability: when a SOAPS field is focused, ensure it is scrolled above the keyboard.
+  // This avoids relying solely on keyboard height reporting, without changing layout/styling.
+  useEffect(() => {
+    if (!isMobile || !panelOpen || panelMode !== "reflection") return;
+    const scroller = mobileSheetScrollRef.current;
+    if (!scroller) return;
+
+    const vv = window.visualViewport;
+    const getKeyboardTop = () => {
+      if (!vv) return window.innerHeight;
+      return (vv.offsetTop ?? 0) + vv.height;
+    };
+
+    const maybeRevealActive = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el) return;
+      if (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA") return;
+      if (!scroller.contains(el)) return;
+
+      const keyboardTop = getKeyboardTop();
+      const rect = el.getBoundingClientRect();
+      const margin = 12;
+      const targetBottom = keyboardTop - margin;
+      if (rect.bottom <= targetBottom) return;
+
+      const delta = rect.bottom - targetBottom;
+      scroller.scrollBy({ top: delta, behavior: "smooth" });
+    };
+
+    const onFocusIn = () => {
+      // Allow iOS to finish scrolling/zooming first.
+      window.setTimeout(maybeRevealActive, 50);
+      window.setTimeout(maybeRevealActive, 250);
+    };
+
+    scroller.addEventListener("focusin", onFocusIn);
+    vv?.addEventListener("resize", maybeRevealActive);
+    vv?.addEventListener("scroll", maybeRevealActive);
+    return () => {
+      scroller.removeEventListener("focusin", onFocusIn);
+      vv?.removeEventListener("resize", maybeRevealActive);
+      vv?.removeEventListener("scroll", maybeRevealActive);
+    };
+  }, [isMobile, panelOpen, panelMode, selectedRange?.start, selectedRange?.end]);
 
   // Measure right panel header height (for alignment offset)
   useEffect(() => {
@@ -1079,6 +1125,7 @@ export function ReaderView({
                   </div>
 
                   <div
+                    ref={mobileSheetScrollRef}
                     className="flex-1 min-h-0 overflow-y-auto px-4"
                     style={{
                       paddingBottom: `calc(max(2rem, env(safe-area-inset-bottom)) + ${keyboardInsetPx}px)`,
