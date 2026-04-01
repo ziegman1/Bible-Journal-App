@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { BadwrReproductionAdjustmentsSettings } from "@/components/settings/badwr-reproduction-adjustments";
 import { SettingsForm } from "@/components/settings-form";
+import { parseBadwrReproductionCountAdjustments } from "@/lib/dashboard/badwr-reproduction-count-adjustments";
 import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
 import { DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES } from "@/lib/prayer-wheel/stats";
 import { normalizeGrowthMode } from "@/lib/growth-mode/model";
@@ -16,10 +18,15 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "display_name, reading_mode, journal_year, ai_style, growth_mode, weekly_share_goal_encounters, weekly_prayer_goal_minutes"
+      "display_name, reading_mode, journal_year, ai_style, growth_mode, weekly_share_goal_encounters, weekly_prayer_goal_minutes, badwr_reproduction_count_adjustments"
     )
     .eq("id", user.id)
     .single();
+
+  const growthMode = normalizeGrowthMode(profile?.growth_mode);
+  const reproductionCountAdjustments = parseBadwrReproductionCountAdjustments(
+    profile?.badwr_reproduction_count_adjustments
+  );
 
   return (
     <div className="p-4 sm:p-6 max-w-xl mx-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -31,7 +38,7 @@ export default async function SettingsPage() {
         readingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
         journalYear={profile?.journal_year ?? new Date().getFullYear()}
         aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
-        growthMode={normalizeGrowthMode(profile?.growth_mode)}
+        growthMode={growthMode}
         weeklyShareGoalEncounters={
           profile?.weekly_share_goal_encounters ?? DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS
         }
@@ -39,6 +46,9 @@ export default async function SettingsPage() {
           profile?.weekly_prayer_goal_minutes ?? DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES
         }
       />
+      {growthMode !== "guided" ? (
+        <BadwrReproductionAdjustmentsSettings initialAdjustments={reproductionCountAdjustments} />
+      ) : null}
     </div>
   );
 }

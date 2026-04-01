@@ -11,6 +11,7 @@ import {
 import type { InsightsDateRange } from "@/lib/insights/types";
 
 const LABELS: Record<InsightsDateRange, string> = {
+  lastWeek: "Last week",
   last30: "Last 30 days",
   last90: "Last 90 days",
   thisYear: "This year",
@@ -40,6 +41,7 @@ export function InsightsDateRangeSelect() {
         <SelectValue placeholder="Select range" />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="lastWeek">{LABELS.lastWeek}</SelectItem>
         <SelectItem value="last30">{LABELS.last30}</SelectItem>
         <SelectItem value="last90">{LABELS.last90}</SelectItem>
         <SelectItem value="thisYear">{LABELS.thisYear}</SelectItem>

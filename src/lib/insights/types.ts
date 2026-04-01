@@ -1,5 +1,6 @@
 /** Date range preset for insights */
 export type InsightsDateRange =
+  | "lastWeek"
   | "last30"
   | "last90"
   | "thisYear"

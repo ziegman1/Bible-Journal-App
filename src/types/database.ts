@@ -13,6 +13,8 @@ export interface Profile {
   growth_mode: GrowthMode;
   weekly_share_goal_encounters: number;
   weekly_prayer_goal_minutes: number;
+  /** Count adjustments for BADWR reproduction cumulative math (optional). */
+  badwr_reproduction_count_adjustments?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

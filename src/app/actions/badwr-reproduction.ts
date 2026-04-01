@@ -14,6 +14,10 @@ import {
   type BadwrPillarModel,
 } from "@/lib/dashboard/badwr-reproduction-model";
 import {
+  applyThirdsParticipationWeeksAdjust,
+  parseBadwrReproductionCountAdjustments,
+} from "@/lib/dashboard/badwr-reproduction-count-adjustments";
+import {
   computeCumulativeBadwr,
   emptyBucket,
   mergeCumulativeIntoWeeklyTemplates,
@@ -134,6 +138,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     membershipsRes,
     thirdsParticipationMetrics,
     attendedAllMeetingsRes,
+    reproductionCountAdjRes,
   ] = await Promise.all([
     supabase
       .from("journal_entries")
@@ -206,7 +211,16 @@ export async function getBadwrReproductionSnapshot(): Promise<
             allCompletedMeetings.map((m) => m.id)
           )
       : Promise.resolve({ data: [] as { meeting_id: string }[], error: null }),
+    supabase
+      .from("profiles")
+      .select("badwr_reproduction_count_adjustments")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
+
+  if (reproductionCountAdjRes.error) {
+    return { error: reproductionCountAdjRes.error.message };
+  }
 
   if (soapsRes.error) return { error: soapsRes.error.message };
   if (readingWeekCountRes.error) return { error: readingWeekCountRes.error.message };
@@ -271,6 +285,14 @@ export async function getBadwrReproductionSnapshot(): Promise<
     }
   }
 
+  const countAdjustments = parseBadwrReproductionCountAdjustments(
+    reproductionCountAdjRes.data?.badwr_reproduction_count_adjustments
+  );
+  const thirdsParticipationForWeeklyHints = applyThirdsParticipationWeeksAdjust(
+    thirdsParticipationMetrics,
+    countAdjustments.thirds_meeting_weeks ?? 0
+  );
+
   const weeklyPillars: BadwrPillarModel[] = [
     buildWordSoapsPillar({
       soapsActual,
@@ -292,7 +314,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     buildThirdsPillar({
       attendedCompletedThisWeek: attendedThirdsThisWeek,
       inThirdsGroup,
-      participationMetrics: thirdsParticipationMetrics,
+      participationMetrics: thirdsParticipationForWeeklyHints,
     }),
     buildSharePillar({
       shareActual,
@@ -430,6 +452,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
     participationMetrics: thirdsParticipationMetrics,
     attendedCompletedThisWeekForCurrent: attendedThirdsThisWeek,
     inThirdsGroupNow: inThirdsGroup,
+    countAdjustments,
   });
 
   const pillars = mergeCumulativeIntoWeeklyTemplates(weeklyPillars, cumulative);

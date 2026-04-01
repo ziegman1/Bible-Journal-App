@@ -11,6 +11,11 @@ import {
 import { pillarWeekDaysElapsedInclusive } from "@/lib/dashboard/pillar-week";
 import { expectedUnitsThroughWeek } from "@/lib/dashboard/weekly-rhythm-pace";
 import type { ThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
+import type { BadwrReproductionCountAdjustments } from "@/lib/dashboard/badwr-reproduction-count-adjustments";
+import {
+  applyThirdsParticipationWeeksAdjust,
+  augmentAttendedThirdsWeekStartsForAdjust,
+} from "@/lib/dashboard/badwr-reproduction-count-adjustments";
 
 /** When historical CHAT pace isn’t stored, use a neutral mid-tier score for completed weeks. */
 const CHAT_HISTORICAL_WEEK_SCORE = 0.62;
@@ -29,6 +34,33 @@ export function emptyBucket(): WeekRhythmBucket {
     prayerMinutes: 0,
     shares: 0,
   };
+}
+
+function cloneBucketsWithCountAdjustments(
+  buckets: Map<string, WeekRhythmBucket>,
+  pillarWeekKeys: string[],
+  adj: BadwrReproductionCountAdjustments
+): Map<string, WeekRhythmBucket> {
+  const n = Math.max(1, pillarWeekKeys.length);
+  const soapAdd = (adj.soaps_qualifying ?? 0) / n;
+  const readAdd = (adj.reading_sessions ?? 0) / n;
+  const prayAdd = (adj.prayer_minutes ?? 0) / n;
+  const shareAdd = (adj.share_encounters ?? 0) / n;
+
+  const out = new Map<string, WeekRhythmBucket>();
+  for (const [k, b] of buckets) {
+    out.set(k, { ...b });
+  }
+  for (const wk of pillarWeekKeys) {
+    const b = out.get(wk) ?? emptyBucket();
+    out.set(wk, {
+      soapsQualifying: Math.max(0, b.soapsQualifying + soapAdd),
+      readingSessions: Math.max(0, b.readingSessions + readAdd),
+      prayerMinutes: Math.max(0, b.prayerMinutes + prayAdd),
+      shares: Math.max(0, b.shares + shareAdd),
+    });
+  }
+  return out;
 }
 
 function mean(values: number[]): number {
@@ -68,6 +100,8 @@ export function computeCumulativeBadwr(input: {
   participationMetrics: ThirdsParticipationMetrics | null;
   attendedCompletedThisWeekForCurrent: boolean;
   inThirdsGroupNow: boolean;
+  /** Added to rhythm bucket totals (spread per week) and 3/3rds counts before averaging. */
+  countAdjustments?: BadwrReproductionCountAdjustments;
 }): CumulativeBadwrResult {
   const {
     pillarWeekStartYmids,
@@ -76,24 +110,47 @@ export function computeCumulativeBadwr(input: {
     practiceTimeZone,
     weeklyShareGoalEncounters,
     weeklyPrayerGoalMinutes,
-    buckets,
+    buckets: bucketsRaw,
     chatEngagedWeekStartYmd,
     currentChatPillar,
-    attendedThirdsWeekStarts,
+    attendedThirdsWeekStarts: attendedRaw,
     inThirdsGroupForWeek,
-    participationMetrics,
+    participationMetrics: participationRaw,
     attendedCompletedThisWeekForCurrent,
     inThirdsGroupNow,
+    countAdjustments,
   } = input;
+
+  const adj = countAdjustments ?? {};
+  const buckets = cloneBucketsWithCountAdjustments(
+    bucketsRaw,
+    pillarWeekStartYmids,
+    adj
+  );
+
+  const thirdsWeeksAdj = adj.thirds_meeting_weeks ?? 0;
+  const participationMetrics = applyThirdsParticipationWeeksAdjust(
+    participationRaw,
+    thirdsWeeksAdj
+  );
+  const useParticipationForThirds =
+    participationMetrics != null && participationMetrics.totalWeeks > 0;
+
+  let attendedThirdsWeekStarts = attendedRaw;
+  if (!useParticipationForThirds && thirdsWeeksAdj !== 0) {
+    attendedThirdsWeekStarts = augmentAttendedThirdsWeekStartsForAdjust(
+      attendedRaw,
+      pillarWeekStartYmids,
+      inThirdsGroupForWeek,
+      thirdsWeeksAdj
+    );
+  }
 
   const wordScores: number[] = [];
   const prayScores: number[] = [];
   const shareScores: number[] = [];
   const chatScores: number[] = [];
   const thirdsScores: number[] = [];
-
-  const useParticipationForThirds =
-    participationMetrics != null && participationMetrics.totalWeeks > 0;
 
   for (const weekStart of pillarWeekStartYmids) {
     const b = buckets.get(weekStart) ?? emptyBucket();

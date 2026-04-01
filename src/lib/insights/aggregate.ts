@@ -27,7 +27,10 @@ export function getDateBounds(
   }
 
   let start: Date;
-  if (range === "last30") {
+  if (range === "lastWeek") {
+    start = new Date(now);
+    start.setDate(start.getDate() - 7);
+  } else if (range === "last30") {
     start = new Date(now);
     start.setDate(start.getDate() - 30);
   } else if (range === "last90") {
