@@ -1,5 +1,5 @@
 /**
- * Optional Prayer Wheel background audio: soft ambient pad or a 444 Hz–labeled sine tone.
+ * Optional Prayer Wheel background audio: looped ambient MP3 or a 444 Hz–labeled sine tone.
  * No claims about frequency—UI presents it only as an optional ambient choice.
  */
 
@@ -7,6 +7,9 @@ export type PrayerWheelBgMusicMode = "off" | "ambient" | "hz444_ambient";
 
 const MODE_KEY = "badwr.prayerWheel.bgMusicMode";
 const VOLUME_KEY = "badwr.prayerWheel.bgMusicVolume";
+
+/** Real ambient bed (loop=true; seamless loop depends on how the file was mastered). */
+const AMBIENT_MP3_SRC = "/audio/prayer-ambient-1.mp3";
 
 export const PRAYER_WHEEL_BG_MUSIC_OPTIONS: readonly {
   value: PrayerWheelBgMusicMode;
@@ -21,17 +24,13 @@ export const PRAYER_WHEEL_BG_MUSIC_OPTIONS: readonly {
 ];
 
 export const DEFAULT_PRAYER_WHEEL_BG_MUSIC_MODE: PrayerWheelBgMusicMode = "off";
-export const DEFAULT_PRAYER_WHEEL_BG_MUSIC_VOLUME = 0.35;
+/** Slightly conservative default so the MP3 bed stays unobtrusive. */
+export const DEFAULT_PRAYER_WHEEL_BG_MUSIC_VOLUME = 0.28;
 
 const DUCK_MULT = 0.22;
 const GAIN_RAMP_S = 0.04;
 
-/** Hz for the labeled ambient option only (not marketed as therapeutic). */
 const LABELED_TONE_HZ = 444;
-
-/** Low, soft partials for synthetic ambient pad (loops via continuous oscillators). */
-const AMBIENT_PAD_FREQS_HZ = [65.41, 98.0, 146.83, 196.0] as const;
-const AMBIENT_PER_OSC_GAIN = 0.012;
 const HZ444_PER_OSC_GAIN = 0.07;
 
 function clamp01(n: number): number {
@@ -80,40 +79,59 @@ export function writePrayerWheelBgMusicVolume(volume01: number): void {
   }
 }
 
-type ActiveGraph = "none" | "ambient" | "hz444";
+/** What is currently driving output (at most one of file vs Web Audio tone). */
+type ActiveOutput = "none" | "ambient_file" | "hz444";
+
+let activeOutput: ActiveOutput = "none";
+
+let ambientAudio: HTMLAudioElement | null = null;
 
 let audioContext: AudioContext | null = null;
 let masterGain: GainNode | null = null;
-let activeGraph: ActiveGraph = "none";
-let oscillators: OscillatorNode[] = [];
-let stemGains: GainNode[] = [];
+let hz444Osc: OscillatorNode | null = null;
+let hz444Stem: GainNode | null = null;
 
-function teardownGraph(): void {
-  for (const o of oscillators) {
+function ensureAmbientAudio(): HTMLAudioElement {
+  if (!ambientAudio) {
+    const el = new Audio(AMBIENT_MP3_SRC);
+    el.loop = true;
+    el.preload = "auto";
+    ambientAudio = el;
+  }
+  return ambientAudio;
+}
+
+function stopAmbientFile(): void {
+  if (!ambientAudio) return;
+  ambientAudio.pause();
+  ambientAudio.currentTime = 0;
+}
+
+function teardownHz444(): void {
+  if (hz444Osc) {
     try {
-      o.stop();
+      hz444Osc.stop();
     } catch {
       /* already stopped */
     }
     try {
-      o.disconnect();
+      hz444Osc.disconnect();
     } catch {
       /* ignore */
     }
+    hz444Osc = null;
   }
-  oscillators = [];
-  for (const g of stemGains) {
+  if (hz444Stem) {
     try {
-      g.disconnect();
+      hz444Stem.disconnect();
     } catch {
       /* ignore */
     }
+    hz444Stem = null;
   }
-  stemGains = [];
-  activeGraph = "none";
 }
 
-function ensureGraph(): { ctx: AudioContext; master: GainNode } | null {
+function ensureAudioContext(): { ctx: AudioContext; master: GainNode } | null {
   if (typeof window === "undefined") return null;
   try {
     if (!audioContext) {
@@ -132,23 +150,8 @@ function ensureGraph(): { ctx: AudioContext; master: GainNode } | null {
   }
 }
 
-function startAmbientPad(ctx: AudioContext, master: GainNode): void {
-  for (const hz of AMBIENT_PAD_FREQS_HZ) {
-    const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = hz;
-    const g = ctx.createGain();
-    g.gain.value = AMBIENT_PER_OSC_GAIN;
-    osc.connect(g);
-    g.connect(master);
-    osc.start();
-    oscillators.push(osc);
-    stemGains.push(g);
-  }
-  activeGraph = "ambient";
-}
-
 function startHz444(ctx: AudioContext, master: GainNode): void {
+  teardownHz444();
   const osc = ctx.createOscillator();
   osc.type = "sine";
   osc.frequency.value = LABELED_TONE_HZ;
@@ -157,12 +160,11 @@ function startHz444(ctx: AudioContext, master: GainNode): void {
   osc.connect(g);
   g.connect(master);
   osc.start();
-  oscillators.push(osc);
-  stemGains.push(g);
-  activeGraph = "hz444";
+  hz444Osc = osc;
+  hz444Stem = g;
 }
 
-function applyOutputGain(
+function applyMasterGain(
   ctx: AudioContext,
   master: GainNode,
   volume01: number,
@@ -175,57 +177,90 @@ function applyOutputGain(
   master.gain.setTargetAtTime(target, now, GAIN_RAMP_S);
 }
 
+function effectiveAmbientElementVolume(volume01: number, duckForVoice: boolean): number {
+  return clamp01(volume01) * (duckForVoice ? DUCK_MULT : 1);
+}
+
 export type PrayerWheelBackgroundAudioSync = {
-  /** Only while phase is `"running"` (not save_error / complete / setup). */
   sessionActive: boolean;
   timerPaused: boolean;
   mode: PrayerWheelBgMusicMode;
-  /** User music volume 0–1. */
   volume01: number;
   duckForVoice: boolean;
 };
 
 /**
- * Single owner for Prayer Wheel background audio: one graph at a time, no stacking.
- * Call from React effects and once synchronously after "Start prayer wheel" (user gesture) to improve autoplay success.
+ * Single owner for Prayer Wheel background audio: one source at a time (file loop OR 444 Hz tone).
  */
 export function syncPrayerWheelBackgroundAudio(s: PrayerWheelBackgroundAudioSync): void {
-  const g = ensureGraph();
-  if (!g) return;
-  const { ctx, master } = g;
+  if (typeof window === "undefined") return;
 
   if (!s.sessionActive || s.mode === "off") {
-    teardownGraph();
-    applyOutputGain(ctx, master, 0, false);
-    void ctx.suspend().catch(() => {});
+    stopAmbientFile();
+    teardownHz444();
+    activeOutput = "none";
+    if (audioContext && masterGain) {
+      try {
+        applyMasterGain(audioContext, masterGain, 0, false);
+      } catch {
+        /* ignore */
+      }
+      void audioContext.suspend().catch(() => {});
+    }
     return;
   }
 
-  const wantGraph: ActiveGraph = s.mode === "ambient" ? "ambient" : "hz444";
+  if (s.mode === "ambient") {
+    teardownHz444();
+    if (audioContext) {
+      void audioContext.suspend().catch(() => {});
+    }
 
-  if (activeGraph !== wantGraph) {
-    teardownGraph();
-    if (s.mode === "ambient") startAmbientPad(ctx, master);
-    else startHz444(ctx, master);
+    const el = ensureAmbientAudio();
+    el.volume = effectiveAmbientElementVolume(s.volume01, s.duckForVoice);
+
+    if (s.timerPaused) {
+      el.pause();
+    } else if (el.paused) {
+      void el.play().catch(() => {
+        /* autoplay / missing file */
+      });
+    }
+    activeOutput = "ambient_file";
+    return;
   }
 
-  applyOutputGain(ctx, master, s.volume01, s.duckForVoice);
+  /* hz444_ambient */
+  stopAmbientFile();
+
+  const g = ensureAudioContext();
+  if (!g) return;
+  const { ctx, master } = g;
+
+  if (activeOutput !== "hz444") {
+    teardownHz444();
+    startHz444(ctx, master);
+  }
+
+  applyMasterGain(ctx, master, s.volume01, s.duckForVoice);
+  activeOutput = "hz444";
 
   if (s.timerPaused) {
     void ctx.suspend().catch(() => {});
   } else {
     void ctx.resume().catch(() => {
-      /* autoplay / user gesture — next sync or start click may recover */
+      /* autoplay / user gesture */
     });
   }
 }
 
-/** Stop all background audio (unmount, session end, track off). */
 export function stopPrayerWheelBackgroundAudio(): void {
-  teardownGraph();
+  stopAmbientFile();
+  teardownHz444();
+  activeOutput = "none";
   if (audioContext && masterGain) {
     try {
-      applyOutputGain(audioContext, masterGain, 0, false);
+      applyMasterGain(audioContext, masterGain, 0, false);
     } catch {
       /* ignore */
     }
@@ -233,12 +268,12 @@ export function stopPrayerWheelBackgroundAudio(): void {
   void audioContext?.suspend().catch(() => {});
 }
 
-/**
- * Resume AudioContext after a user gesture if session should be audible.
- * Safe no-op if nothing to resume.
- */
 export function resumePrayerWheelBackgroundAudioFromUserGesture(): void {
-  const g = ensureGraph();
-  if (!g) return;
-  void g.ctx.resume().catch(() => {});
+  if (typeof window === "undefined") return;
+  if (activeOutput === "ambient_file" && ambientAudio) {
+    void ambientAudio.play().catch(() => {});
+  }
+  if (activeOutput === "hz444" && audioContext) {
+    void audioContext.resume().catch(() => {});
+  }
 }

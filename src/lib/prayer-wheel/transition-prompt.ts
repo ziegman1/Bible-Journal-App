@@ -1,5 +1,8 @@
 /**
  * Prayer Wheel end-of-segment prompts: chime, voice (Web Speech API), or both.
+ *
+ * Chrome quirk: calling speak() in the same synchronous turn as cancel() often drops the utterance.
+ * We defer speak to a microtask and call speechSynthesis.resume() before speak.
  */
 
 export type PrayerWheelTransitionMode =
@@ -20,6 +23,15 @@ export const PRAYER_WHEEL_TRANSITION_MODES: readonly {
 
 export const DEFAULT_PRAYER_WHEEL_TRANSITION_MODE: PrayerWheelTransitionMode =
   "chime_only";
+
+const VOICE_DEBUG =
+  typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
+function voiceLog(...args: unknown[]): void {
+  if (VOICE_DEBUG) {
+    console.info("[PrayerWheel voice]", ...args);
+  }
+}
 
 export function readPrayerWheelTransitionMode(): PrayerWheelTransitionMode {
   if (typeof window === "undefined") return DEFAULT_PRAYER_WHEEL_TRANSITION_MODE;
@@ -57,6 +69,20 @@ export function speechSynthesisSupported(): boolean {
   );
 }
 
+/**
+ * Call from a user gesture (e.g. Start prayer wheel) so engines that tie TTS to activation
+ * have a better chance to speak later at segment boundaries.
+ */
+export function primePrayerWheelSpeechSynthesis(): void {
+  if (!speechSynthesisSupported()) return;
+  try {
+    window.speechSynthesis.resume();
+    void window.speechSynthesis.getVoices();
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Cancel any in-progress or queued speech (call before new segment or leaving the wheel). */
 export function cancelPrayerWheelSpeech(): void {
   if (typeof window === "undefined") return;
@@ -67,40 +93,108 @@ export function cancelPrayerWheelSpeech(): void {
   }
 }
 
+function applyPreferredVoice(u: SpeechSynthesisUtterance): void {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+  const enDefault = voices.find(
+    (v) => v.lang.toLowerCase().startsWith("en") && v.default
+  );
+  const en =
+    enDefault ?? voices.find((v) => v.lang.toLowerCase().startsWith("en"));
+  const picked = en ?? voices[0];
+  if (picked) {
+    u.voice = picked;
+    voiceLog("voice picked", picked.name, picked.lang);
+  }
+}
+
+/**
+ * Many browsers populate getVoices() asynchronously (voiceschanged).
+ */
+function whenVoicesReady(synth: SpeechSynthesis, then: () => void): void {
+  if (synth.getVoices().length > 0) {
+    queueMicrotask(then);
+    return;
+  }
+  let ran = false;
+  const runOnce = () => {
+    if (ran) return;
+    ran = true;
+    synth.removeEventListener("voiceschanged", onVc);
+    then();
+  };
+  const onVc = () => runOnce();
+  synth.addEventListener("voiceschanged", onVc);
+  window.setTimeout(runOnce, 600);
+}
+
 export type SpeakPrayerWheelSegmentPromptOptions = {
   onEnd?: () => void;
   onError?: () => void;
 };
 
 /**
- * Speak transition into the next segment. Phrase: "Now spend time in [title]" (title lowercased for natural TTS).
+ * Speak: "Now spend time in [segment title]" (title trimmed; casing as provided).
  */
 export function speakPrayerWheelSegmentPrompt(
   nextSegmentTitle: string,
   options?: SpeakPrayerWheelSegmentPromptOptions
 ): void {
   if (!speechSynthesisSupported()) {
+    voiceLog("speak skipped: not supported");
     options?.onEnd?.();
     return;
   }
+
+  const phrase = `Now spend time in ${nextSegmentTitle.trim()}`;
+  voiceLog("speak queued", { phrase });
+
   cancelPrayerWheelSpeech();
-  const phrase = `Now spend time in ${nextSegmentTitle.trim().toLowerCase()}`;
-  const u = new SpeechSynthesisUtterance(phrase);
-  u.rate = 0.95;
-  let finished = false;
-  const finish = (which: "end" | "error") => {
-    if (finished) return;
-    finished = true;
-    if (which === "end") options?.onEnd?.();
-    else options?.onError?.();
+
+  const synth = window.speechSynthesis;
+
+  const speakNow = () => {
+    try {
+      synth.resume();
+    } catch {
+      /* ignore */
+    }
+
+    const u = new SpeechSynthesisUtterance(phrase);
+    u.rate = 0.95;
+    applyPreferredVoice(u);
+
+    let finished = false;
+    const finish = (which: "end" | "error") => {
+      if (finished) return;
+      finished = true;
+      voiceLog(`utterance ${which}`);
+      if (which === "end") options?.onEnd?.();
+      else options?.onError?.();
+    };
+
+    u.onstart = () => voiceLog("utterance onstart");
+    u.onend = () => finish("end");
+    u.onerror = (ev) => {
+      voiceLog("utterance onerror", ev.error, ev);
+      finish("error");
+    };
+
+    window.setTimeout(() => {
+      try {
+        synth.resume();
+        synth.speak(u);
+        voiceLog("speechSynthesis.speak called");
+      } catch (e) {
+        voiceLog("speechSynthesis.speak threw", e);
+        finish("error");
+      }
+    }, 0);
   };
-  u.onend = () => finish("end");
-  u.onerror = () => finish("error");
-  try {
-    window.speechSynthesis.speak(u);
-  } catch {
-    finish("error");
-  }
+
+  queueMicrotask(() => {
+    whenVoicesReady(synth, speakNow);
+  });
 }
 
 export function resolveEffectiveTransitionMode(
