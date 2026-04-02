@@ -78,6 +78,14 @@ export function primePrayerWheelSpeechSynthesis(): void {
   try {
     window.speechSynthesis.resume();
     void window.speechSynthesis.getVoices();
+    requestAnimationFrame(() => {
+      try {
+        window.speechSynthesis?.resume();
+        void window.speechSynthesis?.getVoices();
+      } catch {
+        /* ignore */
+      }
+    });
   } catch {
     /* ignore */
   }

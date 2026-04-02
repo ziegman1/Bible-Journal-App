@@ -1,29 +1,23 @@
 /**
  * Soft meditation-style bell for Prayer Wheel segment transitions.
- * Prefers `/public/audio/prayer-bell.mp3` when present; otherwise synthesizes a low, gentle tone
- * with a slow attack and long decay (no alert-like beeps).
+ * Prefers short HTML5 &lt;audio&gt; clips (same autoplay path as ambient music); falls back to Web Audio.
+ * Call {@link primePrayerWheelChimeAudio} from a user gesture (e.g. Start) so the Web Audio fallback
+ * can run later when the segment ends without a fresh gesture.
  */
 
-const PRAYER_BELL_SRC = "/audio/prayer-bell.mp3";
-/** Total window for file playback before reset (matches ~3–4s target content). */
+const CHIME_HTML_SRCS = ["/audio/prayer-bell.mp3", "/sounds/bell.mp3"] as const;
 const FILE_CUTOFF_MS = 4000;
 const FILE_VOLUME = 0.22;
 
 const ATTACK_S = 0.17;
 const DECAY_S = 3.25;
-/** Master peak; kept low so the chime stays in the background. */
 const SYNTH_PEAK = 0.2;
 
-/** Low partials only — avoids piercing / “notification” highs. */
 const SYNTH_PARTIALS: readonly { hz: number; weight: number }[] = [
   { hz: 185, weight: 1 },
   { hz: 277, weight: 0.42 },
   { hz: 350, weight: 0.14 },
 ];
-
-let fileAudio: HTMLAudioElement | null = null;
-let fileUnavailable = false;
-let fileStopTimer: number | null = null;
 
 let synthCtx: AudioContext | null = null;
 type SynthActive = {
@@ -33,10 +27,17 @@ type SynthActive = {
 let synthActive: SynthActive | null = null;
 let synthCleanupTimer: number | null = null;
 
-function clearFileStopTimer(): void {
-  if (fileStopTimer != null) {
-    window.clearTimeout(fileStopTimer);
-    fileStopTimer = null;
+/** Currently playing one-shot HTML chime (if any). */
+let activeHtmlChime: HTMLAudioElement | null = null;
+let htmlStopTimer: number | null = null;
+
+/** Bumped on stop so in-flight async chime attempts do not start after cancel. */
+let chimeGeneration = 0;
+
+function clearHtmlStopTimer(): void {
+  if (htmlStopTimer != null) {
+    window.clearTimeout(htmlStopTimer);
+    htmlStopTimer = null;
   }
 }
 
@@ -70,24 +71,26 @@ function teardownSynth(): void {
   synthActive = null;
 }
 
-function ensureFileElement(): HTMLAudioElement {
-  if (!fileAudio) {
-    const el = new Audio(PRAYER_BELL_SRC);
-    el.preload = "auto";
-    el.volume = FILE_VOLUME;
-    el.addEventListener(
-      "error",
-      () => {
-        fileUnavailable = true;
-      },
-      { passive: true }
-    );
-    fileAudio = el;
+/**
+ * Resume (or create) the Web Audio context used for the synthetic bell.
+ * Invoke from Start / Resume / etc. so segment-end playback is not stuck in "suspended".
+ */
+export function primePrayerWheelChimeAudio(): void {
+  if (typeof window === "undefined") return;
+  const Ctx =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return;
+  try {
+    if (!synthCtx) synthCtx = new Ctx();
+    void synthCtx.resume().catch(() => {});
+  } catch {
+    /* ignore */
   }
-  return fileAudio;
 }
 
-function playSyntheticBell(): void {
+function playSyntheticBell(token?: number): void {
+  if (token != null && token !== chimeGeneration) return;
   teardownSynth();
   if (typeof window === "undefined") return;
 
@@ -138,46 +141,45 @@ function playSyntheticBell(): void {
   }
 }
 
-function playFileBell(): void {
-  if (fileUnavailable) {
-    playSyntheticBell();
-    return;
-  }
-  const el = ensureFileElement();
-  clearFileStopTimer();
-  el.pause();
-  el.currentTime = 0;
-  el.volume = FILE_VOLUME;
-
-  const p = el.play();
-  if (p !== undefined) {
-    void p.catch(() => {
-      fileUnavailable = true;
-      clearFileStopTimer();
-      if (fileAudio) {
-        fileAudio.pause();
-        fileAudio.currentTime = 0;
+async function tryPlayHtmlChimeChain(token: number): Promise<boolean> {
+  for (const src of CHIME_HTML_SRCS) {
+    if (token !== chimeGeneration) return true;
+    const el = new Audio(src);
+    el.preload = "auto";
+    el.volume = FILE_VOLUME;
+    try {
+      await el.play();
+      if (token !== chimeGeneration) {
+        el.pause();
+        el.currentTime = 0;
+        return true;
       }
-      playSyntheticBell();
-    });
+      activeHtmlChime = el;
+      clearHtmlStopTimer();
+      htmlStopTimer = window.setTimeout(() => {
+        htmlStopTimer = null;
+        el.pause();
+        el.currentTime = 0;
+        if (activeHtmlChime === el) activeHtmlChime = null;
+      }, FILE_CUTOFF_MS);
+      return true;
+    } catch {
+      /* try next src */
+    }
   }
-
-  fileStopTimer = window.setTimeout(() => {
-    fileStopTimer = null;
-    el.pause();
-    el.currentTime = 0;
-  }, FILE_CUTOFF_MS);
+  return false;
 }
 
 /**
- * Stops any in-progress segment chime (file or synthesized). Call when resetting the wheel
- * or when starting a new transition so rapid segment changes do not stack.
+ * Stops any in-progress segment chime (HTML or synthesized).
  */
 export function stopPrayerWheelSegmentChime(): void {
-  clearFileStopTimer();
-  if (fileAudio) {
-    fileAudio.pause();
-    fileAudio.currentTime = 0;
+  chimeGeneration++;
+  clearHtmlStopTimer();
+  if (activeHtmlChime) {
+    activeHtmlChime.pause();
+    activeHtmlChime.currentTime = 0;
+    activeHtmlChime = null;
   }
   teardownSynth();
 }
@@ -188,11 +190,12 @@ export function stopPrayerWheelSegmentChime(): void {
 export function playPrayerWheelSegmentChime(): void {
   if (typeof window === "undefined") return;
   stopPrayerWheelSegmentChime();
+  const token = chimeGeneration;
 
-  if (fileUnavailable) {
-    playSyntheticBell();
-    return;
-  }
-
-  playFileBell();
+  void (async () => {
+    const ok = await tryPlayHtmlChimeChain(token);
+    if (!ok) {
+      playSyntheticBell(token);
+    }
+  })();
 }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   playPrayerWheelSegmentChime,
+  primePrayerWheelChimeAudio,
   stopPrayerWheelSegmentChime,
 } from "@/lib/prayer-wheel/segment-chime";
 import {
@@ -274,6 +275,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
   function startSession() {
     stopAllTransitionAudio();
     primePrayerWheelSpeechSynthesis();
+    primePrayerWheelChimeAudio();
     setSaveError(null);
     setFailedStep(null);
     setCurrentStep(0);
@@ -315,6 +317,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
     });
     resumePrayerWheelBackgroundAudioFromUserGesture();
     primePrayerWheelSpeechSynthesis();
+    primePrayerWheelChimeAudio();
   }
 
   function stopSession() {
@@ -369,6 +372,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
       });
       resumePrayerWheelBackgroundAudioFromUserGesture();
       primePrayerWheelSpeechSynthesis();
+      primePrayerWheelChimeAudio();
       if (failedStep < 11) {
         setSecondsLeft(minutesPerSegment * 60);
       }
@@ -396,6 +400,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
     });
     resumePrayerWheelBackgroundAudioFromUserGesture();
     primePrayerWheelSpeechSynthesis();
+    primePrayerWheelChimeAudio();
   }
 
   const missingTableHint =
@@ -458,6 +463,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
           className="mt-2 border-dashed"
           onClick={() => {
             primePrayerWheelSpeechSynthesis();
+            primePrayerWheelChimeAudio();
             speakPrayerWheelSegmentPrompt("Praise");
           }}
         >
@@ -518,9 +524,10 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
         />
       </div>
       <p className="text-xs leading-snug text-muted-foreground">
-        Loops softly only while a session is running; it pauses with the timer and stops when you end
-        the session. The third option is only a steady tone with a &quot;444 Hz&quot; label—use it if
-        you like how it sounds.
+        <strong className="font-medium text-foreground">Ambient music</strong> is the full looping MP3
+        track. The last option is a <strong className="font-medium text-foreground">synthesized</strong>{" "}
+        single-frequency tone (it will sound like a plain hum, not instrumental music). Audio pauses
+        with the timer and stops when you end the session.
       </p>
     </div>
   );

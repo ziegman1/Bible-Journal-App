@@ -16,10 +16,12 @@ export const PRAYER_WHEEL_BG_MUSIC_OPTIONS: readonly {
   label: string;
 }[] = [
   { value: "off", label: "Off" },
-  { value: "ambient", label: "Ambient music" },
+  /** Looped MP3 from `/public/audio/` — not the synthesized option below. */
+  { value: "ambient", label: "Ambient music (recorded track)" },
+  /** Single sine oscillator — will sound like a simple mono hum, not a full track. */
   {
     value: "hz444_ambient",
-    label: "444 Hz ambient (optional tone)",
+    label: "Steady tone — “444 Hz” label (synthesized)",
   },
 ];
 
