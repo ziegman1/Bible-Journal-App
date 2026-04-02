@@ -241,6 +241,14 @@ export function LiveMeetingView({
     return t === 1 || t === 2 || t === 3 ? t : 1;
   });
 
+  /** When the TV advances into Look Forward, follow on this device (local tab was only updating on taps). */
+  useEffect(() => {
+    if (isCompleted) return;
+    if (ps.activeThird === 3) {
+      setLocalSection(3);
+    }
+  }, [ps.activeThird, isCompleted]);
+
   const {
     lookbackByUser,
     lookforwardByUser,

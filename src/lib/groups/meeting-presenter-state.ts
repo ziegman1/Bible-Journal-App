@@ -441,6 +441,52 @@ export function transitionPrev(
   return null;
 }
 
+/** Maps participant UI step id to presenter look-up phase. */
+export function participantStepToLookUpPhase(
+  step: ParticipantLookUpStep
+): LookUpPhase {
+  if (step === "reread_passage") return "reread";
+  return step as LookUpPhase;
+}
+
+/**
+ * Next step when a participant taps “Next” on their device only (does not write presenter state).
+ * After the final Look Up phase (`god`), returns `look_forward` so the UI can open that tab.
+ */
+export function transitionParticipantLookUpDeviceNext(
+  step: ParticipantLookUpStep,
+  readChunkIndex: number,
+  rereadChunkIndex: number,
+  ctx: PresenterTransitionCtx
+):
+  | {
+      kind: "look_up";
+      step: ParticipantLookUpStep;
+      readChunkIndex: number;
+      rereadChunkIndex: number;
+    }
+  | { kind: "look_forward" }
+  | null {
+  const s: PresenterState = {
+    ...DEFAULT_PRESENTER_STATE,
+    activeThird: 2,
+    lookUpPhase: participantStepToLookUpPhase(step),
+    readChunkIndex,
+    rereadChunkIndex,
+    forwardSub: "obey",
+    practiceSlideIndex: 0,
+  };
+  const next = transitionNext(s, ctx);
+  if (!next) return null;
+  if (next.activeThird === 3) return { kind: "look_forward" };
+  return {
+    kind: "look_up",
+    step: lookUpPhaseToParticipantStep(next.lookUpPhase),
+    readChunkIndex: next.readChunkIndex,
+    rereadChunkIndex: next.rereadChunkIndex,
+  };
+}
+
 export function presenterCanGoBack(
   s: PresenterState,
   _ctx: PresenterTransitionCtx

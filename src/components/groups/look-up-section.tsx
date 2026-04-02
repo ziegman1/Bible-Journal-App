@@ -20,7 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Loader2, Shuffle } from "lucide-react";
 import { toast } from "sonner";
-import type { ParticipantLookUpStep } from "@/lib/groups/meeting-presenter-state";
+import {
+  transitionParticipantLookUpDeviceNext,
+  type ParticipantLookUpStep,
+} from "@/lib/groups/meeting-presenter-state";
 import type { PassageObservationRow } from "@/hooks/use-meeting-responses-realtime";
 import {
   displayNameForMeetingUser,
@@ -30,6 +33,12 @@ import { formatObservationVerseRefShort } from "@/lib/groups/observation-verse-r
 import { fetchPassageVersesRangeInBrowser } from "@/lib/scripture/fetch-passage-verses-browser";
 
 type LookUpStep = ParticipantLookUpStep;
+
+type LookUpBrowseOverride = {
+  step: LookUpStep;
+  readChunkIndex: number;
+  rereadChunkIndex: number;
+};
 
 type ObservationType =
   | "like"
@@ -49,13 +58,15 @@ function PresenterFollowHint() {
   );
 }
 
-/** Participant view: cannot advance shared slides; offer section jump without scrolling to tabs. */
+/** Participant view: advance Look Up sub-steps on this device only (shared slides stay on TV). */
 function ParticipantFollowFooter({
   disabled,
-  onGoToLookForward,
+  nextLabel,
+  onDeviceNext,
 }: {
   disabled: boolean;
-  onGoToLookForward: () => void;
+  nextLabel: string;
+  onDeviceNext: () => void;
 }) {
   return (
     <div className="mt-6 space-y-3 border-t border-border/70 pt-4">
@@ -64,15 +75,11 @@ function ParticipantFollowFooter({
         Shared slides advance on the Facilitator / TV view only. The tabs at the top
         are for your device — they won&apos;t change the screen everyone sees.
       </p>
-      <Button
-        type="button"
-        disabled={disabled}
-        onClick={onGoToLookForward}
-      >
-        Next — Look Forward
+      <Button type="button" disabled={disabled} onClick={onDeviceNext}>
+        {nextLabel}
       </Button>
       <p className="text-[0.65rem] text-muted-foreground leading-snug">
-        Opens the Look Forward tab on this device only (does not advance the TV).
+        On this device only — does not advance the TV.
       </p>
     </div>
   );
@@ -81,17 +88,20 @@ function ParticipantFollowFooter({
 function FollowOnlyFooter({
   participantQuickSectionNav,
   dis,
-  onGoToLookForward,
+  nextLabel,
+  onDeviceNext,
 }: {
   participantQuickSectionNav: boolean;
   dis: boolean;
-  onGoToLookForward: () => void;
+  nextLabel: string;
+  onDeviceNext: () => void;
 }) {
   if (participantQuickSectionNav) {
     return (
       <ParticipantFollowFooter
         disabled={dis}
-        onGoToLookForward={onGoToLookForward}
+        nextLabel={nextLabel}
+        onDeviceNext={onDeviceNext}
       />
     );
   }
@@ -157,7 +167,7 @@ interface LookUpSectionProps {
     verseEnd: number;
   } | null;
   /**
-   * When false (Facilitator / TV has commenced), follow-only mode shows the hint only — no quick “Next — Look Forward”.
+   * When false (Facilitator / TV has commenced), follow-only mode shows the hint only — no device “Next” rail.
    */
   participantQuickSectionNav?: boolean;
 }
@@ -613,6 +623,8 @@ export function LookUpSection({
   participantQuickSectionNav = true,
 }: LookUpSectionProps) {
   const [localStep, setLocalStep] = useState<LookUpStep>("read");
+  const [browseOverride, setBrowseOverride] =
+    useState<LookUpBrowseOverride | null>(null);
   const [clientPassageVerses, setClientPassageVerses] = useState<
     { verse: number; text: string }[]
   >([]);
@@ -620,6 +632,7 @@ export function LookUpSection({
   if (meetingId !== meetingIdSnap) {
     setMeetingIdSnap(meetingId);
     setClientPassageVerses([]);
+    setBrowseOverride(null);
   }
 
   useEffect(() => {
@@ -636,33 +649,123 @@ export function LookUpSection({
   const versesMerged =
     passageVerses.length > 0 ? passageVerses : clientPassageVerses;
 
-  const step = presenterSync?.step ?? localStep;
+  const baseStep = (presenterSync?.step ?? localStep) as LookUpStep;
+  const baseReadIdx = presenterSync?.readChunkIndex ?? 0;
+  const baseRereadIdx = presenterSync?.rereadChunkIndex ?? 0;
+  const followBrowse = Boolean(
+    presenterSync?.followOnly && participantQuickSectionNav
+  );
+
+  const effectiveStep: LookUpStep = followBrowse
+    ? (browseOverride?.step ?? baseStep)
+    : baseStep;
+  const effectiveReadChunkIndex = followBrowse
+    ? (browseOverride?.readChunkIndex ?? baseReadIdx)
+    : baseReadIdx;
+  const effectiveRereadChunkIndex = followBrowse
+    ? (browseOverride?.rereadChunkIndex ?? baseRereadIdx)
+    : baseRereadIdx;
+
   const hasPassage = Boolean(
     (passageRef && passageRef.trim().length > 0) && versesMerged.length > 0
   );
+  const dis = (presenterSync?.disabled ?? false) || readOnly;
+
+  const readChunkIdxForDisplay = (() => {
+    if (!presenterSync || presenterSync.readChunks.length === 0) return 0;
+    const max = presenterSync.readChunks.length - 1;
+    const idx = followBrowse ? effectiveReadChunkIndex : presenterSync.readChunkIndex;
+    return Math.min(Math.max(0, idx), max);
+  })();
+
   const readVersesForChunk =
     presenterSync && presenterSync.readChunks.length > 0
-      ? presenterSync.readChunks[
-          Math.min(
-            presenterSync.readChunkIndex,
-            presenterSync.readChunks.length - 1
-          )
-        ] ?? []
+      ? presenterSync.readChunks[readChunkIdxForDisplay] ?? []
       : versesMerged;
+
+  const rereadChunkIdxForDisplay = (() => {
+    if (!presenterSync || presenterSync.rereadChunks.length === 0) return 0;
+    const max = presenterSync.rereadChunks.length - 1;
+    const idx = followBrowse
+      ? effectiveRereadChunkIndex
+      : presenterSync.rereadChunkIndex;
+    return Math.min(Math.max(0, idx), max);
+  })();
 
   const rereadVersesForChunk =
     presenterSync && presenterSync.rereadChunks.length > 0
-      ? presenterSync.rereadChunks[
-          Math.min(
-            presenterSync.rereadChunkIndex,
-            presenterSync.rereadChunks.length - 1
-          )
-        ] ?? []
+      ? presenterSync.rereadChunks[rereadChunkIdxForDisplay] ?? []
       : versesMerged;
+
+  const transitionCtx = useMemo(
+    () => ({
+      hasPassage,
+      readChunkCount: presenterSync?.readChunks.length ?? 0,
+      rereadChunkCount: presenterSync?.rereadChunks.length ?? 0,
+      practiceSlideCount: 1,
+    }),
+    [
+      hasPassage,
+      presenterSync?.readChunks.length,
+      presenterSync?.rereadChunks.length,
+    ]
+  );
+
+  const deviceNextResult = useMemo(() => {
+    if (!followBrowse || !presenterSync) return null;
+    return transitionParticipantLookUpDeviceNext(
+      effectiveStep,
+      effectiveReadChunkIndex,
+      effectiveRereadChunkIndex,
+      transitionCtx
+    );
+  }, [
+    followBrowse,
+    presenterSync,
+    effectiveStep,
+    effectiveReadChunkIndex,
+    effectiveRereadChunkIndex,
+    transitionCtx,
+  ]);
+
+  const deviceNextLabel =
+    deviceNextResult?.kind === "look_forward" ? "Next — Look Forward" : "Next";
+
+  const handleDeviceNext = useCallback(() => {
+    if (!deviceNextResult || (presenterSync?.disabled ?? false) || readOnly)
+      return;
+    if (deviceNextResult.kind === "look_forward") {
+      setBrowseOverride(null);
+      onGoToLookForward();
+      return;
+    }
+    setBrowseOverride({
+      step: deviceNextResult.step,
+      readChunkIndex: deviceNextResult.readChunkIndex,
+      rereadChunkIndex: deviceNextResult.rereadChunkIndex,
+    });
+  }, [
+    deviceNextResult,
+    readOnly,
+    presenterSync?.disabled,
+    onGoToLookForward,
+  ]);
+
+  const presenterLookUpKey = presenterSync
+    ? `${presenterSync.step}-${presenterSync.readChunkIndex}-${presenterSync.rereadChunkIndex}`
+    : "";
+
+  useEffect(() => {
+    if (!presenterSync?.followOnly || !participantQuickSectionNav) {
+      setBrowseOverride(null);
+      return;
+    }
+    setBrowseOverride(null);
+  }, [presenterLookUpKey, presenterSync?.followOnly, participantQuickSectionNav]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [step]);
+  }, [effectiveStep, readChunkIdxForDisplay, rereadChunkIdxForDisplay]);
 
   async function handleAssignReteller() {
     if (participants.length === 0) return;
@@ -684,11 +787,10 @@ export function LookUpSection({
     }
   }
 
-  const dis = (presenterSync?.disabled ?? false) || readOnly;
   /** Shared presenter nav (Facilitator / TV only — not participant follow mode). */
   const psNav = Boolean(presenterSync && !presenterSync.followOnly);
 
-  if (step === "retell") {
+  if (effectiveStep === "retell") {
     return (
       <div className="space-y-10">
         <div
@@ -741,8 +843,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -767,7 +870,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "like") {
+  if (effectiveStep === "like") {
     return (
       <div className="space-y-10">
         <div
@@ -825,8 +928,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -851,7 +955,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "difficult") {
+  if (effectiveStep === "difficult") {
     return (
       <div className="space-y-10">
         <div
@@ -909,8 +1013,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -935,7 +1040,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "reread_passage" && hasPassage) {
+  if (effectiveStep === "reread_passage" && hasPassage) {
     return (
       <div className="space-y-10">
         <div
@@ -952,7 +1057,7 @@ export function LookUpSection({
           </p>
           {presenterSync && presenterSync.rereadChunks.length > 1 ? (
             <p className="text-xs text-muted-foreground">
-              Part {presenterSync.rereadChunkIndex + 1} of{" "}
+              Part {rereadChunkIdxForDisplay + 1} of{" "}
               {presenterSync.rereadChunks.length}
             </p>
           ) : null}
@@ -981,8 +1086,9 @@ export function LookUpSection({
         ) : presenterSync?.followOnly ? (
           <FollowOnlyFooter
             participantQuickSectionNav={participantQuickSectionNav}
-            dis={dis}
-            onGoToLookForward={onGoToLookForward}
+            dis={dis || deviceNextResult == null}
+            nextLabel={deviceNextLabel}
+            onDeviceNext={handleDeviceNext}
           />
         ) : (
           <div className="flex flex-wrap items-center gap-3">
@@ -1006,7 +1112,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "people") {
+  if (effectiveStep === "people") {
     return (
       <div className="space-y-10">
         <div
@@ -1057,8 +1163,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1085,7 +1192,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "god") {
+  if (effectiveStep === "god") {
     return (
       <div className="space-y-10">
         <div
@@ -1136,8 +1243,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1159,7 +1267,7 @@ export function LookUpSection({
     );
   }
 
-  if (step === "reread_passage" && !hasPassage) {
+  if (effectiveStep === "reread_passage" && !hasPassage) {
     return (
       <div className="space-y-10">
         <div
@@ -1191,8 +1299,9 @@ export function LookUpSection({
           ) : presenterSync?.followOnly ? (
             <FollowOnlyFooter
               participantQuickSectionNav={participantQuickSectionNav}
-              dis={dis}
-              onGoToLookForward={onGoToLookForward}
+              dis={dis || deviceNextResult == null}
+              nextLabel={deviceNextLabel}
+              onDeviceNext={handleDeviceNext}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-3">
@@ -1239,7 +1348,7 @@ export function LookUpSection({
         )}
         {presenterSync && presenterSync.readChunks.length > 1 ? (
           <p className="text-xs text-muted-foreground">
-            Part {presenterSync.readChunkIndex + 1} of{" "}
+            Part {readChunkIdxForDisplay + 1} of{" "}
             {presenterSync.readChunks.length}
           </p>
         ) : null}
@@ -1262,8 +1371,9 @@ export function LookUpSection({
             ) : presenterSync?.followOnly ? (
               <FollowOnlyFooter
                 participantQuickSectionNav={participantQuickSectionNav}
-                dis={dis}
-                onGoToLookForward={onGoToLookForward}
+                dis={dis || deviceNextResult == null}
+                nextLabel={deviceNextLabel}
+                onDeviceNext={handleDeviceNext}
               />
             ) : (
               <Button
@@ -1280,8 +1390,9 @@ export function LookUpSection({
       {!hasPassage && presenterSync?.followOnly ? (
         <FollowOnlyFooter
           participantQuickSectionNav={participantQuickSectionNav}
-          dis={dis}
-          onGoToLookForward={onGoToLookForward}
+          dis={dis || deviceNextResult == null}
+          nextLabel={deviceNextLabel}
+          onDeviceNext={handleDeviceNext}
         />
       ) : null}
     </div>
