@@ -58,3 +58,58 @@ export function useMeetingFacilitatorUserId(
 
   return facilitatorUserId;
 }
+
+/**
+ * True after Facilitator / TV view has commenced this meeting (`present_facilitator_commenced_at` set).
+ * Used to hide participant-only quick section navigation while shared slides are in play.
+ */
+export function usePresentFacilitatorCommenced(
+  meetingId: string,
+  initialCommencedAt: string | null | undefined,
+  readOnly?: boolean
+): boolean {
+  const initial =
+    initialCommencedAt != null && String(initialCommencedAt).trim() !== ""
+      ? String(initialCommencedAt)
+      : null;
+  const [commencedAt, setCommencedAt] = useState<string | null>(initial);
+  const [propSnap, setPropSnap] = useState(initial);
+  if (initial !== propSnap) {
+    setPropSnap(initial);
+    setCommencedAt(initial);
+  }
+
+  useEffect(() => {
+    if (readOnly) return;
+    const supabase = createClient();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel(`group-meeting-present-commenced:${meetingId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "group_meetings",
+          filter: `id=eq.${meetingId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            present_facilitator_commenced_at?: string | null;
+          };
+          const v = row?.present_facilitator_commenced_at;
+          setCommencedAt(
+            v != null && String(v).trim() !== "" ? String(v) : null
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [meetingId, readOnly]);
+
+  return commencedAt != null;
+}

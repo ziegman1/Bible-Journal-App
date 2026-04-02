@@ -24,7 +24,10 @@ import {
   type MeetingPresenterStateRow,
 } from "@/lib/groups/meeting-presenter-state";
 import { useMeetingPresenterSync } from "@/hooks/use-meeting-presenter-sync";
-import { useMeetingFacilitatorUserId } from "@/hooks/use-meeting-facilitator-user-id";
+import {
+  useMeetingFacilitatorUserId,
+  usePresentFacilitatorCommenced,
+} from "@/hooks/use-meeting-facilitator-user-id";
 import { useMeetingPresence } from "@/hooks/use-meeting-presence";
 import { useMeetingResponsesRealtime } from "@/hooks/use-meeting-responses-realtime";
 import { MeetingLivePresence } from "@/components/groups/meeting-live-presence";
@@ -42,6 +45,8 @@ interface Meeting {
   meeting_date: string;
   status: string;
   facilitator_user_id?: string | null;
+  /** Set when Facilitator / TV view commences; hides participant quick section nav. */
+  present_facilitator_commenced_at?: string | null;
   story_source_type: string;
   book?: string | null;
   chapter?: number | null;
@@ -181,6 +186,13 @@ export function LiveMeetingView({
     meeting.facilitator_user_id,
     isCompleted
   );
+  const facilitatorPresentCommenced = usePresentFacilitatorCommenced(
+    meetingId,
+    meeting.present_facilitator_commenced_at,
+    isCompleted
+  );
+  /** Bottom/tab shortcuts only when no one has started the TV / facilitator view for this meeting. */
+  const participantQuickSectionNav = !facilitatorPresentCommenced;
   const facilitatorForLabel =
     liveFacilitatorUserId ?? meeting.facilitator_user_id ?? undefined;
 
@@ -715,6 +727,7 @@ export function LiveMeetingView({
                 priorFollowups={priorFollowupsLive}
                 participants={participants}
                 displayNames={memberDisplayNames}
+                participantQuickSectionNav={participantQuickSectionNav}
                 onGoToLookUp={() => {
                   if (isCompleted) return;
                   setLocalSection(2);
@@ -759,6 +772,7 @@ export function LiveMeetingView({
                   if (isCompleted) return;
                   setLocalSection(3);
                 }}
+                participantQuickSectionNav={participantQuickSectionNav}
                 presenterSync={{
                   step: lookUpPhaseToParticipantStep(ps.lookUpPhase),
                   readChunkIndex: ps.readChunkIndex,
@@ -785,6 +799,14 @@ export function LiveMeetingView({
                 practice={practice}
                 currentUserId={currentUserId}
                 readOnly={isCompleted}
+                onGoToLookUp={
+                  participantQuickSectionNav
+                    ? () => {
+                        if (isCompleted) return;
+                        setLocalSection(2);
+                      }
+                    : undefined
+                }
                 presenterFocus={{
                   forwardSub: ps.forwardSub as ForwardSub,
                   practiceSlideIndex: ps.practiceSlideIndex,

@@ -39,7 +39,7 @@ type ObservationType =
 
 function PresenterFollowHint() {
   return (
-    <p className="mt-3 border-t border-border/70 pt-3 text-xs text-muted-foreground">
+    <p className="mt-3 border-t border-border/70 pt-3 text-xs text-muted-foreground leading-relaxed">
       <span className="font-medium text-foreground">Following facilitator.</span>{" "}
       This step advances on the Facilitator / TV view only. Use the{" "}
       <span className="font-medium">Look Back · Look Up · Look Forward</span> tabs
@@ -47,6 +47,55 @@ function PresenterFollowHint() {
       screen everyone sees.
     </p>
   );
+}
+
+/** Participant view: cannot advance shared slides; offer section jump without scrolling to tabs. */
+function ParticipantFollowFooter({
+  disabled,
+  onGoToLookForward,
+}: {
+  disabled: boolean;
+  onGoToLookForward: () => void;
+}) {
+  return (
+    <div className="mt-6 space-y-3 border-t border-border/70 pt-4">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        <span className="font-medium text-foreground">Following facilitator.</span>{" "}
+        Shared slides advance on the Facilitator / TV view only. The tabs at the top
+        are for your device — they won&apos;t change the screen everyone sees.
+      </p>
+      <Button
+        type="button"
+        disabled={disabled}
+        onClick={onGoToLookForward}
+      >
+        Next — Look Forward
+      </Button>
+      <p className="text-[0.65rem] text-muted-foreground leading-snug">
+        Opens the Look Forward tab on this device only (does not advance the TV).
+      </p>
+    </div>
+  );
+}
+
+function FollowOnlyFooter({
+  participantQuickSectionNav,
+  dis,
+  onGoToLookForward,
+}: {
+  participantQuickSectionNav: boolean;
+  dis: boolean;
+  onGoToLookForward: () => void;
+}) {
+  if (participantQuickSectionNav) {
+    return (
+      <ParticipantFollowFooter
+        disabled={dis}
+        onGoToLookForward={onGoToLookForward}
+      />
+    );
+  }
+  return <PresenterFollowHint />;
 }
 
 export type OthersObservationsByType = Record<
@@ -107,6 +156,10 @@ interface LookUpSectionProps {
     verseStart: number;
     verseEnd: number;
   } | null;
+  /**
+   * When false (Facilitator / TV has commenced), follow-only mode shows the hint only — no quick “Next — Look Forward”.
+   */
+  participantQuickSectionNav?: boolean;
 }
 
 type VersePickPhase = "idle" | "picked_first" | "ready";
@@ -557,6 +610,7 @@ export function LookUpSection({
   onGoToLookForward,
   presenterSync,
   scriptureLoadHint = null,
+  participantQuickSectionNav = true,
 }: LookUpSectionProps) {
   const [localStep, setLocalStep] = useState<LookUpStep>("read");
   const [clientPassageVerses, setClientPassageVerses] = useState<
@@ -685,7 +739,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button
@@ -765,7 +823,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button
@@ -845,7 +907,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button
@@ -913,7 +979,11 @@ export function LookUpSection({
             </Button>
           </div>
         ) : presenterSync?.followOnly ? (
-          <PresenterFollowHint />
+          <FollowOnlyFooter
+            participantQuickSectionNav={participantQuickSectionNav}
+            dis={dis}
+            onGoToLookForward={onGoToLookForward}
+          />
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -985,7 +1055,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button
@@ -1060,7 +1134,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button disabled={dis} onClick={() => onGoToLookForward()}>
@@ -1111,7 +1189,11 @@ export function LookUpSection({
               </Button>
             </div>
           ) : presenterSync?.followOnly ? (
-            <PresenterFollowHint />
+            <FollowOnlyFooter
+              participantQuickSectionNav={participantQuickSectionNav}
+              dis={dis}
+              onGoToLookForward={onGoToLookForward}
+            />
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <Button
@@ -1178,7 +1260,11 @@ export function LookUpSection({
                 Next
               </Button>
             ) : presenterSync?.followOnly ? (
-              <PresenterFollowHint />
+              <FollowOnlyFooter
+                participantQuickSectionNav={participantQuickSectionNav}
+                dis={dis}
+                onGoToLookForward={onGoToLookForward}
+              />
             ) : (
               <Button
                 disabled={dis}
@@ -1190,6 +1276,14 @@ export function LookUpSection({
           </div>
         </>
       )}
+
+      {!hasPassage && presenterSync?.followOnly ? (
+        <FollowOnlyFooter
+          participantQuickSectionNav={participantQuickSectionNav}
+          dis={dis}
+          onGoToLookForward={onGoToLookForward}
+        />
+      ) : null}
     </div>
   );
 }

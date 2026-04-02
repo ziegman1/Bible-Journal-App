@@ -65,6 +65,10 @@ interface LookBackSectionProps {
   displayNames: Record<string, string>;
   /** Advance the meeting stepper to Look Up */
   onGoToLookUp?: () => void;
+  /**
+   * When false (Facilitator / TV has commenced), use a simple bottom Next instead of sticky quick nav.
+   */
+  participantQuickSectionNav?: boolean;
   /** Group pastoral list (realtime): your saved line first when non-empty, then other members. */
   othersPastoralLive?: { userId: string; displayName: string; text: string }[];
   /** Other members&apos; accountability / check-up text (lookback.accountability_response) */
@@ -98,6 +102,7 @@ export function LookBackSection({
   participants,
   displayNames,
   onGoToLookUp,
+  participantQuickSectionNav = true,
   othersPastoralLive = [],
   othersAccountabilityLive = [],
   othersVisionLive = [],
@@ -954,13 +959,20 @@ export function LookBackSection({
 
       {renderVisionSection()}
 
-      {onGoToLookUp && (
-        <div className="flex justify-start pt-2">
-          <Button type="button" onClick={onGoToLookUp}>
-            Next
-          </Button>
-        </div>
-      )}
+      {onGoToLookUp &&
+        (participantQuickSectionNav ? (
+          <div className="sticky bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-10 mt-8 flex justify-start rounded-lg border border-border/80 bg-background/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
+            <Button type="button" onClick={onGoToLookUp}>
+              Next — Look Up
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-start pt-2">
+            <Button type="button" onClick={onGoToLookUp}>
+              Next — Look Up
+            </Button>
+          </div>
+        ))}
     </div>
   );
 }

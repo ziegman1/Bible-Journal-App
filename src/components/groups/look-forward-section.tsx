@@ -88,6 +88,8 @@ interface LookForwardSectionProps {
   /** When set, Observations Helper uses live/synced rows instead of fetching. */
   passageObservations?: PassageObservationRow[];
   readOnly?: boolean;
+  /** Jump to Look Up tab on the live meeting page (participant view). */
+  onGoToLookUp?: () => void;
 }
 
 export function LookForwardSection({
@@ -106,6 +108,7 @@ export function LookForwardSection({
   passageReferenceLabel = null,
   passageObservations,
   readOnly = false,
+  onGoToLookUp,
 }: LookForwardSectionProps) {
   const router = useRouter();
   const viewerId = useMemo(
@@ -572,17 +575,30 @@ export function LookForwardSection({
           When your group is done with Look Forward, wrap up your 3/3rds time and
           open the meeting summary.
         </p>
-        <Link
-          href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
-          className="shrink-0"
-        >
-          <Button
-            size="lg"
-            className="w-full sm:w-auto bg-[#edb73e] text-[#1c252e] hover:bg-[#e5ad38] border-0"
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+          {onGoToLookUp ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-border sm:w-auto"
+              disabled={readOnly}
+              onClick={onGoToLookUp}
+            >
+              ← Look Up
+            </Button>
+          ) : null}
+          <Link
+            href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
+            className="w-full shrink-0 sm:w-auto"
           >
-            Finish
-          </Button>
-        </Link>
+            <Button
+              size="lg"
+              className="w-full bg-[#edb73e] text-[#1c252e] hover:bg-[#e5ad38] border-0 sm:w-auto"
+            >
+              Finish
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
