@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getGroup } from "@/app/actions/groups";
+import { getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,14 +19,13 @@ export default async function StarterTrackSectionLayout({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const result = await getGroup(groupId);
-  if (result.error || !result.group) {
-    if (result.error === "Not a member of this group") redirect("/app/groups");
+  // Uses groupNeedsStarterTrackPrompt via getStarterTrackPromptGateForGroup (same as meeting routes).
+  const gate = await getStarterTrackPromptGateForGroup(groupId);
+  if ("error" in gate) {
+    if (gate.error === "Not a member of this group") redirect("/app/groups");
     notFound();
   }
-
-  const g = result.group as { onboarding_pending?: boolean | null };
-  if (g.onboarding_pending === true) {
+  if (gate.needsPrompt) {
     redirect(`/app/groups/${groupId}/onboarding`);
   }
 

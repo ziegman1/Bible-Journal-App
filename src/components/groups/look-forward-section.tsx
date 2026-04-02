@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDebouncedMeetingPersist } from "@/hooks/use-debounced-meeting-persist";
+import { MeetingPersistHint } from "@/components/groups/meeting-persist-hint";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -77,6 +79,7 @@ interface LookForwardSectionProps {
   passageReferenceLabel?: string | null;
   /** When set, Observations Helper uses live/synced rows instead of fetching. */
   passageObservations?: PassageObservationRow[];
+  readOnly?: boolean;
 }
 
 export function LookForwardSection({
@@ -94,6 +97,7 @@ export function LookForwardSection({
   groupVisionStatement = null,
   passageReferenceLabel = null,
   passageObservations,
+  readOnly = false,
 }: LookForwardSectionProps) {
   const obeyRef = useRef<HTMLDivElement>(null);
   const practiceRef = useRef<HTMLDivElement>(null);
@@ -128,6 +132,34 @@ export function LookForwardSection({
 
   const [saving, setSaving] = useState(false);
 
+  const forwardLocalKey = JSON.stringify({
+    obedience,
+    sharing,
+    train,
+  });
+  const forwardRemoteKey = JSON.stringify({
+    o: obedienceRemote,
+    s: sharingRemote,
+    t: trainRemote,
+  });
+  const skipForwardAutosave =
+    readOnly || forwardLocalKey === forwardRemoteKey;
+
+  const persistForward = useCallback(async () => {
+    return saveLookForwardResponse(meetingId, {
+      obedienceStatement: obedience.trim(),
+      sharingCommitment: sharing.trim(),
+      trainCommitment: train.trim(),
+    });
+  }, [meetingId, obedience, sharing, train]);
+
+  const forwardPersistStatus = useDebouncedMeetingPersist({
+    debounceMs: 1600,
+    dirtyKey: forwardLocalKey,
+    skip: skipForwardAutosave,
+    persist: persistForward,
+  });
+
   useEffect(() => {
     if (!presenterFocus) return;
     const el =
@@ -160,12 +192,7 @@ export function LookForwardSection({
   );
 
   async function handleSave() {
-    if (!obedience.trim() || !sharing.trim() || !train.trim()) {
-      toast.error(
-        "Please fill in obey, share, and train commitments"
-      );
-      return;
-    }
+    if (readOnly) return;
     setSaving(true);
     const r = await saveLookForwardResponse(meetingId, {
       obedienceStatement: obedience.trim(),
@@ -246,6 +273,7 @@ export function LookForwardSection({
                   onChange={(e) => setObedience(e.target.value)}
                   placeholder="I will..."
                   rows={3}
+                  disabled={readOnly}
                   className={meetingTextareaClass("mt-1.5")}
                 />
               </div>
@@ -258,6 +286,7 @@ export function LookForwardSection({
                   onChange={(e) => setSharing(e.target.value)}
                   placeholder="I will share with..."
                   rows={2}
+                  disabled={readOnly}
                   className={meetingTextareaClass("mt-1.5")}
                 />
               </div>
@@ -270,6 +299,7 @@ export function LookForwardSection({
                   onChange={(e) => setTrain(e.target.value)}
                   placeholder="I will help … follow Jesus by modeling … and walking with them."
                   rows={3}
+                  disabled={readOnly}
                   className={meetingTextareaClass("mt-1.5")}
                 />
               </div>
@@ -280,11 +310,16 @@ export function LookForwardSection({
               size="sm"
               variant="outline"
               onClick={handleSave}
-              disabled={saving}
+              disabled={readOnly || saving}
             >
               {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Save commitment
+              Save commitments
             </Button>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-snug">
+              You can save one field at a time or leave blanks; auto-saves about 2s after you
+              stop typing, or tap Save.
+            </p>
+            <MeetingPersistHint status={forwardPersistStatus} />
           </div>
           <div className={meetingLiveRegion}>
             <p className={meetingLiveLabel}>Group (live)</p>

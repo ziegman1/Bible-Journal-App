@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getGroup } from "@/app/actions/groups";
+import { getGroup, getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { GroupOnboardingChoice } from "@/components/groups/group-onboarding-choice";
 
 interface PageProps {
@@ -10,7 +10,7 @@ interface PageProps {
 
 type GroupRow = {
   name: string;
-  onboarding_pending?: boolean | null;
+  group_kind?: string | null;
 };
 
 export default async function GroupOnboardingPage({ params }: PageProps) {
@@ -22,6 +22,16 @@ export default async function GroupOnboardingPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Gate first so we redirect without rendering the choice UI (avoids flicker).
+  const gate = await getStarterTrackPromptGateForGroup(groupId);
+  if ("error" in gate) {
+    if (gate.error === "Not a member of this group") redirect("/app");
+    notFound();
+  }
+  if (!gate.needsPrompt) {
+    redirect(`/app/groups/${groupId}`);
+  }
+
   const result = await getGroup(groupId);
   if (result.error || !result.group) {
     if (result.error === "Not a member of this group") redirect("/app");
@@ -29,17 +39,8 @@ export default async function GroupOnboardingPage({ params }: PageProps) {
   }
 
   const group = result.group as GroupRow;
-  if (!group.onboarding_pending) {
-    redirect(`/app/groups/${groupId}`);
-  }
-
-  const { count } = await supabase
-    .from("group_members")
-    .select("id", { count: "exact", head: true })
-    .eq("group_id", groupId);
-
-  if ((count ?? 0) < 2) {
-    redirect(`/app/groups/${groupId}`);
+  if ((group.group_kind ?? "thirds") === "chat") {
+    redirect(`/app/chat/groups/${groupId}`);
   }
 
   return (

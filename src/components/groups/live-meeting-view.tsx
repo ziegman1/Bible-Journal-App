@@ -315,11 +315,15 @@ export function LiveMeetingView({
 
   const othersPastoralLive = useMemo(() => {
     return Object.values(lookbackByUser)
-      .filter((r) => (r.user_id as string) !== viewerId)
+      .filter((r) => {
+        const uid = normalizeMeetingUserId(r.user_id as string);
+        return uid != null && uid !== viewerId;
+      })
       .map((r) => {
         const text = String(r.pastoral_care_response ?? "").trim();
         if (!text) return null;
-        const uid = r.user_id as string;
+        const uid =
+          normalizeMeetingUserId(r.user_id as string) ?? String(r.user_id ?? "");
         return {
           userId: uid,
           displayName: displayNameFor(uid),
@@ -335,11 +339,15 @@ export function LiveMeetingView({
 
   const othersAccountabilityLive = useMemo(() => {
     return Object.values(lookbackByUser)
-      .filter((r) => (r.user_id as string) !== viewerId)
+      .filter((r) => {
+        const uid = normalizeMeetingUserId(r.user_id as string);
+        return uid != null && uid !== viewerId;
+      })
       .map((r) => {
         const text = String(r.accountability_response ?? "").trim();
         if (!text) return null;
-        const uid = r.user_id as string;
+        const uid =
+          normalizeMeetingUserId(r.user_id as string) ?? String(r.user_id ?? "");
         return {
           userId: uid,
           displayName: displayNameFor(uid),
@@ -355,11 +363,15 @@ export function LiveMeetingView({
 
   const othersVisionLive = useMemo(() => {
     return Object.values(lookbackByUser)
-      .filter((r) => (r.user_id as string) !== viewerId)
+      .filter((r) => {
+        const uid = normalizeMeetingUserId(r.user_id as string);
+        return uid != null && uid !== viewerId;
+      })
       .map((r) => {
         const text = String(r.vision_casting_response ?? "").trim();
         if (!text) return null;
-        const uid = r.user_id as string;
+        const uid =
+          normalizeMeetingUserId(r.user_id as string) ?? String(r.user_id ?? "");
         return {
           userId: uid,
           displayName: displayNameFor(uid),
@@ -395,7 +407,8 @@ export function LiveMeetingView({
       teaches_about_god: [],
     };
     for (const row of passageObservations) {
-      const uid = row.user_id;
+      const uid =
+        normalizeMeetingUserId(row.user_id) ?? row.user_id;
       if (uid === viewerId) continue;
       const text = String(row.note ?? "").trim();
       if (!text) continue;
@@ -767,6 +780,7 @@ export function LiveMeetingView({
                 participants={participants}
                 practice={practice}
                 currentUserId={currentUserId}
+                readOnly={isCompleted}
                 presenterFocus={{
                   forwardSub: ps.forwardSub as ForwardSub,
                   practiceSlideIndex: ps.practiceSlideIndex,

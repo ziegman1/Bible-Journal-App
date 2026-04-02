@@ -42,13 +42,13 @@ export function GroupOnboardingChoice({ groupId, groupName }: Props) {
     <Card className="max-w-2xl mx-auto border-amber-200/70 dark:border-amber-900/40 shadow-sm">
       <CardHeader className="space-y-2 text-center sm:text-left">
         <CardTitle className="text-xl sm:text-2xl font-serif font-light text-stone-900 dark:text-stone-100">
-          How familiar is your group with 3/3rds?
+          Is anyone in this group new to 3/3rds?
         </CardTitle>
         <CardDescription className="text-base text-stone-600 dark:text-stone-400">
           <span className="font-medium text-stone-800 dark:text-stone-200">{groupName}</span>
           <span className="block mt-3 text-left text-sm">
-            Choose the option that best describes your group. You’ll use this to set up meetings
-            the right way.
+            This applies to the whole group. Your answer sets up the first meeting the right way
+            for everyone.
           </span>
         </CardDescription>
       </CardHeader>

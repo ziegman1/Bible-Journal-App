@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useDebouncedMeetingPersist } from "@/hooks/use-debounced-meeting-persist";
+import { MeetingPersistHint } from "@/components/groups/meeting-persist-hint";
 import {
   saveLookBackResponse,
   saveMeetingCommitmentCheckoff,
@@ -157,6 +159,72 @@ export function LookBackSection({
   );
 
   const isStarter = starterTrackLookBack != null;
+
+  const lookbackLocalKey = JSON.stringify({
+    pastoral,
+    accountability,
+    vision,
+  });
+  const lookbackRemoteKey = JSON.stringify({
+    p: pastoralRemote,
+    a: accountabilityRemote,
+    v: visionRemote,
+  });
+  const skipLookbackAutosave =
+    readOnly || lookbackLocalKey === lookbackRemoteKey;
+
+  const persistLookback = useCallback(async () => {
+    return saveLookBackResponse(meetingId, {
+      pastoralCareResponse: pastoral || undefined,
+      accountabilityResponse: accountability || undefined,
+      visionCastingResponse: vision || undefined,
+    });
+  }, [meetingId, pastoral, accountability, vision]);
+
+  const lookbackPersistStatus = useDebouncedMeetingPersist({
+    debounceMs: 1600,
+    dirtyKey: lookbackLocalKey,
+    skip: skipLookbackAutosave,
+    persist: persistLookback,
+  });
+
+  const followupLocalKey = JSON.stringify({
+    obedienceFollowup,
+    sharingFollowup,
+  });
+  const followupRemoteKey = JSON.stringify({
+    o: obedienceFollowupRemote,
+    s: sharingFollowupRemote,
+  });
+  const skipFollowupAutosave =
+    readOnly ||
+    !priorCommitments ||
+    followupLocalKey === followupRemoteKey;
+
+  const persistFollowup = useCallback(async () => {
+    if (!priorCommitments) return {};
+    const base = `Obey: ${priorCommitments.obedience}. Share: ${priorCommitments.sharing}`;
+    const summary = priorCommitments.train?.trim()
+      ? `${base}. Train: ${priorCommitments.train.trim()}.`
+      : `${base}.`;
+    return savePriorObedienceFollowup(meetingId, {
+      priorCommitmentSummary: summary,
+      obedienceFollowupResponse: obedienceFollowup || undefined,
+      sharingFollowupResponse: sharingFollowup || undefined,
+    });
+  }, [
+    meetingId,
+    priorCommitments,
+    obedienceFollowup,
+    sharingFollowup,
+  ]);
+
+  const followupPersistStatus = useDebouncedMeetingPersist({
+    debounceMs: 1600,
+    dirtyKey: followupLocalKey,
+    skip: skipFollowupAutosave,
+    persist: persistFollowup,
+  });
 
   const groupedAccountabilityLines = useMemo(() => {
     const m = new Map<string, AccountabilityCheckupLine[]>();
@@ -319,8 +387,13 @@ export function LookBackSection({
             disabled={saving}
           >
             {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Save
+            Save Look Back
           </Button>
+          <p className="mt-1.5 text-xs text-muted-foreground leading-snug">
+            Saves prayer, accountability, and vision together. Auto-saves about 2s after
+            you stop typing, or tap Save.
+          </p>
+          <MeetingPersistHint status={lookbackPersistStatus} />
         </div>
         <div className={meetingLiveRegion}>
           <p className={meetingLiveLabel}>Group (live)</p>
@@ -367,7 +440,7 @@ export function LookBackSection({
             disabled={saving}
           >
             {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Save
+            Save Look Back
           </Button>
         </div>
         <div className={meetingLiveRegion}>
@@ -415,6 +488,9 @@ export function LookBackSection({
             {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
             Save Look Back
           </Button>
+          <p className="mt-1 text-xs text-muted-foreground leading-snug">
+            Same auto-save as Pastoral care (above).
+          </p>
         </div>
         <div className={meetingLiveRegion}>
           <p className={meetingLiveLabel}>Group (live)</p>
@@ -478,8 +554,12 @@ export function LookBackSection({
             disabled={saving}
           >
             {saving ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Save accountability
+            Save follow-up
           </Button>
+          <p className="mt-1.5 text-xs text-muted-foreground leading-snug">
+            Auto-saves about 2s after you stop typing, or tap Save.
+          </p>
+          <MeetingPersistHint status={followupPersistStatus} />
         </div>
         <div className={meetingLiveRegion}>
           <p className={meetingLiveLabel}>Group (live)</p>

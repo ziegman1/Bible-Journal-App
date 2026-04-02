@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { GroupWorkspaceManageSection } from "@/components/groups/group-workspace-manage-section";
+import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
 
 interface PageProps {
   params: Promise<{ groupId: string }>;
@@ -34,6 +35,7 @@ type GroupOnboardingFields = {
   onboarding_pending?: boolean | null;
   onboarding_path?: string | null;
   group_kind?: string | null;
+  starter_track_prompt_answered?: boolean | null;
 };
 
 function starterTrackPrimaryHref(
@@ -111,8 +113,18 @@ export default async function GroupOverviewPage({ params }: PageProps) {
   const memberCount = count ?? 0;
   const canStartMeetings = memberCount >= 2;
 
-  /** Onboarding choice only after at least two members (creator + someone else). */
-  if (g.onboarding_pending === true && canStartMeetings) {
+  /**
+   * First-meeting Starter Track prompt — group row only (`starter_track_prompt_answered`),
+   * via groupNeedsStarterTrackPrompt (same as getStarterTrackPromptGateForGroup).
+   */
+  if (
+    groupNeedsStarterTrackPrompt({
+      groupKind: g.group_kind,
+      starterTrackPromptAnswered: g.starter_track_prompt_answered,
+      onboardingPending: g.onboarding_pending,
+      memberCount,
+    })
+  ) {
     redirect(`/app/groups/${groupId}/onboarding`);
   }
 
@@ -264,11 +276,16 @@ export default async function GroupOverviewPage({ params }: PageProps) {
         </div>
       )}
 
-      {g.onboarding_pending === true && !canStartMeetings && (
+      {/* "Invite first" hint: mirrors prompt gate (pre–second member), not user-specific state */}
+      {(g.group_kind ?? "thirds") === "thirds" &&
+        !canStartMeetings &&
+        (g.starter_track_prompt_answered === false ||
+          (g.onboarding_pending === true &&
+            g.starter_track_prompt_answered !== true)) && (
         <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground">
           {isAdmin
-            ? "After someone joins, you’ll choose whether anyone is new to 3/3rds or everyone is already experienced — then you can start meetings."
-            : "When this group has two members, you’ll be asked how familiar everyone is with the 3/3rds process before meetings start."}
+            ? "After someone joins, you’ll be asked whether anyone in this group is new to 3/3rds before the first meeting."
+            : "When this group has two members, everyone will be asked whether anyone is new to 3/3rds before the first meeting."}
         </div>
       )}
 

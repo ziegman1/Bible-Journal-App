@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getGroup } from "@/app/actions/groups";
+import { getGroup, getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { listGroupMeetings } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
@@ -19,18 +19,20 @@ export default async function GroupMeetingsPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const gate = await getStarterTrackPromptGateForGroup(groupId);
+  if ("error" in gate) {
+    if (gate.error === "Not a member of this group") redirect("/app/groups");
+    notFound();
+  }
+  if (gate.needsPrompt) {
+    redirect(`/app/groups/${groupId}/onboarding`);
+  }
+
   const groupResult = await getGroup(groupId);
   if (groupResult.error || !groupResult.group) {
     if (groupResult.error === "Not a member of this group")
       redirect("/app/groups");
     notFound();
-  }
-
-  const gPending = (
-    groupResult.group as { onboarding_pending?: boolean | null }
-  ).onboarding_pending;
-  if (gPending === true) {
-    redirect(`/app/groups/${groupId}/onboarding`);
   }
 
   const meetingsResult = await listGroupMeetings(groupId);

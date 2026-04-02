@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebouncedMeetingPersist } from "@/hooks/use-debounced-meeting-persist";
+import { MeetingPersistHint } from "@/components/groups/meeting-persist-hint";
 import { assignStoryReteller, savePassageObservation } from "@/app/actions/meetings";
 import {
   meetingLiveBody,
@@ -228,34 +230,24 @@ function ObservationPromptField({
     setNote("");
   }
 
-  async function handleSave() {
-    if (!anchor) {
-      toast.error("Passage reference is missing; observations can’t be saved.");
-      return;
-    }
+  const commitObservation = useCallback(async (): Promise<{ error?: string }> => {
+    if (!anchor) return { error: "Passage reference is missing." };
     if (!hasPassageText) {
-      toast.error("Passage text isn’t available; observations can’t be saved here.");
-      return;
+      return { error: "Passage text isn’t available for this reference." };
     }
     if (pickPhase !== "ready" || firstVerse == null || rangeEnd == null) {
-      toast.error("Select a verse or verse range in the passage first.");
-      return;
+      return { error: "Select a verse range first." };
     }
     const trimmed = note.trim();
     if (!trimmed) {
-      toast.error("Write your observation before saving.");
-      return;
+      return { error: "Write your observation before saving." };
     }
-
     const vS = Math.min(firstVerse, rangeEnd);
     const vE = Math.max(firstVerse, rangeEnd);
     if (vS < verseMin || vE > verseMax) {
-      toast.error(`Choose verses between ${verseMin} and ${verseMax}.`);
-      return;
+      return { error: `Choose verses between ${verseMin} and ${verseMax}.` };
     }
-
-    setSaving(true);
-    const r = await savePassageObservation(meetingId, {
+    return savePassageObservation(meetingId, {
       observationType,
       book: anchor.book,
       chapter: anchor.chapter,
@@ -263,6 +255,22 @@ function ObservationPromptField({
       verseEnd: vE !== vS ? vE : null,
       note: trimmed,
     });
+  }, [
+    anchor,
+    hasPassageText,
+    pickPhase,
+    firstVerse,
+    rangeEnd,
+    note,
+    verseMin,
+    verseMax,
+    meetingId,
+    observationType,
+  ]);
+
+  async function handleSave() {
+    setSaving(true);
+    const r = await commitObservation();
     setSaving(false);
     if (r.error) {
       toast.error(r.error);
@@ -271,6 +279,57 @@ function ObservationPromptField({
     toast.success("Observation saved");
     handleClearSelection();
   }
+
+  const trimmedNote = note.trim();
+  const obsReady =
+    pickPhase === "ready" &&
+    firstVerse != null &&
+    rangeEnd != null &&
+    trimmedNote.length > 0;
+  const draftVs = obsReady ? Math.min(firstVerse, rangeEnd) : null;
+  const draftVe = obsReady ? Math.max(firstVerse, rangeEnd) : null;
+  const obsDirtyKey = JSON.stringify({
+    observationType,
+    obsReady,
+    draftVs,
+    draftVe,
+    n: trimmedNote,
+  });
+  const savedObsKey =
+    selfObservation != null && selfObservation.verse_number != null
+      ? JSON.stringify({
+          observationType,
+          obsReady: true,
+          draftVs: selfObservation.verse_number,
+          draftVe:
+            selfObservation.verse_end != null
+              ? selfObservation.verse_end
+              : selfObservation.verse_number,
+          n: (selfObservation.note ?? "").trim(),
+        })
+      : "";
+  const skipObsAutosave =
+    readOnly ||
+    disabled ||
+    !obsReady ||
+    !anchor ||
+    !hasPassageText ||
+    obsDirtyKey === savedObsKey ||
+    draftVs == null ||
+    draftVe == null ||
+    draftVs < verseMin ||
+    draftVe > verseMax;
+
+  const persistObservation = useCallback(async () => {
+    return commitObservation();
+  }, [commitObservation]);
+
+  const observationPersistStatus = useDebouncedMeetingPersist({
+    debounceMs: 1600,
+    dirtyKey: obsDirtyKey,
+    skip: skipObsAutosave,
+    persist: persistObservation,
+  });
 
   const selectionRefShort =
     pickPhase === "ready" && selStart != null && selEnd != null
@@ -393,6 +452,11 @@ function ObservationPromptField({
               </Button>
             </div>
           ) : null}
+          <p className="mt-2 text-xs text-muted-foreground leading-snug">
+            Auto-saves about 2s after you stop typing when a verse range and note are ready,
+            or tap Save for group.
+          </p>
+          <MeetingPersistHint status={observationPersistStatus} />
         </div>
       ) : null}
 

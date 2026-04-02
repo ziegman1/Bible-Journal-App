@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeLookforwardRow } from "@/lib/groups/lookforward-train-embed";
 import { normalizeMeetingUserId } from "@/lib/groups/member-display-name";
@@ -43,6 +43,41 @@ function rowsToMap(
   return out;
 }
 
+/** Stable key so we merge server props when RSC data changes (e.g. after revalidatePath), not only on meetingId. */
+function lookbackRowsFingerprint(
+  rows: Record<string, unknown>[] | undefined
+): string {
+  if (!rows?.length) return "";
+  return rows
+    .map((r) => {
+      const u = normalizeMeetingUserId(r.user_id as string);
+      if (!u) return "";
+      return [
+        u,
+        r.pastoral_care_response ?? "",
+        r.accountability_response ?? "",
+        r.vision_casting_response ?? "",
+        r.updated_at ?? "",
+      ].join("\x1e");
+    })
+    .filter(Boolean)
+    .sort()
+    .join("\x1f");
+}
+
+/** Overlay latest server lookback rows without dropping realtime-only keys (e.g. before refresh catches up). */
+function mergeServerLookbackIntoClient(
+  prev: Record<string, Record<string, unknown>>,
+  server: Record<string, Record<string, unknown>>
+): Record<string, Record<string, unknown>> {
+  if (Object.keys(server).length === 0) return prev;
+  const out: Record<string, Record<string, unknown>> = { ...prev };
+  for (const [uid, srow] of Object.entries(server)) {
+    out[uid] = { ...(prev[uid] ?? {}), ...srow, user_id: uid };
+  }
+  return out;
+}
+
 /** Split embedded train from sharing (legacy DB without train_commitment column). */
 function rowsToLookforwardMap(
   rows: Record<string, unknown>[] | undefined
@@ -56,6 +91,11 @@ function rowsToLookforwardMap(
   return out;
 }
 
+/** Supabase postgres_changes uses uppercase; be tolerant if that ever varies. */
+function isRealtimeDeleteEvent(eventType: string | undefined): boolean {
+  return String(eventType ?? "").toUpperCase() === "DELETE";
+}
+
 /** Merge a postgres row into a user-keyed map (last-write-wins per user). */
 function mergeResponseRow(
   prev: Record<string, Record<string, unknown>>,
@@ -63,6 +103,8 @@ function mergeResponseRow(
 ): Record<string, Record<string, unknown>> {
   const uid = normalizeMeetingUserId(row.user_id);
   if (!uid) return prev;
+  // INSERT + UPDATE: with REPLICA IDENTITY FULL, `row` is the full table row; shallow
+  // merge replaces prior fields so edited TEXT columns (e.g. prayer) overwrite stale values.
   return {
     ...prev,
     [uid]: { ...(prev[uid] ?? {}), ...row, user_id: uid },
@@ -85,6 +127,7 @@ function mergeObservationList(
   const idx = prev.findIndex((r) => r.id === row.id);
   if (idx >= 0) {
     const next = [...prev];
+    // UPDATE: full row from Realtime (REPLICA IDENTITY FULL) overwrites prior note/verses.
     next[idx] = { ...next[idx], ...row };
     return next;
   }
@@ -121,7 +164,7 @@ function applyMeetingCommitmentCheckoffPayload(
   },
   setCommitmentCompleteByKey: Dispatch<SetStateAction<Record<string, boolean>>>
 ) {
-  if (payload.eventType === "DELETE") {
+  if (isRealtimeDeleteEvent(payload.eventType)) {
     const old = payload.old;
     if (!old || !rowBelongsToMeeting(meetingId, old.meeting_id)) return;
     if (!old.source_meeting_id || !old.subject_user_id || !old.pillar) return;
@@ -233,6 +276,21 @@ export function useMeetingResponsesRealtime(opts: {
     });
   }, []);
 
+  const lookbackServerFingerprint = useMemo(
+    () => lookbackRowsFingerprint(opts.initialLookback),
+    [opts.initialLookback]
+  );
+
+  // Merge RSC lookback when its content changes (e.g. after revalidatePath + router.refresh). Realtime
+  // alone does not update clients that never receive the event; overlay keeps maps aligned with DB.
+  useEffect(() => {
+    const serverMap = rowsToMap(opts.initialLookback);
+    setLookbackByUser((prev) =>
+      mergeServerLookbackIntoClient(prev, serverMap)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookbackServerFingerprint` reflects `initialLookback` content; array identity alone must not reset maps
+  }, [lookbackServerFingerprint]);
+
   // Snapshot initial rows only when switching meetings; including full opts would wipe optimistic/realtime state on re-renders.
   useEffect(() => {
     queueMicrotask(() => {
@@ -258,7 +316,10 @@ export function useMeetingResponsesRealtime(opts: {
       new: Record<string, unknown> | null;
       old: Record<string, unknown> | null;
     }) => {
-      if (payload.eventType === "DELETE") {
+      // Subscribes with event: "*" (INSERT | UPDATE | DELETE). UPDATE needs full row in
+      // `new` for merge to replace edited TEXT — enforced by REPLICA IDENTITY FULL on
+      // lookback_responses (migration 052).
+      if (isRealtimeDeleteEvent(payload.eventType)) {
         const uid = normalizeMeetingUserId(
           payload.old?.user_id as string | undefined
         );
@@ -281,7 +342,7 @@ export function useMeetingResponsesRealtime(opts: {
       new: Record<string, unknown> | null;
       old: Record<string, unknown> | null;
     }) => {
-      if (payload.eventType === "DELETE") {
+      if (isRealtimeDeleteEvent(payload.eventType)) {
         const uid = normalizeMeetingUserId(
           payload.old?.user_id as string | undefined
         );
@@ -312,7 +373,7 @@ export function useMeetingResponsesRealtime(opts: {
       new: Record<string, unknown> | null;
       old: Record<string, unknown> | null;
     }) => {
-      if (payload.eventType === "DELETE") {
+      if (isRealtimeDeleteEvent(payload.eventType)) {
         const uid = normalizeMeetingUserId(
           payload.old?.user_id as string | undefined
         );
@@ -335,7 +396,7 @@ export function useMeetingResponsesRealtime(opts: {
       new: Record<string, unknown> | null;
       old: Record<string, unknown> | null;
     }) => {
-      if (payload.eventType === "DELETE") {
+      if (isRealtimeDeleteEvent(payload.eventType)) {
         const id = payload.old?.id as string | undefined;
         if (id)
           setPassageObservations((p) => removeObservationById(p, id));
@@ -378,7 +439,7 @@ export function useMeetingResponsesRealtime(opts: {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "*", // INSERT + UPDATE + DELETE (not INSERT-only)
           schema: "public",
           table: "lookback_responses",
           filter,

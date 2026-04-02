@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { ensureStarterTrackEnrollment } from "@/app/actions/group-starter-track";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
 import { inviteTokenMeta, logGroupInvite } from "@/lib/group-invite-log";
+import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
 
 /** PostgREST sometimes returns a scalar UUID as a one-element array. */
 function normalizeRpcUuid(data: unknown): string | null {
@@ -164,6 +165,7 @@ export async function saveGroupOnboardingChoice(
   groupId: string,
   choice: "starter_track" | "experienced"
 ) {
+  // Persists to `groups` via RPC only — no profile / per-user “has seen intro” flags.
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
   const {
@@ -192,6 +194,8 @@ export async function saveGroupOnboardingChoice(
   revalidatePath(`/app/groups/${groupId}`);
   revalidatePath(`/app/groups/${groupId}/onboarding`);
   revalidatePath(`/app/groups/${groupId}/starter-track`);
+  revalidatePath(`/app/groups/${groupId}/meetings`);
+  revalidatePath(`/app/groups/${groupId}/meetings/new`);
 
   return {
     success: true as const,
@@ -396,6 +400,54 @@ export async function getGroup(groupId: string) {
   if (!membership) return { error: "Not a member of this group" };
 
   return { group, role: membership.role };
+}
+
+/**
+ * Server-side gate for routes/actions that must match `groupNeedsStarterTrackPrompt`
+ * (src/lib/groups/starter-track-prompt.ts). Loads group_kind + prompt columns and member count;
+ * does not use profile or any per-user onboarding history.
+ */
+export async function getStarterTrackPromptGateForGroup(groupId: string): Promise<
+  | { error: string }
+  | { needsPrompt: boolean; memberCount: number }
+> {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("id")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!membership) return { error: "Not a member of this group" };
+
+  const { data: row, error: gErr } = await supabase
+    .from("groups")
+    .select("group_kind, starter_track_prompt_answered, onboarding_pending")
+    .eq("id", groupId)
+    .single();
+  if (gErr || !row) return { error: gErr?.message ?? "Group not found" };
+
+  const { count } = await supabase
+    .from("group_members")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", groupId);
+
+  const memberCount = count ?? 0;
+  return {
+    needsPrompt: groupNeedsStarterTrackPrompt({
+      groupKind: row.group_kind,
+      starterTrackPromptAnswered: row.starter_track_prompt_answered,
+      onboardingPending: row.onboarding_pending,
+      memberCount,
+    }),
+    memberCount,
+  };
 }
 
 async function assertCanManageGroup(

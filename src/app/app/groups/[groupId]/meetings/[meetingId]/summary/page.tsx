@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { getMeetingDetail } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
 import { GenerateMeetingSummaryButton } from "@/components/groups/meeting-summary-generate-button";
@@ -24,6 +25,16 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Same prompt gate as live / present (getStarterTrackPromptGateForGroup → groupNeedsStarterTrackPrompt).
+  const gate = await getStarterTrackPromptGateForGroup(groupId);
+  if ("error" in gate) {
+    if (gate.error === "Not a member of this group") redirect("/app/groups");
+    notFound();
+  }
+  if (gate.needsPrompt) {
+    redirect(`/app/groups/${groupId}/onboarding`);
+  }
 
   const result = await getMeetingDetail(meetingId);
   if (result.error || !result.meeting) notFound();

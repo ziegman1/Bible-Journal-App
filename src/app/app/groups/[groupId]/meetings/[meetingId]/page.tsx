@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { getMeetingDetail } from "@/app/actions/meetings";
 import { getChapter } from "@/lib/scripture/provider";
 import { getBookIdFromName } from "@/lib/scripture/books";
@@ -17,6 +18,16 @@ export default async function MeetingPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Run before getMeetingDetail so we redirect without loading the full meeting payload.
+  const gate = await getStarterTrackPromptGateForGroup(groupId);
+  if ("error" in gate) {
+    if (gate.error === "Not a member of this group") redirect("/app/groups");
+    notFound();
+  }
+  if (gate.needsPrompt) {
+    redirect(`/app/groups/${groupId}/onboarding`);
+  }
 
   const result = await getMeetingDetail(meetingId);
   if (result.error || !result.meeting) {

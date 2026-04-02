@@ -26,6 +26,7 @@ import {
 } from "@/lib/groups/accountability-checkup";
 import { formatObservationVerseRef } from "@/lib/groups/observation-verse-ref";
 import { revalidatePath } from "next/cache";
+import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
 
 type SupabaseServer = NonNullable<Awaited<ReturnType<typeof createClient>>>;
 
@@ -86,6 +87,59 @@ async function fetchLookforwardRowsForMeeting(
     return { ok: false, message: lfsWithTrain.error.message };
   }
   return { ok: true, rows: lfsWithTrain.data ?? [] };
+}
+
+/** Stable ordering for “which meeting comes first” within a group (DATE + created_at + id). */
+type MeetingOrderRef = {
+  id: string;
+  meeting_date: string;
+  created_at: string;
+};
+
+function meetingOrderCompare(a: MeetingOrderRef, b: MeetingOrderRef): number {
+  const d = String(a.meeting_date).localeCompare(String(b.meeting_date));
+  if (d !== 0) return d;
+  const t = String(a.created_at).localeCompare(String(b.created_at));
+  if (t !== 0) return t;
+  return String(a.id).localeCompare(String(b.id));
+}
+
+/**
+ * Latest completed meeting in the same group that is strictly before `ref` (by date, then
+ * created_at, then id). Handles same calendar day and starter_track_week gaps. Excludes `ref.id`.
+ */
+async function findPriorCompletedMeetingBefore(
+  supabase: SupabaseServer,
+  groupId: string,
+  ref: MeetingOrderRef
+): Promise<MeetingOrderRef | null> {
+  const { data: rows, error } = await supabase
+    .from("group_meetings")
+    .select("id, meeting_date, created_at")
+    .eq("group_id", groupId)
+    .eq("status", "completed")
+    .neq("id", ref.id);
+
+  if (error || !rows?.length) return null;
+
+  const refNorm: MeetingOrderRef = {
+    id: ref.id,
+    meeting_date: String(ref.meeting_date),
+    created_at: String(ref.created_at),
+  };
+
+  const before = (rows as { id: string; meeting_date: string; created_at: string }[])
+    .map((r) => ({
+      id: r.id,
+      meeting_date: String(r.meeting_date),
+      created_at: String(r.created_at),
+    }))
+    .filter((c) => meetingOrderCompare(c, refNorm) < 0);
+
+  if (before.length === 0) return null;
+
+  before.sort((a, b) => meetingOrderCompare(b, a));
+  return before[0] ?? null;
 }
 
 async function revalidateMeetingPaths(
@@ -195,6 +249,34 @@ export async function createGroupMeeting(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
+
+  // Same predicate as route guards (groupNeedsStarterTrackPrompt) + DB trigger
+  // assert_starter_track_prompt_before_group_meeting (migration 051).
+  const { data: gRow, error: gMetaErr } = await supabase
+    .from("groups")
+    .select("group_kind, starter_track_prompt_answered, onboarding_pending")
+    .eq("id", groupId)
+    .single();
+  if (gMetaErr || !gRow) {
+    return { error: gMetaErr?.message ?? "Group not found" };
+  }
+  const { count: memberCount } = await supabase
+    .from("group_members")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", groupId);
+  if (
+    groupNeedsStarterTrackPrompt({
+      groupKind: gRow.group_kind,
+      starterTrackPromptAnswered: gRow.starter_track_prompt_answered,
+      onboardingPending: gRow.onboarding_pending,
+      memberCount: memberCount ?? 0,
+    })
+  ) {
+    return {
+      error:
+        "Before your group’s first meeting, answer whether anyone is new to 3/3rds (open this group’s workspace).",
+    };
+  }
 
   const { data: meeting, error } = await supabase
     .from("group_meetings")
@@ -349,6 +431,12 @@ export async function getMeetingDetail(meetingId: string) {
   const starterWeek =
     (meeting as { starter_track_week?: number | null }).starter_track_week ?? null;
 
+  const currentMeetingOrderRef: MeetingOrderRef = {
+    id: String(meeting.id),
+    meeting_date: String(meeting.meeting_date),
+    created_at: String((meeting as { created_at: string }).created_at),
+  };
+
   if (starterWeek != null) {
     const { data: en } = await supabase
       .from("group_starter_track_enrollment")
@@ -366,15 +454,33 @@ export async function getMeetingDetail(meetingId: string) {
         priorWeekByMember: [],
       };
     } else {
-      const { data: priorRow } = await supabase
+      const { data: priorByWeek } = await supabase
         .from("group_meetings")
-        .select("id")
+        .select("id, meeting_date, created_at")
         .eq("group_id", meeting.group_id)
         .eq("status", "completed")
         .eq("starter_track_week", starterWeek - 1)
         .order("meeting_date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      let priorRow: MeetingOrderRef | null =
+        priorByWeek?.id != null
+          ? {
+              id: priorByWeek.id,
+              meeting_date: String(priorByWeek.meeting_date),
+              created_at: String(priorByWeek.created_at),
+            }
+          : null;
+
+      if (!priorRow) {
+        priorRow = await findPriorCompletedMeetingBefore(
+          supabase,
+          meeting.group_id,
+          currentMeetingOrderRef
+        );
+      }
 
       if (!priorRow?.id) {
         priorCommitments = null;
@@ -429,20 +535,16 @@ export async function getMeetingDetail(meetingId: string) {
         );
 
         if (starterWeek != null && starterWeek >= 3) {
-          const { data: prior2Row } = await supabase
-            .from("group_meetings")
-            .select("id")
-            .eq("group_id", meeting.group_id)
-            .eq("status", "completed")
-            .eq("starter_track_week", starterWeek - 2)
-            .order("meeting_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          const prior2Ref = await findPriorCompletedMeetingBefore(
+            supabase,
+            meeting.group_id,
+            priorRow
+          );
 
-          if (prior2Row?.id) {
+          if (prior2Ref?.id) {
             const lf2Fetched = await fetchLookforwardRowsForMeeting(
               supabase,
-              prior2Row.id
+              prior2Ref.id
             );
             if (!lf2Fetched.ok) return { error: lf2Fetched.message };
             const lf2 = lf2Fetched.rows;
@@ -451,7 +553,7 @@ export async function getMeetingDetail(meetingId: string) {
               .from("meeting_commitment_checkoffs")
               .select("subject_user_id, pillar")
               .eq("meeting_id", priorRow.id)
-              .eq("source_meeting_id", prior2Row.id)
+              .eq("source_meeting_id", prior2Ref.id)
               .eq("is_complete", true);
 
             const done = new Set(
@@ -462,7 +564,7 @@ export async function getMeetingDetail(meetingId: string) {
             );
 
             const carry = linesFromLookforwardRows(
-              prior2Row.id,
+              prior2Ref.id,
               lf2,
               resolveName,
               true
@@ -513,23 +615,19 @@ export async function getMeetingDetail(meetingId: string) {
       }
     }
   } else {
-    const priorMeeting = await supabase
-      .from("group_meetings")
-      .select("id, meeting_date")
-      .eq("group_id", meeting.group_id)
-      .lt("meeting_date", meeting.meeting_date)
-      .eq("status", "completed")
-      .order("meeting_date", { ascending: false })
-      .limit(1)
-      .single();
+    const priorMeeting = await findPriorCompletedMeetingBefore(
+      supabase,
+      meeting.group_id,
+      currentMeetingOrderRef
+    );
 
-    if (priorMeeting?.data?.id) {
+    if (priorMeeting?.id) {
       const priorWithTrain = await supabase
         .from("lookforward_responses")
         .select("obedience_statement, sharing_commitment, train_commitment")
-        .eq("meeting_id", priorMeeting.data.id)
+        .eq("meeting_id", priorMeeting.id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       let prior: {
         obedience_statement: string;
@@ -544,9 +642,9 @@ export async function getMeetingDetail(meetingId: string) {
         const priorNoTrain = await supabase
           .from("lookforward_responses")
           .select("obedience_statement, sharing_commitment")
-          .eq("meeting_id", priorMeeting.data.id)
+          .eq("meeting_id", priorMeeting.id)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
         if (!priorNoTrain.error && priorNoTrain.data) {
           prior = { ...priorNoTrain.data, train_commitment: null };
         }
@@ -563,7 +661,7 @@ export async function getMeetingDetail(meetingId: string) {
         };
       }
 
-      const pid = priorMeeting.data.id;
+      const pid = priorMeeting.id;
       const lfAllFetched = await fetchLookforwardRowsForMeeting(supabase, pid);
       if (!lfAllFetched.ok) return { error: lfAllFetched.message };
       const lfAll = lfAllFetched.rows;
@@ -583,53 +681,46 @@ export async function getMeetingDetail(meetingId: string) {
         false
       );
 
-      const pDate = priorMeeting.data.meeting_date as string | undefined;
-      if (pDate) {
-        const { data: prior2Meeting } = await supabase
-          .from("group_meetings")
-          .select("id")
-          .eq("group_id", meeting.group_id)
-          .eq("status", "completed")
-          .lt("meeting_date", pDate)
-          .order("meeting_date", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      const prior2Meeting = await findPriorCompletedMeetingBefore(
+        supabase,
+        meeting.group_id,
+        priorMeeting
+      );
 
-        if (prior2Meeting?.id) {
-          const lf2Fetched = await fetchLookforwardRowsForMeeting(
-            supabase,
-            prior2Meeting.id
-          );
-          if (!lf2Fetched.ok) return { error: lf2Fetched.message };
+      if (prior2Meeting?.id) {
+        const lf2Fetched = await fetchLookforwardRowsForMeeting(
+          supabase,
+          prior2Meeting.id
+        );
+        if (!lf2Fetched.ok) return { error: lf2Fetched.message };
 
-          const { data: completedInP } = await supabase
-            .from("meeting_commitment_checkoffs")
-            .select("subject_user_id, pillar")
-            .eq("meeting_id", pid)
-            .eq("source_meeting_id", prior2Meeting.id)
-            .eq("is_complete", true);
+        const { data: completedInP } = await supabase
+          .from("meeting_commitment_checkoffs")
+          .select("subject_user_id, pillar")
+          .eq("meeting_id", pid)
+          .eq("source_meeting_id", prior2Meeting.id)
+          .eq("is_complete", true);
 
-          const done = new Set(
-            (completedInP ?? []).map(
-              (r) =>
-                `${normalizeMeetingUserId(r.subject_user_id) ?? r.subject_user_id}:${r.pillar}`
+        const done = new Set(
+          (completedInP ?? []).map(
+            (r) =>
+              `${normalizeMeetingUserId(r.subject_user_id) ?? r.subject_user_id}:${r.pillar}`
+          )
+        );
+
+        const carry = linesFromLookforwardRows(
+          prior2Meeting.id,
+          lf2Fetched.rows,
+          resolveNameG,
+          true
+        ).filter(
+          (ln) =>
+            !done.has(
+              `${normalizeMeetingUserId(ln.subjectUserId) ?? ln.subjectUserId}:${ln.pillar}`
             )
-          );
+        );
 
-          const carry = linesFromLookforwardRows(
-            prior2Meeting.id,
-            lf2Fetched.rows,
-            resolveNameG,
-            true
-          ).filter(
-            (ln) =>
-              !done.has(
-                `${normalizeMeetingUserId(ln.subjectUserId) ?? ln.subjectUserId}:${ln.pillar}`
-              )
-          );
-
-          accountabilityCheckupLines = [...carry, ...accountabilityCheckupLines];
-        }
+        accountabilityCheckupLines = [...carry, ...accountabilityCheckupLines];
       }
 
       accountabilityCheckupLines =
@@ -1060,6 +1151,7 @@ export async function saveLookBackResponse(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  // Single row per (meeting_id, user_id): upsert updates in place (no duplicate rows).
   const { error } = await supabase.from("lookback_responses").upsert(
     {
       meeting_id: meetingId,
