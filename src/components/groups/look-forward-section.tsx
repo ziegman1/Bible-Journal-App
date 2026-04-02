@@ -35,6 +35,9 @@ import {
   type ForwardSub,
 } from "@/lib/groups/meeting-presenter-state";
 import {
+  appendMissingCarryBlocks,
+} from "@/lib/groups/accountability-checkup";
+import {
   displayNameForMeetingUser,
   normalizeMeetingUserId,
 } from "@/lib/groups/member-display-name";
@@ -90,6 +93,15 @@ interface LookForwardSectionProps {
   readOnly?: boolean;
   /** Jump to Look Up tab on the live meeting page (participant view). */
   onGoToLookUp?: () => void;
+  /**
+   * Unchecked Look Back accountability lines for this user — merged into Obey / Share / Train
+   * until each line is checked off (may span multiple meetings).
+   */
+  accountabilityCarryForward?: {
+    obedience: string;
+    sharing: string;
+    train: string;
+  };
 }
 
 export function LookForwardSection({
@@ -109,6 +121,7 @@ export function LookForwardSection({
   passageObservations,
   readOnly = false,
   onGoToLookUp,
+  accountabilityCarryForward,
 }: LookForwardSectionProps) {
   const router = useRouter();
   const viewerId = useMemo(
@@ -135,26 +148,57 @@ export function LookForwardSection({
   const sharingRemote = myLookforward?.sharing_commitment ?? "";
   const trainRemote = myLookforward?.train_commitment ?? "";
 
-  const [obedience, setObedience] = useState(obedienceRemote);
+  const carryO = accountabilityCarryForward?.obedience ?? "";
+  const carryS = accountabilityCarryForward?.sharing ?? "";
+  const carryT = accountabilityCarryForward?.train ?? "";
+
+  const obedienceBaseline = useMemo(
+    () => appendMissingCarryBlocks(obedienceRemote, carryO),
+    [obedienceRemote, carryO]
+  );
+  const sharingBaseline = useMemo(
+    () => appendMissingCarryBlocks(sharingRemote, carryS),
+    [sharingRemote, carryS]
+  );
+  const trainBaseline = useMemo(
+    () => appendMissingCarryBlocks(trainRemote, carryT),
+    [trainRemote, carryT]
+  );
+
+  const [obedience, setObedience] = useState(() =>
+    appendMissingCarryBlocks(obedienceRemote, carryO)
+  );
   const [obedienceSource, setObedienceSource] = useState(obedienceRemote);
   if (obedienceRemote !== obedienceSource) {
     setObedienceSource(obedienceRemote);
-    setObedience(obedienceRemote);
+    setObedience(appendMissingCarryBlocks(obedienceRemote, carryO));
   }
 
-  const [sharing, setSharing] = useState(sharingRemote);
+  const [sharing, setSharing] = useState(() =>
+    appendMissingCarryBlocks(sharingRemote, carryS)
+  );
   const [sharingSource, setSharingSource] = useState(sharingRemote);
   if (sharingRemote !== sharingSource) {
     setSharingSource(sharingRemote);
-    setSharing(sharingRemote);
+    setSharing(appendMissingCarryBlocks(sharingRemote, carryS));
   }
 
-  const [train, setTrain] = useState(trainRemote);
+  const [train, setTrain] = useState(() =>
+    appendMissingCarryBlocks(trainRemote, carryT)
+  );
   const [trainSource, setTrainSource] = useState(trainRemote);
   if (trainRemote !== trainSource) {
     setTrainSource(trainRemote);
-    setTrain(trainRemote);
+    setTrain(appendMissingCarryBlocks(trainRemote, carryT));
   }
+
+  const carryFingerprint = `${carryO}\x1e${carryS}\x1e${carryT}`;
+  useEffect(() => {
+    if (!carryO && !carryS && !carryT) return;
+    setObedience((o) => appendMissingCarryBlocks(o, carryO));
+    setSharing((s) => appendMissingCarryBlocks(s, carryS));
+    setTrain((t) => appendMissingCarryBlocks(t, carryT));
+  }, [carryFingerprint, carryO, carryS, carryT]);
 
   const [saving, setSaving] = useState(false);
 
@@ -167,9 +211,9 @@ export function LookForwardSection({
     train,
   });
   const forwardRemoteKey = JSON.stringify({
-    o: obedienceRemote,
-    s: sharingRemote,
-    t: trainRemote,
+    o: obedienceBaseline,
+    s: sharingBaseline,
+    t: trainBaseline,
   });
   const skipForwardAutosave =
     readOnly || forwardLocalKey === forwardRemoteKey;
@@ -197,20 +241,24 @@ export function LookForwardSection({
     onPersistError: (msg) => toast.error(msg),
   });
 
+  const facilitatorForwardSub = presenterFocus?.forwardSub;
+  const facilitatorPracticeSlideIndex = presenterFocus?.practiceSlideIndex;
+
+  /** Depend on primitives only — parent passes inline `presenterFocus` each render; object identity was re-firing this on every realtime/parent update and yanking scroll while typing. */
   useEffect(() => {
-    if (!presenterFocus) return;
+    if (facilitatorForwardSub == null) return;
     const el =
-      presenterFocus.forwardSub === "obey"
+      facilitatorForwardSub === "obey"
         ? obeyRef.current
-        : presenterFocus.forwardSub === "practice"
+        : facilitatorForwardSub === "practice"
           ? practiceRef.current
-          : presenterFocus.forwardSub === "prayer"
+          : facilitatorForwardSub === "prayer"
             ? prayerGuidanceRef.current
-            : presenterFocus.forwardSub === "commissioning"
+            : facilitatorForwardSub === "commissioning"
               ? commissioningRef.current
               : prayerRef.current;
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [presenterFocus]);
+  }, [facilitatorForwardSub, facilitatorPracticeSlideIndex]);
 
   const starterWeekConfig =
     starterTrackWeek != null &&

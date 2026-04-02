@@ -93,6 +93,62 @@ export function linesFromLookforwardRows(
   return out;
 }
 
+/**
+ * Text for Obey / Share / Train fields: all checklist lines for this subject that are
+ * not checked off in the current meeting. Multiple lines are joined with blank lines.
+ */
+export function buildUncheckedAccountabilityCarryForward(
+  meetingId: string,
+  lines: AccountabilityCheckupLine[],
+  completeByKey: Record<string, boolean>,
+  subjectUserId: string
+): { obedience: string; sharing: string; train: string } {
+  const uid = normalizeMeetingUserId(subjectUserId) ?? subjectUserId;
+  const by: Record<CommitmentPillar, string[]> = {
+    obedience: [],
+    sharing: [],
+    train: [],
+  };
+  for (const line of lines) {
+    const lineUid =
+      normalizeMeetingUserId(line.subjectUserId) ?? line.subjectUserId;
+    if (lineUid !== uid) continue;
+    const key = accountabilityLineKey(meetingId, line);
+    if (completeByKey[key]) continue;
+    const t = line.text.trim();
+    if (!t) continue;
+    by[line.pillar].push(t);
+  }
+  const dedupeJoin = (arr: string[]) => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of arr) {
+      const n = x.trim();
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      out.push(n);
+    }
+    return out.join("\n\n");
+  };
+  return {
+    obedience: dedupeJoin(by.obedience),
+    sharing: dedupeJoin(by.sharing),
+    train: dedupeJoin(by.train),
+  };
+}
+
+/** Append carry paragraphs that are not already present (substring match). */
+export function appendMissingCarryBlocks(existing: string, carry: string): string {
+  const blocks = carry.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
+  if (blocks.length === 0) return existing;
+  let out = existing.trim();
+  for (const b of blocks) {
+    if (out.includes(b)) continue;
+    out = out ? `${out}\n\n${b}` : b;
+  }
+  return out;
+}
+
 export function sortAccountabilityLines(
   lines: AccountabilityCheckupLine[]
 ): AccountabilityCheckupLine[] {

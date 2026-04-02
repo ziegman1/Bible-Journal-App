@@ -36,7 +36,10 @@ import {
   normalizeMeetingUserId,
 } from "@/lib/groups/member-display-name";
 import { formatObservationVerseRefShort } from "@/lib/groups/observation-verse-ref";
-import type { AccountabilityCheckupLine } from "@/lib/groups/accountability-checkup";
+import {
+  buildUncheckedAccountabilityCarryForward,
+  type AccountabilityCheckupLine,
+} from "@/lib/groups/accountability-checkup";
 
 interface Meeting {
   id: string;
@@ -302,6 +305,30 @@ export function LiveMeetingView({
   const scriptureLoadHint = useMemo(
     () => buildScriptureLoadHint(meeting),
     [meeting]
+  );
+
+  const lookForwardPresenterFocus = useMemo(
+    () => ({
+      forwardSub: ps.forwardSub as ForwardSub,
+      practiceSlideIndex: ps.practiceSlideIndex,
+    }),
+    [ps.forwardSub, ps.practiceSlideIndex]
+  );
+
+  const accountabilityCarryForward = useMemo(
+    () =>
+      buildUncheckedAccountabilityCarryForward(
+        meetingId,
+        accountabilityCheckupLines,
+        commitmentCompleteByKey,
+        currentUserId
+      ),
+    [
+      meetingId,
+      accountabilityCheckupLines,
+      commitmentCompleteByKey,
+      currentUserId,
+    ]
   );
 
   const activeSection = localSection;
@@ -815,10 +842,7 @@ export function LiveMeetingView({
                       }
                     : undefined
                 }
-                presenterFocus={{
-                  forwardSub: ps.forwardSub as ForwardSub,
-                  practiceSlideIndex: ps.practiceSlideIndex,
-                }}
+                presenterFocus={lookForwardPresenterFocus}
                 othersCommitmentsLive={othersCommitmentsLive}
                 memberDisplayNames={memberDisplayNames}
                 starterTrackMeetingOrdinal={starterTrackMeetingOrdinal}
@@ -827,6 +851,7 @@ export function LiveMeetingView({
                 }
                 passageReferenceLabel={passageRefEffective}
                 passageObservations={passageObservations}
+                accountabilityCarryForward={accountabilityCarryForward}
               />
             </div>
           )}

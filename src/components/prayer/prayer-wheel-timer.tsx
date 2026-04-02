@@ -15,6 +15,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { playBellChime } from "@/lib/sounds/play-bell-chime";
+import {
+  DEFAULT_PRAYER_WHEEL_BG_MUSIC_MODE,
+  DEFAULT_PRAYER_WHEEL_BG_MUSIC_VOLUME,
+  PRAYER_WHEEL_BG_MUSIC_OPTIONS,
+  readPrayerWheelBgMusicMode,
+  readPrayerWheelBgMusicVolume,
+  resumePrayerWheelBackgroundAudioFromUserGesture,
+  stopPrayerWheelBackgroundAudio,
+  syncPrayerWheelBackgroundAudio,
+  writePrayerWheelBgMusicMode,
+  writePrayerWheelBgMusicVolume,
+  type PrayerWheelBgMusicMode,
+} from "@/lib/prayer-wheel/background-music";
+import {
+  cancelPrayerWheelSpeech,
+  DEFAULT_PRAYER_WHEEL_TRANSITION_MODE,
+  PRAYER_WHEEL_TRANSITION_MODES,
+  readPrayerWheelTransitionMode,
+  resolveEffectiveTransitionMode,
+  speakPrayerWheelSegmentPrompt,
+  speechSynthesisSupported,
+  writePrayerWheelTransitionMode,
+  type PrayerWheelTransitionMode,
+} from "@/lib/prayer-wheel/transition-prompt";
 import { PrayerWheelSvg } from "@/components/prayer/prayer-wheel-svg";
 import {
   prayerWheelCompleteCopy,
@@ -37,6 +61,25 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [failedStep, setFailedStep] = useState<number | null>(null);
+  const [transitionMode, setTransitionMode] = useState<PrayerWheelTransitionMode>(
+    () =>
+      typeof window !== "undefined"
+        ? readPrayerWheelTransitionMode()
+        : DEFAULT_PRAYER_WHEEL_TRANSITION_MODE
+  );
+  const [bgMusicMode, setBgMusicMode] = useState<PrayerWheelBgMusicMode>(() =>
+    typeof window !== "undefined"
+      ? readPrayerWheelBgMusicMode()
+      : DEFAULT_PRAYER_WHEEL_BG_MUSIC_MODE
+  );
+  const [musicVolume, setMusicVolume] = useState(() =>
+    typeof window !== "undefined"
+      ? readPrayerWheelBgMusicVolume()
+      : DEFAULT_PRAYER_WHEEL_BG_MUSIC_VOLUME
+  );
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [voiceDuck, setVoiceDuck] = useState(false);
+  const [clientMounted, setClientMounted] = useState(false);
 
   const finishingRef = useRef(false);
   /** Wall-clock start of the current segment (for logging actual minutes, not just the picker value). */
@@ -46,6 +89,82 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
    * (finishingRef clears in `finally` before React swaps in the next `segmentEndTime`).
    */
   const expiryHandledForDeadlineRef = useRef<number | null>(null);
+  const speechAfterChimeTimerRef = useRef<number | null>(null);
+  /** Remaining segment ms when the timer is paused (wall clock frozen). */
+  const remainingMsRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setClientMounted(true);
+  }, []);
+
+  useEffect(() => {
+    syncPrayerWheelBackgroundAudio({
+      sessionActive: phase === "running",
+      timerPaused,
+      mode: bgMusicMode,
+      volume01: musicVolume,
+      duckForVoice: voiceDuck,
+    });
+  }, [phase, timerPaused, bgMusicMode, musicVolume, voiceDuck]);
+
+  useEffect(() => {
+    return () => stopPrayerWheelBackgroundAudio();
+  }, []);
+
+  const clearSpeechAfterChimeTimer = useCallback(() => {
+    if (speechAfterChimeTimerRef.current != null) {
+      window.clearTimeout(speechAfterChimeTimerRef.current);
+      speechAfterChimeTimerRef.current = null;
+    }
+  }, []);
+
+  const stopAllTransitionAudio = useCallback(() => {
+    clearSpeechAfterChimeTimer();
+    cancelPrayerWheelSpeech();
+    setVoiceDuck(false);
+  }, [clearSpeechAfterChimeTimer]);
+
+  useEffect(() => {
+    return () => stopAllTransitionAudio();
+  }, [stopAllTransitionAudio]);
+
+  const playSegmentEndPrompts = useCallback(
+    (completedStep: number) => {
+      stopAllTransitionAudio();
+      const effective = resolveEffectiveTransitionMode(transitionMode);
+      const hasNext = completedStep < 11;
+      const nextTitle = hasNext
+        ? PRAYER_WHEEL_STEPS[completedStep + 1]!.title
+        : "";
+
+      if (effective === "chime_only") {
+        playBellChime();
+        return;
+      }
+
+      if (effective === "voice_only") {
+        if (hasNext && speechSynthesisSupported()) {
+          const restore = () => setVoiceDuck(false);
+          setVoiceDuck(true);
+          speakPrayerWheelSegmentPrompt(nextTitle, { onEnd: restore, onError: restore });
+        } else {
+          playBellChime();
+        }
+        return;
+      }
+
+      playBellChime();
+      if (hasNext && speechSynthesisSupported()) {
+        speechAfterChimeTimerRef.current = window.setTimeout(() => {
+          speechAfterChimeTimerRef.current = null;
+          const restore = () => setVoiceDuck(false);
+          setVoiceDuck(true);
+          speakPrayerWheelSegmentPrompt(nextTitle, { onEnd: restore, onError: restore });
+        }, 850);
+      }
+    },
+    [stopAllTransitionAudio, transitionMode]
+  );
 
   function actualMinutesForCurrentSegment(fallbackMinutes: number): number {
     const start = segmentWallStartMsRef.current;
@@ -65,6 +184,8 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
         setPhase("complete");
         setSegmentEndTime(null);
         segmentWallStartMsRef.current = null;
+        setTimerPaused(false);
+        remainingMsRef.current = null;
       }
       setSaveError(null);
       setFailedStep(null);
@@ -78,13 +199,15 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
       finishingRef.current = true;
       const loggedMinutes = actualMinutesForCurrentSegment(minutesPerSegment);
       try {
-        playBellChime();
+        playSegmentEndPrompts(completedStep);
         const res = await recordPrayerWheelSegment(completedStep, loggedMinutes);
         if ("error" in res) {
           setSaveError(res.error);
           setFailedStep(completedStep);
           setPhase("save_error");
           setSegmentEndTime(null);
+          setTimerPaused(false);
+          remainingMsRef.current = null;
           return;
         }
         advanceAfterSuccessfulSave(completedStep);
@@ -92,7 +215,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
         finishingRef.current = false;
       }
     },
-    [advanceAfterSuccessfulSave, minutesPerSegment]
+    [advanceAfterSuccessfulSave, minutesPerSegment, playSegmentEndPrompts]
   );
 
   useEffect(() => {
@@ -103,6 +226,13 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
     if (phase !== "running" || segmentEndTime == null) return;
 
     const tick = () => {
+      if (timerPaused) {
+        const frozen = remainingMsRef.current;
+        if (frozen != null) {
+          setSecondsLeft(Math.max(0, Math.ceil(frozen / 1000)));
+        }
+        return;
+      }
       const sec = Math.max(0, Math.ceil((segmentEndTime - Date.now()) / 1000));
       setSecondsLeft(sec);
       const deadline = segmentEndTime;
@@ -115,20 +245,47 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
     tick();
     const id = setInterval(tick, 250);
     return () => clearInterval(id);
-  }, [phase, segmentEndTime, currentStep, persistAndAdvance]);
+  }, [phase, segmentEndTime, currentStep, persistAndAdvance, timerPaused]);
 
   function startSession() {
+    stopAllTransitionAudio();
     setSaveError(null);
     setFailedStep(null);
     setCurrentStep(0);
+    setTimerPaused(false);
+    remainingMsRef.current = null;
     setPhase("running");
     const now = Date.now();
     segmentWallStartMsRef.current = now;
     setSegmentEndTime(now + minutesPerSegment * 60 * 1000);
     setSecondsLeft(minutesPerSegment * 60);
+    resumePrayerWheelBackgroundAudioFromUserGesture();
+    syncPrayerWheelBackgroundAudio({
+      sessionActive: true,
+      timerPaused: false,
+      mode: bgMusicMode,
+      volume01: musicVolume,
+      duckForVoice: false,
+    });
+  }
+
+  function pauseTimer() {
+    if (phase !== "running" || timerPaused || segmentEndTime == null) return;
+    remainingMsRef.current = Math.max(0, segmentEndTime - Date.now());
+    setTimerPaused(true);
+  }
+
+  function resumeTimer() {
+    if (!timerPaused || remainingMsRef.current == null) return;
+    const r = remainingMsRef.current;
+    remainingMsRef.current = null;
+    setSegmentEndTime(Date.now() + r);
+    setTimerPaused(false);
+    resumePrayerWheelBackgroundAudioFromUserGesture();
   }
 
   function stopSession() {
+    stopAllTransitionAudio();
     if (
       phase === "running" &&
       segmentWallStartMsRef.current != null &&
@@ -147,8 +304,11 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
     setSecondsLeft(0);
     setSaveError(null);
     setFailedStep(null);
+    setTimerPaused(false);
+    remainingMsRef.current = null;
     segmentWallStartMsRef.current = null;
     expiryHandledForDeadlineRef.current = null;
+    stopPrayerWheelBackgroundAudio();
   }
 
   async function retrySave() {
@@ -163,6 +323,9 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
         setSaveError(res.error);
         return;
       }
+      setTimerPaused(false);
+      remainingMsRef.current = null;
+      resumePrayerWheelBackgroundAudioFromUserGesture();
       setPhase("running");
       advanceAfterSuccessfulSave(failedStep);
       if (failedStep < 11) {
@@ -176,6 +339,9 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
   /** Advance the wheel when the DB is unavailable (e.g. migration not applied). Stats are not recorded. */
   function continueWithoutSaving() {
     if (failedStep == null) return;
+    setTimerPaused(false);
+    remainingMsRef.current = null;
+    resumePrayerWheelBackgroundAudioFromUserGesture();
     advanceAfterSuccessfulSave(failedStep);
     if (failedStep < 11) {
       setPhase("running");
@@ -191,6 +357,111 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
   const displayStepIndex = phase === "save_error" && failedStep != null ? failedStep : currentStep;
   const displayStep = PRAYER_WHEEL_STEPS[displayStepIndex];
 
+  const transitionModeSelector = (
+    <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4 dark:bg-muted/20">
+      <Label htmlFor="pw-transition-mode" className="text-foreground">
+        When a segment ends
+      </Label>
+      <Select
+        value={transitionMode}
+        onValueChange={(v) => {
+          if (
+            v === "chime_only" ||
+            v === "voice_only" ||
+            v === "chime_and_voice"
+          ) {
+            setTransitionMode(v);
+            writePrayerWheelTransitionMode(v);
+          }
+        }}
+      >
+        <SelectTrigger
+          id="pw-transition-mode"
+          className="w-full max-w-md border-border bg-background text-foreground"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PRAYER_WHEEL_TRANSITION_MODES.map((m) => (
+            <SelectItem key={m.value} value={m.value}>
+              {m.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-xs leading-snug text-muted-foreground">
+        Voice says: “Now spend time in …” using the next segment title (e.g. praise, confession).
+        Chime + voice plays the bell first, then speaks.
+      </p>
+      {clientMounted &&
+      !speechSynthesisSupported() &&
+      (transitionMode === "voice_only" ||
+        transitionMode === "chime_and_voice") ? (
+        <p className="text-xs leading-snug text-amber-800 dark:text-amber-200/90">
+          This browser does not support speech synthesis. You will hear the chime only.
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const bgMusicSelector = (
+    <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4 dark:bg-muted/20">
+      <Label htmlFor="pw-bg-music" className="text-foreground">
+        Background music
+      </Label>
+      <Select
+        value={bgMusicMode}
+        onValueChange={(v) => {
+          if (v === "off" || v === "ambient" || v === "hz444_ambient") {
+            setBgMusicMode(v);
+            writePrayerWheelBgMusicMode(v);
+          }
+        }}
+      >
+        <SelectTrigger
+          id="pw-bg-music"
+          className="w-full max-w-md border-border bg-background text-foreground"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PRAYER_WHEEL_BG_MUSIC_OPTIONS.map((m) => (
+            <SelectItem key={m.value} value={m.value}>
+              {m.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="space-y-1.5">
+        <Label htmlFor="pw-music-vol" className="text-foreground">
+          Music volume
+        </Label>
+        <input
+          id="pw-music-vol"
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          disabled={bgMusicMode === "off"}
+          value={Math.round(musicVolume * 100)}
+          onChange={(e) => {
+            const v = Math.min(1, Math.max(0, parseInt(e.target.value, 10) / 100));
+            setMusicVolume(v);
+            writePrayerWheelBgMusicVolume(v);
+          }}
+          className={cn(
+            "h-2 w-full max-w-md cursor-pointer rounded-full bg-muted accent-violet-600 disabled:cursor-not-allowed disabled:opacity-50 dark:accent-violet-400"
+          )}
+        />
+      </div>
+      <p className="text-xs leading-snug text-muted-foreground">
+        Loops softly only while a session is running; it pauses with the timer and stops when you end
+        the session. The third option is only a steady tone with a &quot;444 Hz&quot; label—use it if
+        you like how it sounds.
+      </p>
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
@@ -201,12 +472,14 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
             }
           />
           <p className="max-w-sm text-center text-xs text-muted-foreground">
-            Twelve equal segments. Pick how long each one runs (1–15 minutes). A chime plays when a
-            segment ends.
+            Twelve equal segments. Pick how long each one runs (1–15 minutes). At each transition you
+            can use a chime, a short voice prompt, or both—see the setting on the right.
           </p>
         </div>
 
-        <div className="space-y-6 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="space-y-6 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+          {transitionModeSelector}
+          {bgMusicSelector}
           {phase === "setup" && (
             <>
               <div className="space-y-2">
@@ -297,9 +570,20 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
                   </p>
                 </div>
               ) : (
-                <Button type="button" variant="outline" size="sm" onClick={stopSession}>
-                  Stop session
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {timerPaused ? (
+                    <Button type="button" variant="secondary" size="sm" onClick={resumeTimer}>
+                      Resume
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={pauseTimer}>
+                      Pause
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={stopSession}>
+                    Stop session
+                  </Button>
+                </div>
               )}
             </>
           )}
