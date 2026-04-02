@@ -392,23 +392,43 @@ export async function getMeetingDetail(meetingId: string) {
     );
   }
 
-  const participantsWithNames = (participants ?? []).map((p) => {
+  // Roster = current group members (not only meeting_participants rows from meeting creation).
+  // Late-joined members were missing from meeting_participants and saw an empty / solo list.
+  const mpByUser = new Map<string, { present: boolean; joined_at: string }>();
+  for (const p of participants ?? []) {
     const k = normalizeMeetingUserId(p.user_id);
-    if (!k) {
-      return { ...p, display_name: "Member" as string };
-    }
-    return {
-      ...p,
-      user_id: k,
-      display_name:
-        memberDisplayNames[k] ??
-        resolveMemberDisplayName(
-          k,
-          groupWideProfileById[k],
-          gmByUserId[k]
-        ),
-    };
-  });
+    if (!k) continue;
+    mpByUser.set(k, {
+      present: p.present,
+      joined_at: String(p.joined_at),
+    });
+  }
+
+  const meetingCreatedAt = String(
+    (meeting as { created_at?: string }).created_at ?? new Date().toISOString()
+  );
+
+  const participantsWithNames = allGroupUserIds
+    .map((k) => {
+      const mp = mpByUser.get(k);
+      return {
+        user_id: k,
+        present: mp?.present ?? true,
+        joined_at: mp?.joined_at ?? meetingCreatedAt,
+        display_name:
+          memberDisplayNames[k] ??
+          resolveMemberDisplayName(
+            k,
+            groupWideProfileById[k],
+            gmByUserId[k]
+          ),
+      };
+    })
+    .sort((a, b) =>
+      a.display_name.localeCompare(b.display_name, undefined, {
+        sensitivity: "base",
+      })
+    );
 
   const nameByUserId: Record<string, string> = {};
   participantsWithNames.forEach((p) => {

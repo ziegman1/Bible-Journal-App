@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeMeetingUserId } from "@/lib/groups/member-display-name";
 
 export type MeetingPresenceConnection =
   | "connecting"
@@ -28,8 +29,9 @@ type RawPresence = {
 function parsePresenceRow(raw: unknown): MeetingPresencePeer | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as RawPresence;
-  const userId = r.user_id;
-  if (!userId || typeof userId !== "string") return null;
+  const rawId = r.user_id;
+  if (!rawId || typeof rawId !== "string") return null;
+  const userId = normalizeMeetingUserId(rawId) ?? rawId;
   const role = r.meeting_role;
   const meetingRole: MeetingPresenceRole =
     role === "facilitator" || role === "group_admin" || role === "member"
@@ -94,8 +96,12 @@ export function useMeetingPresence(opts: {
 
     queueMicrotask(() => setConnection("connecting"));
     const supabase = createClient();
+    const userIdNorm = normalizeMeetingUserId(opts.userId) ?? opts.userId;
+    const facilitatorNorm = opts.facilitatorUserId
+      ? normalizeMeetingUserId(opts.facilitatorUserId) ?? opts.facilitatorUserId
+      : null;
     const meetingRole: MeetingPresenceRole =
-      opts.facilitatorUserId === opts.userId
+      facilitatorNorm != null && facilitatorNorm === userIdNorm
         ? "facilitator"
         : opts.groupMemberRole === "admin"
           ? "group_admin"
@@ -105,7 +111,7 @@ export function useMeetingPresence(opts: {
     const channel = supabase.channel(channelName, {
       config: {
         presence: {
-          key: opts.userId,
+          key: userIdNorm,
         },
       },
     });
@@ -123,7 +129,7 @@ export function useMeetingPresence(opts: {
         if (status === "SUBSCRIBED") {
           setConnection("subscribed");
           const trackPayload = {
-            user_id: opts.userId,
+            user_id: userIdNorm,
             display_name: opts.displayName,
             meeting_role: meetingRole,
             online_at: new Date().toISOString(),

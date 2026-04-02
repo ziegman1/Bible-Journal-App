@@ -4,6 +4,7 @@ import type {
   MeetingPresenceConnection,
   MeetingPresencePeer,
 } from "@/hooks/use-meeting-presence";
+import { normalizeMeetingUserId } from "@/lib/groups/member-display-name";
 import { cn } from "@/lib/utils";
 
 function initials(name: string): string {
@@ -88,7 +89,9 @@ export function MeetingLivePresence({
       ) : (
         <ul className="flex flex-wrap gap-2">
           {peers.map((p) => {
-            const mine = p.userId === currentUserId;
+            const mine =
+              normalizeMeetingUserId(p.userId) ===
+              normalizeMeetingUserId(currentUserId);
             const tag = roleShort(p.meetingRole);
             return (
               <li key={p.userId}>
