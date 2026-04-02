@@ -5,6 +5,7 @@ import { useDebouncedMeetingPersist } from "@/hooks/use-debounced-meeting-persis
 import { MeetingPersistHint } from "@/components/groups/meeting-persist-hint";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   saveLookForwardResponse,
   assignPracticeActivity,
@@ -33,7 +34,10 @@ import {
   starterTrackPracticeSectionsForLiveMeeting,
   type ForwardSub,
 } from "@/lib/groups/meeting-presenter-state";
-import { displayNameForMeetingUser } from "@/lib/groups/member-display-name";
+import {
+  displayNameForMeetingUser,
+  normalizeMeetingUserId,
+} from "@/lib/groups/member-display-name";
 import { ObservationsHelper } from "@/components/groups/observations-helper";
 import type { PassageObservationRow } from "@/hooks/use-meeting-responses-realtime";
 
@@ -43,6 +47,10 @@ const PRACTICE_TYPES = [
   { id: "share_gospel", label: "Share God's story / the gospel" },
   { id: "role_play_obedience", label: "Role-play obedience/application" },
 ] as const;
+
+const PRACTICE_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  PRACTICE_TYPES.map((t) => [t.id, t.label])
+) as Record<string, string>;
 
 interface LookForwardSectionProps {
   meetingId: string;
@@ -99,6 +107,21 @@ export function LookForwardSection({
   passageObservations,
   readOnly = false,
 }: LookForwardSectionProps) {
+  const router = useRouter();
+  const viewerId = useMemo(
+    () => normalizeMeetingUserId(currentUserId) ?? currentUserId,
+    [currentUserId]
+  );
+
+  const myPracticeAssignments = useMemo(() => {
+    return practice.filter((p) => {
+      const aid = (p as { assigned_user_id?: string | null }).assigned_user_id;
+      if (aid == null || aid === "") return false;
+      const norm = normalizeMeetingUserId(aid) ?? String(aid);
+      return norm === viewerId;
+    });
+  }, [practice, viewerId]);
+
   const obeyRef = useRef<HTMLDivElement>(null);
   const practiceRef = useRef<HTMLDivElement>(null);
   const prayerGuidanceRef = useRef<HTMLDivElement>(null);
@@ -132,6 +155,9 @@ export function LookForwardSection({
 
   const [saving, setSaving] = useState(false);
 
+  /** Serialize manual Save + debounced autosave so out-of-order completion cannot clobber fields. */
+  const lookforwardPersistChainRef = useRef(Promise.resolve());
+
   const forwardLocalKey = JSON.stringify({
     obedience,
     sharing,
@@ -146,11 +172,18 @@ export function LookForwardSection({
     readOnly || forwardLocalKey === forwardRemoteKey;
 
   const persistForward = useCallback(async () => {
-    return saveLookForwardResponse(meetingId, {
-      obedienceStatement: obedience.trim(),
-      sharingCommitment: sharing.trim(),
-      trainCommitment: train.trim(),
-    });
+    const p = lookforwardPersistChainRef.current.then(() =>
+      saveLookForwardResponse(meetingId, {
+        obedienceStatement: obedience.trim(),
+        sharingCommitment: sharing.trim(),
+        trainCommitment: train.trim(),
+      })
+    );
+    lookforwardPersistChainRef.current = p.then(
+      () => undefined,
+      () => undefined
+    );
+    return p;
   }, [meetingId, obedience, sharing, train]);
 
   const forwardPersistStatus = useDebouncedMeetingPersist({
@@ -158,6 +191,7 @@ export function LookForwardSection({
     dirtyKey: forwardLocalKey,
     skip: skipForwardAutosave,
     persist: persistForward,
+    onPersistError: (msg) => toast.error(msg),
   });
 
   useEffect(() => {
@@ -194,34 +228,29 @@ export function LookForwardSection({
   async function handleSave() {
     if (readOnly) return;
     setSaving(true);
-    const r = await saveLookForwardResponse(meetingId, {
-      obedienceStatement: obedience.trim(),
-      sharingCommitment: sharing.trim(),
-      trainCommitment: train.trim(),
-    });
-    setSaving(false);
-    if (r.error) toast.error(r.error);
-    else toast.success("Look Forward commitments saved");
+    try {
+      const r = await persistForward();
+      if (r && "error" in r && r.error) toast.error(r.error);
+      else toast.success("Look Forward commitments saved");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleAssignPractice() {
+    if (readOnly) return;
     const type = PRACTICE_TYPES[
       Math.floor(Math.random() * PRACTICE_TYPES.length)
     ];
-    const idx = Math.floor(Math.random() * participants.length);
     const r = await assignPracticeActivity(meetingId, {
       practiceType: type.id,
-      assignedUserId: participants[idx]?.user_id,
+      assignedUserId: viewerId,
       assignedByMode: "random",
     });
     if (r.error) toast.error(r.error);
     else {
-      const assigneeId = participants[idx]?.user_id;
-      const assigneeName = assigneeId
-        ? displayNameForMeetingUser(assigneeId, memberDisplayNames, participants)
-        : "someone";
-      toast.success(`Assigned ${type.label} to ${assigneeName}`);
-      window.location.reload();
+      toast.success(`${type.label} — added to your practice`);
+      router.refresh();
     }
   }
 
@@ -445,46 +474,54 @@ export function LookForwardSection({
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              The facilitator can assign a practice activity for the group.
+              Pick a random practice activity for yourself. Each person uses Auto-assign
+              for their own assignment; it does not change anyone else&apos;s practice.
             </p>
-            {practice.length > 0 ? (
-              <ul className="space-y-2">
-                {practice.map((p, i) => (
-                  <li
-                    key={i}
-                    className="text-sm text-foreground/90 flex items-center gap-2"
-                  >
-                    <span className="font-medium">
-                      {(p as { practice_type: string }).practice_type.replace(
-                        /_/g,
-                        " "
-                      )}
-                    </span>
-                    {(p as { assigned_user_id?: string }).assigned_user_id && (
-                      <span className="text-muted-foreground">
-                        →
-                        {displayNameForMeetingUser(
-                          (p as { assigned_user_id: string }).assigned_user_id,
-                          memberDisplayNames,
-                          participants
-                        )}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              participants.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="border-[#1c252e] text-[#1c252e] bg-transparent hover:bg-[#f6f4f1]"
-                  onClick={handleAssignPractice}
-                >
-                  <Shuffle className="size-4 mr-2" />
-                  Assign random practice
-                </Button>
-              )
-            )}
+            <div
+              className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-3 space-y-2"
+              aria-label="Your practice assignments"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                Your practice
+              </p>
+              {myPracticeAssignments.length > 0 ? (
+                <ul className="space-y-2 list-none m-0 p-0">
+                  {myPracticeAssignments.map((p) => {
+                    const row = p as {
+                      id?: string;
+                      practice_type: string;
+                      created_at?: string;
+                    };
+                    const label =
+                      PRACTICE_TYPE_LABEL[row.practice_type] ??
+                      row.practice_type.replace(/_/g, " ");
+                    return (
+                      <li
+                        key={row.id ?? `${row.practice_type}-${row.created_at ?? ""}`}
+                        className="text-sm text-foreground leading-snug"
+                      >
+                        <span className="font-medium text-foreground">{label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground m-0">
+                  None yet — tap Auto-assign below to draw one for yourself.
+                </p>
+              )}
+            </div>
+            {participants.length > 0 && !readOnly ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 border-border text-foreground bg-background hover:bg-muted/80"
+                onClick={handleAssignPractice}
+              >
+                <Shuffle className="size-4 mr-2" aria-hidden />
+                Auto-assign for me
+              </Button>
+            ) : null}
           </>
         )}
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useDebouncedMeetingPersist } from "@/hooks/use-debounced-meeting-persist";
 import { MeetingPersistHint } from "@/components/groups/meeting-persist-hint";
 import {
@@ -65,7 +65,7 @@ interface LookBackSectionProps {
   displayNames: Record<string, string>;
   /** Advance the meeting stepper to Look Up */
   onGoToLookUp?: () => void;
-  /** Other members&apos; pastoral responses (realtime), excluding current user */
+  /** Group pastoral list (realtime): your saved line first when non-empty, then other members. */
   othersPastoralLive?: { userId: string; displayName: string; text: string }[];
   /** Other members&apos; accountability / check-up text (lookback.accountability_response) */
   othersAccountabilityLive?: { userId: string; displayName: string; text: string }[];
@@ -158,6 +158,8 @@ export function LookBackSection({
     {}
   );
 
+  const lookbackPersistChainRef = useRef(Promise.resolve());
+
   const isStarter = starterTrackLookBack != null;
 
   const lookbackLocalKey = JSON.stringify({
@@ -174,11 +176,18 @@ export function LookBackSection({
     readOnly || lookbackLocalKey === lookbackRemoteKey;
 
   const persistLookback = useCallback(async () => {
-    return saveLookBackResponse(meetingId, {
-      pastoralCareResponse: pastoral || undefined,
-      accountabilityResponse: accountability || undefined,
-      visionCastingResponse: vision || undefined,
-    });
+    const p = lookbackPersistChainRef.current.then(() =>
+      saveLookBackResponse(meetingId, {
+        pastoralCareResponse: pastoral || undefined,
+        accountabilityResponse: accountability || undefined,
+        visionCastingResponse: vision || undefined,
+      })
+    );
+    lookbackPersistChainRef.current = p.then(
+      () => undefined,
+      () => undefined
+    );
+    return p;
   }, [meetingId, pastoral, accountability, vision]);
 
   const lookbackPersistStatus = useDebouncedMeetingPersist({
@@ -398,7 +407,7 @@ export function LookBackSection({
         <div className={meetingLiveRegion}>
           <p className={meetingLiveLabel}>Group (live)</p>
           {othersPastoralLive.length === 0 ? (
-            <p className={meetingLiveEmpty}>No one else has shared yet.</p>
+            <p className={meetingLiveEmpty}>No prayer requests in the group yet.</p>
           ) : (
             <ul className="m-0 list-none space-y-0 p-0">
               {othersPastoralLive.map((o) => (
@@ -597,14 +606,13 @@ export function LookBackSection({
 
   async function handleSaveLookback() {
     setSaving(true);
-    const r = await saveLookBackResponse(meetingId, {
-      pastoralCareResponse: pastoral || undefined,
-      accountabilityResponse: accountability || undefined,
-      visionCastingResponse: vision || undefined,
-    });
-    setSaving(false);
-    if (r.error) toast.error(r.error);
-    else toast.success("Look Back responses saved");
+    try {
+      const r = await persistLookback();
+      if (r && "error" in r && r.error) toast.error(r.error);
+      else toast.success("Look Back responses saved");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveFollowup() {

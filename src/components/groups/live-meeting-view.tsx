@@ -313,17 +313,15 @@ export function LiveMeetingView({
     [priorFollowupByUser]
   );
 
+  /** Saved pastoral lines for Group (live): current user first (server-backed, updates on realtime), then others sorted by name. */
   const othersPastoralLive = useMemo(() => {
-    return Object.values(lookbackByUser)
-      .filter((r) => {
-        const uid = normalizeMeetingUserId(r.user_id as string);
-        return uid != null && uid !== viewerId;
-      })
+    const rows = Object.values(lookbackByUser)
       .map((r) => {
-        const text = String(r.pastoral_care_response ?? "").trim();
-        if (!text) return null;
         const uid =
           normalizeMeetingUserId(r.user_id as string) ?? String(r.user_id ?? "");
+        if (!uid) return null;
+        const text = String(r.pastoral_care_response ?? "").trim();
+        if (!text) return null;
         return {
           userId: uid,
           displayName: displayNameFor(uid),
@@ -335,6 +333,12 @@ export function LiveMeetingView({
       displayName: string;
       text: string;
     }[];
+
+    const selfRow = rows.filter((o) => o.userId === viewerId);
+    const otherRows = rows
+      .filter((o) => o.userId !== viewerId)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return [...selfRow, ...otherRows];
   }, [lookbackByUser, viewerId, displayNameFor]);
 
   const othersAccountabilityLive = useMemo(() => {

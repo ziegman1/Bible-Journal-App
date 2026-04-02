@@ -27,6 +27,11 @@ import {
 import { formatObservationVerseRef } from "@/lib/groups/observation-verse-ref";
 import { revalidatePath } from "next/cache";
 import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
+import {
+  buildPresetStoriesBySeries,
+  dedupePresetStoriesForPicker,
+  type PresetStoryPickerRow,
+} from "@/lib/groups/preset-stories-picker";
 
 type SupabaseServer = NonNullable<Awaited<ReturnType<typeof createClient>>>;
 
@@ -208,23 +213,15 @@ export async function getPresetStories() {
 
   if (error) return { error: error.message };
 
-  const bySeries = (data ?? []).reduce<
-    Record<string, { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number }[]>
-  >((acc, s) => {
-    const key = s.series_name ?? "Other";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push({
-      id: s.id,
-      title: s.title,
-      book: s.book,
-      chapter: s.chapter,
-      verse_start: s.verse_start,
-      verse_end: s.verse_end,
-    });
-    return acc;
-  }, {});
+  const raw = data ?? [];
+  const deduped = dedupePresetStoriesForPicker(
+    raw as PresetStoryPickerRow[]
+  ) as typeof raw;
+  const bySeries = buildPresetStoriesBySeries(
+    deduped as PresetStoryPickerRow[]
+  );
 
-  return { stories: data ?? [], bySeries };
+  return { stories: deduped, bySeries };
 }
 
 export async function createGroupMeeting(
@@ -1583,17 +1580,23 @@ export async function assignPracticeActivity(
   const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
   if ("error" in memberGate && memberGate.error) return { error: memberGate.error };
 
+  // Random auto-assign is always for the signed-in member only (never another participant).
+  const assignedUserId =
+    data.assignedByMode === "random"
+      ? user.id
+      : data.assignedUserId ?? null;
+
   const { error } = await supabase.from("group_practice_assignments").insert({
     meeting_id: meetingId,
     practice_type: data.practiceType,
-    assigned_user_id: data.assignedUserId ?? null,
+    assigned_user_id: assignedUserId,
     assigned_by_mode: data.assignedByMode,
     notes: data.notes ?? null,
   });
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/app/groups/${meeting.group_id}/meetings/${meetingId}`);
+  await revalidateMeetingPaths(supabase, meetingId);
   return { success: true };
 }
 
