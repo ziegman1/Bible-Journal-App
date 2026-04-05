@@ -5,6 +5,9 @@
 export const CHAT_ACCOUNTABILITY_INTRO =
   "For weekly meetings (Proverbs 27:17). These questions stimulate conversations of character and confession in a safe environment that values honesty, vulnerability, confidentiality, and grace.";
 
+/** 0-based index into {@link CHAT_ACCOUNTABILITY_QUESTIONS} — question 18 in the printed list (reading check-in). */
+export const CHAT_READING_CHECKIN_QUESTION_INDEX = 17;
+
 export const CHAT_ACCOUNTABILITY_QUESTIONS: readonly string[] = [
   "How have your insights from last week’s reading shaped the way you think and live?",
   "Who did you pass your insights from last week on to and how was it received?",

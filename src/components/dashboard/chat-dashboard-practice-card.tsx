@@ -2,7 +2,7 @@ import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
 import { ChatReadingPaceMeter } from "@/components/chat/chat-reading-pace-meter";
-import { paceMessageForTone } from "@/lib/growth-mode/copy";
+import { chatDailyReadingShortLineForTone, paceMessageForTone } from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +109,12 @@ export async function ChatDashboardPracticeCard({
             daysElapsed={bundle.pace.daysElapsed}
             chaptersPerDay={bundle.settings.chapters_per_day}
             copyTone={copyTone}
+            dailyShortLine={chatDailyReadingShortLineForTone(
+              bundle.dailyShared.pairMetGoalToday,
+              copyTone
+            )}
+            dailyTargetSummary={bundle.dailyShared.targetSummary}
+            pairMetDaily={bundle.dailyShared.pairMetGoalToday}
           />
         </div>
       ) : (

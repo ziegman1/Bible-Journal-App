@@ -2,7 +2,11 @@ import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatReadingPaceMeter } from "@/components/chat/chat-reading-pace-meter";
 import { ChatReadingPaceSettingsForm } from "@/components/chat/chat-reading-pace-settings-form";
-import { chatReadingPaceCardDescription, readingPaceMessageForTone } from "@/lib/growth-mode/copy";
+import {
+  chatDailyReadingShortLineForTone,
+  chatReadingPaceCardDescription,
+  readingPaceMessageForTone,
+} from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 
 type Variant = "meeting" | "manage";
@@ -21,8 +25,12 @@ export async function ChatReadingPaceCard({
     return null;
   }
 
-  const { settings, pace } = bundle;
+  const { settings, pace, dailyShared } = bundle;
   const paceMessage = readingPaceMessageForTone(pace.message, copyTone);
+  const dailyShortLine = chatDailyReadingShortLineForTone(
+    dailyShared.pairMetGoalToday,
+    copyTone
+  );
 
   return (
     <Card className="border-border">
@@ -40,6 +48,9 @@ export async function ChatReadingPaceCard({
           daysElapsed={pace.daysElapsed}
           chaptersPerDay={settings.chapters_per_day}
           copyTone={copyTone}
+          dailyShortLine={dailyShortLine}
+          dailyTargetSummary={dailyShared.targetSummary}
+          pairMetDaily={dailyShared.pairMetGoalToday}
         />
         {variant === "manage" ? (
           <ChatReadingPaceSettingsForm groupId={groupId} initial={settings} />

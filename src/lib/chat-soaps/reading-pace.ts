@@ -1,4 +1,5 @@
-import { formatInTimeZone } from "date-fns-tz";
+import { startOfWeek } from "date-fns";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { BIBLE_BOOKS, getBookById } from "@/lib/scripture/books";
 
 export type ChatReadingPaceInput = {
@@ -6,9 +7,12 @@ export type ChatReadingPaceInput = {
   chaptersPerDay: number;
   planStartBookId: string;
   planStartChapter: number;
-  /** Last completed chapter in SOAPS bookmark flow; omit or null if none. */
-  bookmarkBookId: string | null | undefined;
-  bookmarkLastCompletedChapter: number | null | undefined;
+  /**
+   * Chapters from plan start through the slowest partner who has CHAT SOAPS progress
+   * (min over members with a bookmark). Pace compares this to the calendar, not the viewer’s
+   * personal furthest chapter—so meeting a partner “where they are” does not mark the pair behind.
+   */
+  pairProgressChaptersFromPlan: number;
   /** IANA zone: “today” and elapsed-day count match BADWR practice rhythm (device cookie on web). */
   practiceTimeZone: string;
   asOf?: Date;
@@ -35,6 +39,13 @@ export function utcTodayYmd(asOf: Date = new Date()): string {
 
 export function practiceTodayYmd(asOf: Date, timeZone: string): string {
   return formatInTimeZone(asOf, timeZone, "yyyy-MM-dd");
+}
+
+/** Sunday start of the practice week containing `asOf`, as yyyy-MM-dd in `timeZone`. */
+export function practiceWeekStartSundayYmd(asOf: Date, timeZone: string): string {
+  const zoned = toZonedTime(asOf, timeZone);
+  const sunday = startOfWeek(zoned, { weekStartsOn: 0 });
+  return formatInTimeZone(sunday, timeZone, "yyyy-MM-dd");
 }
 
 /**
@@ -104,6 +115,57 @@ export function countChaptersThroughInclusiveBookmark(
   return total;
 }
 
+/**
+ * Among members who have saved CHAT SOAPS progress, the minimum chapters completed from
+ * plan start (canonical order). Members with no row are ignored so new joiners do not zero the pair.
+ */
+export function pairMinChaptersFromPlan(
+  planStartBookId: string,
+  planStartChapter: number,
+  progressRows: readonly { book_id: string; last_completed_chapter: number }[]
+): number {
+  if (progressRows.length === 0) return 0;
+  let minIdx = Infinity;
+  for (const row of progressRows) {
+    const idx = countChaptersThroughInclusiveBookmark(
+      planStartBookId,
+      planStartChapter,
+      row.book_id.trim(),
+      row.last_completed_chapter
+    );
+    minIdx = Math.min(minIdx, idx);
+  }
+  return minIdx === Infinity ? 0 : minIdx;
+}
+
+/**
+ * 1-based ordinal along the plan: first chapter of the plan (plan_start_book_id / plan_start_chapter) is 1.
+ */
+export function bookChapterAtOrdinalFromPlan(
+  planStartBookId: string,
+  planStartChapter: number,
+  ordinal: number
+): { book_id: string; chapter: number } | null {
+  if (ordinal < 1) return null;
+  const startIdx = BIBLE_BOOKS.findIndex((b) => b.id === planStartBookId);
+  if (startIdx < 0) return null;
+  let remaining = ordinal;
+  let bi = startIdx;
+  const startBook = BIBLE_BOOKS[bi]!;
+  let ch = Math.min(Math.max(1, planStartChapter), startBook.chapterCount);
+  while (bi < BIBLE_BOOKS.length) {
+    const book = BIBLE_BOOKS[bi]!;
+    const chaptersFromCurrent = book.chapterCount - ch + 1;
+    if (remaining <= chaptersFromCurrent) {
+      return { book_id: book.id, chapter: ch + remaining - 1 };
+    }
+    remaining -= chaptersFromCurrent;
+    bi++;
+    ch = 1;
+  }
+  return null;
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
@@ -122,20 +184,10 @@ export function computeChatReadingPace(input: ChatReadingPaceInput): ChatReading
   const cpd = Math.min(15, Math.max(1, Math.floor(input.chaptersPerDay)));
   const expectedChapters = daysElapsed * cpd;
 
-  let actualChapters = 0;
-  if (
-    input.bookmarkBookId &&
-    input.bookmarkLastCompletedChapter != null &&
-    Number.isFinite(input.bookmarkLastCompletedChapter) &&
-    input.bookmarkLastCompletedChapter >= 1
-  ) {
-    actualChapters = countChaptersThroughInclusiveBookmark(
-      input.planStartBookId,
-      input.planStartChapter,
-      input.bookmarkBookId.trim(),
-      Math.floor(input.bookmarkLastCompletedChapter)
-    );
-  }
+  const actualChapters = Math.max(
+    0,
+    Math.floor(Number.isFinite(input.pairProgressChaptersFromPlan) ? input.pairProgressChaptersFromPlan : 0)
+  );
 
   const delta = actualChapters - expectedChapters;
 
@@ -148,11 +200,11 @@ export function computeChatReadingPace(input: ChatReadingPaceInput): ChatReading
 
   let message: string;
   if (status === "on_pace") {
-    message = "You are on pace with your group's reading plan.";
+    message = "Your CHAT pair is on pace with the shared reading schedule.";
   } else if (status === "ahead") {
-    message = `You are ${delta} ${chapterWord(delta)} ahead of pace.`;
+    message = `Your CHAT pair is ${delta} ${chapterWord(delta)} ahead of the shared schedule.`;
   } else {
-    message = `You are ${Math.abs(delta)} ${chapterWord(Math.abs(delta))} behind pace.`;
+    message = `Your CHAT pair is ${Math.abs(delta)} ${chapterWord(Math.abs(delta))} behind the shared schedule.`;
   }
 
   return {

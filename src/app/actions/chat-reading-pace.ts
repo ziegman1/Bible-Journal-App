@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  computeChatDailySharedReading,
+  type ChatDailySharedReadingResult,
+} from "@/lib/chat-soaps/chat-daily-shared-reading";
+import {
   computeChatReadingPace,
+  pairMinChaptersFromPlan,
   practiceTodayYmd,
   type ChatReadingPaceResult,
 } from "@/lib/chat-soaps/reading-pace";
+import { refreshChatGroupPairSharedProgress } from "@/lib/chat-soaps/pair-pace-sync";
 import { getBookById } from "@/lib/scripture/books";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -20,6 +26,7 @@ export type ChatReadingPaceSettings = {
 export type ChatReadingPaceBundle = {
   settings: ChatReadingPaceSettings;
   pace: ChatReadingPaceResult;
+  dailyShared: ChatDailySharedReadingResult;
 };
 
 export async function getChatReadingPaceBundle(
@@ -63,6 +70,7 @@ export async function getChatReadingPaceBundle(
       chapters_per_day: 1,
       plan_start_book_id: "matthew",
       plan_start_chapter: 1,
+      pair_shared_chapters_from_plan: 0,
     });
     const { data: again } = await supabase
       .from("chat_group_reading_pace")
@@ -74,12 +82,49 @@ export async function getChatReadingPaceBundle(
 
   if (!paceRow) return { error: "Could not load reading pace" };
 
-  const { data: progress } = await supabase
+  const { data: progressRows } = await supabase
     .from("chat_soaps_reading_progress")
-    .select("book_id, last_completed_chapter")
+    .select("user_id, book_id, last_completed_chapter")
+    .eq("group_id", groupId);
+
+  const pairProgressChaptersFromPlan = pairMinChaptersFromPlan(
+    paceRow.plan_start_book_id,
+    paceRow.plan_start_chapter,
+    progressRows ?? []
+  );
+
+  const { data: memberRows } = await supabase
+    .from("group_members")
+    .select("user_id")
+    .eq("group_id", groupId);
+  const memberUserIds = (memberRows ?? []).map((m) => m.user_id).filter(Boolean);
+
+  const eventsSince = new Date();
+  eventsSince.setMonth(eventsSince.getMonth() - 9);
+  const { data: eventRows, error: eventsError } = await supabase
+    .from("chat_soaps_chapter_events")
+    .select("user_id, book_id, chapter, completed_at")
     .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .gte("completed_at", eventsSince.toISOString());
+
+  const todayYmd = practiceTodayYmd(new Date(), tz);
+  const pacePairStored = (paceRow as { pair_shared_chapters_from_plan?: unknown })
+    .pair_shared_chapters_from_plan;
+  const pairSharedForDaily =
+    typeof pacePairStored === "number" && Number.isFinite(pacePairStored)
+      ? pacePairStored
+      : pairProgressChaptersFromPlan;
+
+  const dailyShared = computeChatDailySharedReading({
+    practiceDateYmd: todayYmd,
+    practiceTimeZone: tz,
+    planStartBookId: paceRow.plan_start_book_id,
+    planStartChapter: paceRow.plan_start_chapter,
+    pairSharedChaptersFromPlan: pairSharedForDaily,
+    memberUserIds,
+    events: eventsError ? [] : (eventRows ?? []),
+    progressRows: progressRows ?? [],
+  });
 
   const readingStartDateYmd =
     typeof paceRow.reading_start_date === "string"
@@ -91,8 +136,7 @@ export async function getChatReadingPaceBundle(
     chaptersPerDay: paceRow.chapters_per_day,
     planStartBookId: paceRow.plan_start_book_id,
     planStartChapter: paceRow.plan_start_chapter,
-    bookmarkBookId: progress?.book_id,
-    bookmarkLastCompletedChapter: progress?.last_completed_chapter,
+    pairProgressChaptersFromPlan,
     practiceTimeZone: tz,
   });
 
@@ -104,6 +148,7 @@ export async function getChatReadingPaceBundle(
       plan_start_chapter: paceRow.plan_start_chapter,
     },
     pace,
+    dailyShared,
   };
 }
 
@@ -162,6 +207,16 @@ export async function updateChatGroupReadingPace(
   );
 
   if (error) return { error: error.message };
+
+  const tz = await getPracticeTimeZone();
+  await refreshChatGroupPairSharedProgress(
+    supabase,
+    groupId,
+    book.id,
+    ch,
+    tz,
+    "plan_edit"
+  );
 
   revalidatePath("/app");
   revalidatePath(`/app/chat/groups/${groupId}`);

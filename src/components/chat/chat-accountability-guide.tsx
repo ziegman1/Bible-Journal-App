@@ -3,7 +3,9 @@ import {
   CHAT_ACCOUNTABILITY_QUESTIONS,
   CHAT_EVANGELISTIC_PRAYER_INTRO,
   CHAT_EVANGELISTIC_PRAYERS,
+  CHAT_READING_CHECKIN_QUESTION_INDEX,
 } from "@/content/chat-accountability-content";
+import { ChatReadingCheckinQuestion } from "@/components/chat/chat-reading-checkin-question";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -12,12 +14,15 @@ type Props = {
   className?: string;
   /** Standalone page shows title + back link handled by parent */
   showTitle?: boolean;
+  /** When set with `variant="meeting"`, question 18 collects reading check-in + optional grace restart. */
+  groupId?: string;
 };
 
 export function ChatAccountabilityGuide({
   variant = "standalone",
   className,
   showTitle = true,
+  groupId,
 }: Props) {
   const isMeeting = variant === "meeting";
   return (
@@ -51,7 +56,11 @@ export function ChatAccountabilityGuide({
       >
         {CHAT_ACCOUNTABILITY_QUESTIONS.map((q, i) => (
           <li key={i} className="pl-2">
-            {q}
+            {isMeeting && groupId && i === CHAT_READING_CHECKIN_QUESTION_INDEX ? (
+              <ChatReadingCheckinQuestion groupId={groupId} questionText={q} />
+            ) : (
+              q
+            )}
           </li>
         ))}
       </ol>

@@ -224,9 +224,16 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
       finishingRef.current = true;
       const loggedMinutes = actualMinutesForCurrentSegment(minutesPerSegment);
       try {
-        playSegmentEndPrompts(completedStep);
         const res = await recordPrayerWheelSegment(completedStep, loggedMinutes);
+        /**
+         * After await: defer chime/voice to the next macrotask so RSC refresh/revalidation cannot
+         * unmount this component before audio starts (see prayer-wheel action: no /app/prayer revalidate).
+         * On success, play prompts then advance in the same task so React can batch voiceDuck + step.
+         */
         if ("error" in res) {
+          window.setTimeout(() => {
+            playSegmentEndPrompts(completedStep);
+          }, 0);
           setSaveError(res.error);
           setFailedStep(completedStep);
           setPhase("save_error");
@@ -235,7 +242,10 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
           remainingMsRef.current = null;
           return;
         }
-        advanceAfterSuccessfulSave(completedStep);
+        window.setTimeout(() => {
+          playSegmentEndPrompts(completedStep);
+          advanceAfterSuccessfulSave(completedStep);
+        }, 0);
       } finally {
         finishingRef.current = false;
       }

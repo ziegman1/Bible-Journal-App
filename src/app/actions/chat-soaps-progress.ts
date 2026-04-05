@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { refreshChatGroupPairSharedProgress } from "@/lib/chat-soaps/pair-pace-sync";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
 /**
  * Updates the CHAT SOAPS reading bookmark: last chapter the user finished in the
@@ -55,6 +57,31 @@ export async function recordChatSoapsChapterComplete(
   );
 
   if (error) return { error: error.message };
+
+  await supabase.from("chat_soaps_chapter_events").insert({
+    group_id: groupId,
+    user_id: user.id,
+    book_id: bookId.trim(),
+    chapter: Math.floor(completedChapter),
+    completed_at: new Date().toISOString(),
+  });
+
+  const tz = await getPracticeTimeZone();
+  const { data: paceRow } = await supabase
+    .from("chat_group_reading_pace")
+    .select("plan_start_book_id, plan_start_chapter")
+    .eq("group_id", groupId)
+    .maybeSingle();
+  const planBook = paceRow?.plan_start_book_id ?? "matthew";
+  const planCh = paceRow?.plan_start_chapter ?? 1;
+  await refreshChatGroupPairSharedProgress(
+    supabase,
+    groupId,
+    planBook,
+    planCh,
+    tz,
+    "soaps_save"
+  );
 
   revalidatePath("/app");
   revalidatePath("/app/read");

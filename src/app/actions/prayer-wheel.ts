@@ -98,7 +98,7 @@ export async function recordExtraPrayerMinutes(
   if (error) return { error: error.message };
 
   revalidatePath("/app");
-  revalidatePath("/app/prayer");
+  /* Omit /app/prayer — same RSC refresh issue as recordPrayerWheelSegment when user is on Prayer. */
   return { success: true as const };
 }
 
@@ -131,7 +131,7 @@ export async function recordPrayerWheelSegment(
   if (error) return { error: error.message };
 
   revalidatePath("/app");
-  revalidatePath("/app/prayer");
+  /* Omit /app/prayer — revalidating it can remount PrayerWheelTimer and cancel transition audio. */
   return { success: true };
 }
 

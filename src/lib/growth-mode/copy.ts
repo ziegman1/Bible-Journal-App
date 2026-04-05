@@ -119,10 +119,31 @@ export function paceMessageForTone(message: string, tone: GrowthCopyTone): strin
 /** CHAT / shared reading plan messages (`lib/chat-soaps/reading-pace`). */
 export function readingPaceMessageForTone(message: string, tone: GrowthCopyTone): string {
   if (tone === "accountability") return message;
-  if (/on pace with your group's reading plan/i.test(message)) {
+  if (
+    /Your CHAT pair is on pace with the shared reading schedule/i.test(message) ||
+    /on pace with your group's reading plan/i.test(message)
+  ) {
     return tone === "balanced"
-      ? "You're in rhythm with your group's reading plan."
-      : "Your reading lines up with what your group agreed together.";
+      ? "Your CHAT pair is in rhythm with the shared reading schedule."
+      : "Your pair’s reading lines up with where you agreed to be together.";
+  }
+  const behindPair = message.match(
+    /^Your CHAT pair is (\d+) (\w+) behind the shared schedule\.$/i
+  );
+  if (behindPair) {
+    const [, n, unit] = behindPair;
+    return tone === "balanced"
+      ? `Your pair is about ${n} ${unit} before this week’s shared rhythm—steady steps still matter.`
+      : `When you’re ready, you can read together—about ${n} ${unit} before the shared weekly rhythm.`;
+  }
+  const aheadPair = message.match(
+    /^Your CHAT pair is (\d+) (\w+) ahead of the shared schedule\.$/i
+  );
+  if (aheadPair) {
+    const [, n, unit] = aheadPair;
+    return tone === "balanced"
+      ? `Your pair has a little margin—about ${n} ${unit} beyond this week’s shared schedule.`
+      : `You have gentle margin as a pair—about ${n} ${unit} beyond the shared rhythm this week.`;
   }
   const behind = message.match(/^You are (\d+) (\w+) behind pace\.$/i);
   if (behind) {
@@ -317,12 +338,29 @@ export function badwrCombinedMessage(overallPercent: number, tone: GrowthCopyTon
 
 export function chatReadingPaceCardDescription(tone: GrowthCopyTone): string {
   if (tone === "accountability") {
-    return "Compared to your group's daily chapter goal and start date, using your SOAPS bookmark in the reader.";
+    return "Calendar pace uses the slower partner's bookmark; today's shared goal uses reader completions logged in order (pair-aligned).";
   }
   if (tone === "balanced") {
-    return "How your SOAPS bookmark lines up with the reading plan your group chose.";
+    return "Calendar rhythm plus today's next shared chapters—grace when you realign, not a score.";
   }
-  return "Your SOAPS bookmark relative to the plan your group agreed on—support for reading together, not a score.";
+  return "Pair-aligned pace and today's shared stretch from your CHAT reader—room to meet each other where you are.";
+}
+
+export function chatDailyReadingShortLineForTone(
+  met: boolean,
+  tone: GrowthCopyTone
+): string {
+  if (tone === "accountability") {
+    return met ? "Today's shared reading: complete." : "Today's shared reading: in progress.";
+  }
+  if (met) {
+    return tone === "balanced"
+      ? "Today's shared chapters are complete—well done together."
+      : "You've covered today's shared reading; rest in that for today.";
+  }
+  return tone === "balanced"
+    ? "Still room today for the next shared chapters when you're ready."
+    : "When it fits your day, pick up the next chapters together—no score, just rhythm.";
 }
 
 export function insightsPageSubtitle(tone: GrowthCopyTone): string {

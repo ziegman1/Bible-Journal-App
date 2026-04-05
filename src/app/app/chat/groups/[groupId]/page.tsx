@@ -94,7 +94,7 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
           variant="meeting"
           copyTone={growthPresentation.copyTone}
         />
-        <ChatAccountabilityGuide variant="meeting" />
+        <ChatAccountabilityGuide variant="meeting" groupId={groupId} />
       </div>
     </div>
   );
