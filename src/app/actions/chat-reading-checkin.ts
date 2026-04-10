@@ -113,6 +113,7 @@ export async function submitChatReadingCheckIn(input: {
     if (upErr) return { error: upErr.message };
 
     revalidatePath(`/app/chat/groups/${input.groupId}`);
+    revalidatePath("/app");
     return { success: true, graceApplied: false };
   }
 
@@ -211,6 +212,7 @@ export async function submitChatReadingCheckIn(input: {
   revalidatePath(`/app/chat/groups/${input.groupId}`);
   revalidatePath(`/app/chat/groups/${input.groupId}/manage`);
   revalidatePath("/app/chat");
+  revalidatePath("/app");
 
   return { success: true, graceApplied, skippedDuplicateWeek };
 }

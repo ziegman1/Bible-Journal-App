@@ -14,6 +14,9 @@ import type {
   ThirdsPersonalWeekDTO,
   ThirdsPersonalWorkspacePayload,
 } from "@/lib/groups/thirds-personal-types";
+import { upsertThirdsPillarWeekCompletion } from "@/app/actions/pillar-third-completion";
+import { pillarWeekStartKeyFromInstant } from "@/lib/dashboard/pillar-week";
+import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
 import { getChapter, sliceChapterByVerseRange } from "@/lib/scripture/web";
 
@@ -517,6 +520,14 @@ export async function finalizeThirdsPersonalWeek(): Promise<{ error: string } | 
     .eq("user_id", user.id);
 
   if (error) return { error: error.message };
+
+  const tz = await getPracticeTimeZone();
+  const pillarWeek = pillarWeekStartKeyFromInstant(new Date(), tz);
+  void (await upsertThirdsPillarWeekCompletion({
+    pillarWeekStartYmd: pillarWeek,
+    source: "solo_finalize",
+  }));
+
   revalidatePath("/app");
   revalidatePath("/app/groups/personal-thirds");
   revalidatePath("/app/groups");
@@ -538,6 +549,15 @@ export async function recordThirdsPersonalGroupComplete(): Promise<
   });
 
   if (error) return { error: error.message };
+
+  const tz2 = await getPracticeTimeZone();
+  const pillarWeek2 = pillarWeekStartKeyFromInstant(new Date(), tz2);
+  void (await upsertThirdsPillarWeekCompletion({
+    pillarWeekStartYmd: pillarWeek2,
+    source: "informal_group",
+  }));
+
+  revalidatePath("/app");
   revalidatePath("/app/groups");
   revalidatePath("/app/groups/personal-thirds");
   return { success: true as const };

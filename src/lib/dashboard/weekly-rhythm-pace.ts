@@ -1,5 +1,7 @@
 import { pillarWeekDaysElapsedInclusive } from "@/lib/dashboard/pillar-week";
 
+export type WeeklyRhythmPaceContext = "default" | "onboarding_first_week";
+
 export type WeeklyRhythmStatus = "ahead" | "on_pace" | "behind";
 
 export type WeeklyRhythmPaceResult = {
@@ -32,6 +34,20 @@ export function expectedUnitsThroughWeek(
 }
 
 /**
+ * Linear pace through a 7-day window. When `onboardingFirstDayZero`, day 1 expects 0 so zero
+ * activity still reads as on pace (new signup day).
+ */
+export function expectedUnitsForPaceDay(
+  dayIndex: number,
+  weeklyGoal: number,
+  opts?: { onboardingFirstDayZero?: boolean }
+): number {
+  const d = Math.min(7, Math.max(1, Math.floor(dayIndex)));
+  if (opts?.onboardingFirstDayZero && d === 1) return 0;
+  return expectedUnitsThroughWeek(d, weeklyGoal);
+}
+
+/**
  * Needle: 90° = on pace, &lt; 90 behind, &gt; 90 ahead (same semantics as CHAT reading meter).
  */
 export function computeWeeklyRhythmPace(input: {
@@ -41,6 +57,10 @@ export function computeWeeklyRhythmPace(input: {
   daysElapsed?: number;
   /** IANA timezone for Sun–Sat week boundaries; omit = site default */
   practiceTimeZone?: string;
+  /** When set with {@link expectedSoFarOverride}, skips recomputing expected from daysElapsed. */
+  expectedSoFarOverride?: number;
+  /** Copy + expected: first onboarding day can use zero expected via {@link expectedUnitsForPaceDay}. */
+  paceContext?: WeeklyRhythmPaceContext;
   /** Degrees per unit of delta (sessions ~9, minutes ~0.85) */
   needleSensitivity: number;
   /** e.g. "SOAPS session" / "minute" */
@@ -55,7 +75,10 @@ export function computeWeeklyRhythmPace(input: {
     pillarWeekDaysElapsedInclusive(input.asOf ?? new Date(), input.practiceTimeZone);
   const weeklyGoal = Math.max(0, Math.floor(input.weeklyGoal));
   const actual = Math.max(0, input.actual);
-  const expectedSoFar = expectedUnitsThroughWeek(daysElapsed, weeklyGoal);
+  const expectedSoFar =
+    input.expectedSoFarOverride !== undefined
+      ? Math.min(weeklyGoal, Math.max(0, input.expectedSoFarOverride))
+      : expectedUnitsThroughWeek(daysElapsed, weeklyGoal);
   const delta = actual - expectedSoFar;
 
   let status: WeeklyRhythmStatus;
@@ -67,13 +90,21 @@ export function computeWeeklyRhythmPace(input: {
 
   const u = (n: number) => (n === 1 ? input.unitSingular : input.unitPlural);
 
+  const ob = input.paceContext === "onboarding_first_week";
+
   let message: string;
   if (status === "on_pace") {
-    message = `You are on pace toward ${input.goalLabel} this week.`;
+    message = ob
+      ? `You are on pace toward ${input.goalLabel} in your first week.`
+      : `You are on pace toward ${input.goalLabel} this week.`;
   } else if (status === "ahead") {
-    message = `You are ${delta} ${u(delta)} ahead of pace this week.`;
+    message = ob
+      ? `You are ${delta} ${u(delta)} ahead of pace in your first week.`
+      : `You are ${delta} ${u(delta)} ahead of pace this week.`;
   } else {
-    message = `You are ${Math.abs(delta)} ${u(Math.abs(delta))} behind pace this week.`;
+    message = ob
+      ? `You are ${Math.abs(delta)} ${u(Math.abs(delta))} behind pace in your first week.`
+      : `You are ${Math.abs(delta)} ${u(Math.abs(delta))} behind pace this week.`;
   }
 
   return {

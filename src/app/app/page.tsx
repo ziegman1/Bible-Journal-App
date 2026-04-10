@@ -4,8 +4,8 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { IdentityCoreSection } from "@/components/dashboard/identity-core-section";
 import { MultiplicationSection } from "@/components/dashboard/multiplication-section";
+import { getSoapsHomeActionHref } from "@/app/actions/soaps-home-action";
 import { listGroupsForUser } from "@/app/actions/groups";
-import { nextReadAfterChatSoapsComplete } from "@/lib/chat-soaps/next-read";
 import { getGrowthModePresentation, normalizeGrowthMode } from "@/lib/growth-mode/model";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
 
   let displayName = "Reader";
   let soapsActionHref = "/app/read/matthew/1";
-  const soapsActionLabel = "Start today's SOAPS";
+  let soapsActionLabel = "Start today's SOAPS";
   let primaryChatGroupId: string | null = null;
   let presentation = getGrowthModePresentation("focused");
 
@@ -37,23 +37,15 @@ export default async function DashboardPage() {
       user.email?.split("@")[0]?.trim() ||
       displayName;
 
+    const soaps = await getSoapsHomeActionHref();
+    soapsActionHref = soaps.href;
+    soapsActionLabel = soaps.label;
+
     const listResult = await listGroupsForUser({ groupKind: "chat" });
     const chatGroups = "groups" in listResult ? (listResult.groups ?? []) : [];
     const primaryChat = chatGroups[0];
     if (primaryChat) {
       primaryChatGroupId = primaryChat.id;
-      const { data: progress } = await supabase
-        .from("chat_soaps_reading_progress")
-        .select("book_id, last_completed_chapter")
-        .eq("user_id", user.id)
-        .eq("group_id", primaryChat.id)
-        .maybeSingle();
-
-      const target = nextReadAfterChatSoapsComplete(
-        progress?.book_id,
-        progress?.last_completed_chapter
-      );
-      soapsActionHref = `/app/read/${target.bookId}/${target.chapter}?chatSoapsGroup=${encodeURIComponent(primaryChat.id)}`;
     }
   }
 

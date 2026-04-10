@@ -7,7 +7,9 @@ export const mockIdentityCore = {
     { label: "SOAPS streak", value: "0 days" },
     { label: "Prayer streak", value: "0 days" },
     { label: "Share streak", value: "0 days" },
-    { label: "3/3 + CHAT week streak", value: "0 weeks" },
+    { label: "Scripture Memory streak", value: "0 days" },
+    { label: "3/3 weekly streak", value: "0 weeks" },
+    { label: "CHAT weekly streak", value: "0 weeks" },
   ],
 } as const;
 
@@ -33,6 +35,13 @@ export const mockPracticeNodes = [
     statusLabel: "Open",
     href: "/app/share",
     theme: "share" as const,
+  },
+  {
+    title: "SCRIPTURE" as const,
+    description: "Memorize and review passages.",
+    statusLabel: "Open",
+    href: "/app/scripture-memory",
+    theme: "memory" as const,
   },
   {
     title: "CHAT" as const,

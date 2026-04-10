@@ -7,6 +7,7 @@ import { signOut } from "@/app/actions/auth";
 import {
   Home,
   BookOpen,
+  BookMarked,
   Settings,
   Menu,
   LogOut,
@@ -28,8 +29,6 @@ import { AppBrandLink } from "@/components/app-brand-link";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_NAME } from "@/lib/site-config";
-import { SoapsHubSidebarNav } from "@/components/soaps-hub-sidebar-nav";
-
 const navItems = [
   { href: "/app", label: "Home", icon: Home },
   { href: "/app/read", label: "Read", icon: BookOpen },
@@ -50,6 +49,17 @@ function isItemActive(pathname: string, href: string): boolean {
     );
   }
   return pathname.startsWith(href);
+}
+
+function isSoapsHubActive(pathname: string): boolean {
+  return (
+    pathname === "/app/soaps" ||
+    pathname.startsWith("/app/journal") ||
+    pathname.startsWith("/app/themes") ||
+    pathname.startsWith("/app/insights") ||
+    pathname.startsWith("/app/threads") ||
+    pathname.startsWith("/app/thread/")
+  );
 }
 
 function NavLinks({
@@ -81,7 +91,19 @@ function NavLinks({
           </Link>
         );
       })}
-      <SoapsHubSidebarNav pathname={pathname} onNavigate={onNavigate} />
+      <Link
+        href="/app/soaps"
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation",
+          isSoapsHubActive(pathname)
+            ? "bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+            : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:hover:text-stone-100"
+        )}
+      >
+        <BookMarked className="size-4 shrink-0" />
+        SOAPS
+      </Link>
       {navItems.slice(2).map((item) => {
         const Icon = item.icon;
         const isActive = isItemActive(pathname, item.href);

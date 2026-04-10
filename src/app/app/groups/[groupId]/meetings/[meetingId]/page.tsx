@@ -38,6 +38,12 @@ export default async function MeetingPage({ params }: PageProps) {
     notFound();
   }
 
+  const { data: gRow } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .maybeSingle();
+
   const meeting = result.meeting;
   const passage =
     meeting.story_source_type === "preset_story" && meeting.preset_stories
@@ -92,6 +98,7 @@ export default async function MeetingPage({ params }: PageProps) {
       passageRef={passage ? `${passage.book} ${passage.chapter}:${passage.verse_start}${passage.verse_start !== passage.verse_end ? `-${passage.verse_end}` : ""}` : null}
       presenterStateRow={result.presenterState ?? null}
       starterTrackMeetingOrdinal={result.starterTrackMeetingOrdinal ?? null}
+      groupKind={gRow?.group_kind ?? "thirds"}
     />
   );
 }

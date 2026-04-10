@@ -12,6 +12,7 @@ import {
   type ChatReadingPaceResult,
 } from "@/lib/chat-soaps/reading-pace";
 import { refreshChatGroupPairSharedProgress } from "@/lib/chat-soaps/pair-pace-sync";
+import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import { getBookById } from "@/lib/scripture/books";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -131,14 +132,27 @@ export async function getChatReadingPaceBundle(
       ? paceRow.reading_start_date.slice(0, 10)
       : practiceTodayYmd(new Date(), tz);
 
-  const pace = computeChatReadingPace({
+  const now = new Date();
+  let pace = computeChatReadingPace({
     readingStartDateYmd,
     chaptersPerDay: paceRow.chapters_per_day,
     planStartBookId: paceRow.plan_start_book_id,
     planStartChapter: paceRow.plan_start_chapter,
     pairProgressChaptersFromPlan,
     practiceTimeZone: tz,
+    asOf: now,
   });
+
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  if (anchor.mode === "onboarding" && pace.status === "behind") {
+    pace = {
+      ...pace,
+      status: "on_pace",
+      delta: 0,
+      needleDegrees: 90,
+      message: "Your CHAT pair is on pace with the shared reading schedule.",
+    };
+  }
 
   return {
     settings: {

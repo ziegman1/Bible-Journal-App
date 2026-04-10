@@ -7,10 +7,10 @@ import {
   consecutiveDayStreak,
   pillarTodayYmd,
   prayerStreakFromDailyMinutes,
+  scriptureMemoryDayStreakFromRows,
   shareStreakFromEncounterDates,
-  thirdsChatWeeklyStreak,
-  type MeetingAttendanceRow,
 } from "@/lib/dashboard/identity-streaks";
+import { consecutivePillarWeekStreak } from "@/lib/dashboard/pillar-week-streak";
 import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ function formatWeekStreak(n: number): string {
 }
 
 /**
- * Dashboard ME / BADWR card: SOAPS, prayer, share day streaks + 3/3rds+CHAT week streak.
+ * Dashboard ME / BADWR card: daily SOAPS, prayer, share, Scripture Memory + weekly 3/3 + CHAT.
  */
 export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
   const supabase = await createClient();
@@ -39,7 +39,9 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
       { label: "SOAPS streak", value: "—" },
       { label: "Prayer streak", value: "—" },
       { label: "Share streak", value: "—" },
-      { label: "3/3 + CHAT week streak", value: "—" },
+      { label: "Scripture Memory streak", value: "—" },
+      { label: "3/3 weekly streak", value: "—" },
+      { label: "CHAT weekly streak", value: "—" },
     ];
   }
 
@@ -51,7 +53,9 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
       { label: "SOAPS streak", value: "—" },
       { label: "Prayer streak", value: "—" },
       { label: "Share streak", value: "—" },
-      { label: "3/3 + CHAT week streak", value: "—" },
+      { label: "Scripture Memory streak", value: "—" },
+      { label: "3/3 weekly streak", value: "—" },
+      { label: "CHAT weekly streak", value: "—" },
     ];
   }
 
@@ -65,12 +69,18 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
   const chatResult = await listGroupsForUser({ groupKind: "chat" });
   const thirdsGroupIds =
     "error" in thirdsResult ? [] : thirdsResult.groups.map((g) => g.id);
-  const chatGroupId =
-    "error" in chatResult || !chatResult.groups[0] ? null : chatResult.groups[0].id;
+  const chatGroupIds =
+    "error" in chatResult ? [] : chatResult.groups.map((g) => g.id);
 
-  const memberGroupIds = [...thirdsGroupIds, ...(chatGroupId ? [chatGroupId] : [])];
-
-  const [journalRes, wheelRes, extraRes, shareRes, meetingsRes] = await Promise.all([
+  const [
+    journalRes,
+    wheelRes,
+    extraRes,
+    shareRes,
+    scriptureRes,
+    pillarThirdsRes,
+    chatCheckInsRes,
+  ] = await Promise.all([
     supabase
       .from("journal_entries")
       .select(
@@ -93,45 +103,23 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
       .select("encounter_date")
       .eq("user_id", user.id)
       .gte("encounter_date", oldestYmd),
-    memberGroupIds.length === 0
-      ? Promise.resolve({
-          data: [] as MeetingAttendanceRow[],
-          error: null,
-        })
-      : supabase
-          .from("group_meetings")
-          .select("id, group_id, meeting_date, status")
-          .in("group_id", memberGroupIds)
-          .eq("status", "completed"),
-  ]);
-
-  type MeetingRow = {
-    id: string;
-    group_id: string;
-    meeting_date: string;
-    status: string;
-  };
-  const meetingsRaw = (meetingsRes.data ?? []) as MeetingRow[];
-  const meetingRowsForStreak: MeetingAttendanceRow[] = meetingsRaw.map((m) => ({
-    meeting_id: m.id,
-    group_id: m.group_id,
-    meeting_date: m.meeting_date,
-    status: m.status,
-  }));
-  const meetingIds = meetingsRaw.map((m) => m.id);
-
-  let attendedIds = new Set<string>();
-  if (meetingIds.length > 0) {
-    const { data: parts, error: pErr } = await supabase
-      .from("meeting_participants")
-      .select("meeting_id")
+    supabase
+      .from("scripture_memory_logs")
+      .select("practice_date, memorized_new_count, reviewed_count")
       .eq("user_id", user.id)
-      .eq("present", true)
-      .in("meeting_id", meetingIds);
-    if (!pErr && parts) {
-      attendedIds = new Set(parts.map((p) => p.meeting_id));
-    }
-  }
+      .gte("practice_date", oldestYmd),
+    supabase
+      .from("pillar_week_streak_completions")
+      .select("pillar_week_start_ymd")
+      .eq("user_id", user.id),
+    chatGroupIds.length === 0
+      ? Promise.resolve({ data: [] as { week_start_ymd: string }[], error: null })
+      : supabase
+          .from("chat_reading_check_ins")
+          .select("week_start_ymd")
+          .eq("user_id", user.id)
+          .in("group_id", chatGroupIds),
+  ]);
 
   const soapsDays = buildSoapsQualifyingDaySet(journalRes.data ?? []);
   const soapsStreak = consecutiveDayStreak((d) => soapsDays.has(d), todayYmd);
@@ -148,27 +136,37 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     todayYmd
   );
 
-  const weekStreak = thirdsChatWeeklyStreak({
-    now,
-    practiceTimeZone: tz,
-    thirdsGroupIds,
-    chatGroupId,
-    meetings: meetingRowsForStreak,
-    attendedMeetingIds: attendedIds,
-  });
+  const scriptureRows = scriptureRes.error ? [] : (scriptureRes.data ?? []);
+  const scriptureStreak = scriptureMemoryDayStreakFromRows(scriptureRows, todayYmd);
 
-  let weekLabelValue = formatWeekStreak(weekStreak);
-  if (thirdsGroupIds.length === 0 || !chatGroupId) {
-    weekLabelValue = "Join 3/3 + CHAT";
+  const pillarRows = pillarThirdsRes.error ? [] : (pillarThirdsRes.data ?? []);
+  const thirdsWeeks = new Set(
+    pillarRows.map((r) => String(r.pillar_week_start_ymd).slice(0, 10))
+  );
+  const thirdsWeekly = consecutivePillarWeekStreak(thirdsWeeks, now, tz);
+
+  const chatCheckData = chatCheckInsRes.error ? [] : (chatCheckInsRes.data ?? []);
+  const chatWeekKeys = new Set(
+    chatCheckData.map((r) => String(r.week_start_ymd).slice(0, 10))
+  );
+  const chatWeekly = consecutivePillarWeekStreak(chatWeekKeys, now, tz);
+
+  let thirdsLabel = formatWeekStreak(thirdsWeekly);
+  if (thirdsGroupIds.length === 0 && thirdsWeekly === 0) {
+    thirdsLabel = "Join a 3/3rds group";
+  }
+
+  let chatLabel = formatWeekStreak(chatWeekly);
+  if (chatGroupIds.length === 0 && chatWeekly === 0) {
+    chatLabel = "Join CHAT";
   }
 
   return [
     { label: "SOAPS streak", value: formatDayStreak(soapsStreak) },
-    {
-      label: "Prayer streak",
-      value: formatDayStreak(prayerStreak),
-    },
+    { label: "Prayer streak", value: formatDayStreak(prayerStreak) },
     { label: "Share streak", value: formatDayStreak(shareStreak) },
-    { label: "3/3 + CHAT week streak", value: weekLabelValue },
+    { label: "Scripture Memory streak", value: formatDayStreak(scriptureStreak) },
+    { label: "3/3 weekly streak", value: thirdsLabel },
+    { label: "CHAT weekly streak", value: chatLabel },
   ];
 }

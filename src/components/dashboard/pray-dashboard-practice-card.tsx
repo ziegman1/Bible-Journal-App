@@ -111,9 +111,14 @@ export async function PrayDashboardPracticeCard({
     weeklyExtraMinutes,
     weeklyGoalMinutes,
     fullWheelsThisWeek,
+    paceDayIndex,
+    onboardingPaceWeek,
   } = stats;
   const now = new Date();
-  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes, now, tz, weeklyGoalMinutes);
+  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes, now, tz, weeklyGoalMinutes, {
+    anchorDayIndex: paceDayIndex,
+    onboardingFirstWeek: onboardingPaceWeek,
+  });
   const paceMessage = paceMessageForTone(pace.message, copyTone);
   const ariaDesc = `${paceMessage} ${pace.expectedSoFar} minutes expected so far toward ${weeklyGoalMinutes}; you have logged ${pace.actual} minutes total. ${fullWheelsThisWeek} full wheel${fullWheelsThisWeek === 1 ? "" : "s"} this week.`;
 

@@ -40,6 +40,12 @@ export function ratioToScore(actual: number, expected: number): number {
   return Math.min(1, actual / expected);
 }
 
+/** BADWR pillar components: zero expected (first onboarding day) with zero actual counts as on pace. */
+export function paceProgressRatio(actual: number, expectedSoFar: number): number {
+  if (expectedSoFar <= 0) return 1;
+  return Math.min(1, actual / expectedSoFar);
+}
+
 export function tierForScore(score: number): BadwrPillarTier {
   if (score >= 0.82) return "strong";
   if (score >= 0.55) return "ok";
@@ -52,10 +58,10 @@ export function buildWordSoapsPillar(input: {
   readingSessionsActual: number;
   readingExpectedSoFar: number;
 }): BadwrPillarModel {
-  const soapsScore = ratioToScore(input.soapsActual, Math.max(1, input.soapsExpectedSoFar));
-  const readScore = ratioToScore(
+  const soapsScore = paceProgressRatio(input.soapsActual, input.soapsExpectedSoFar);
+  const readScore = paceProgressRatio(
     input.readingSessionsActual,
-    Math.max(1, input.readingExpectedSoFar)
+    input.readingExpectedSoFar
   );
   const score = (soapsScore + readScore) / 2;
   const tier = tierForScore(score);
@@ -79,7 +85,7 @@ export function buildPrayPillar(input: {
   /** Profile weekly goal; drives hint copy. */
   weeklyPrayerGoalMinutes?: number;
 }): BadwrPillarModel {
-  const score = ratioToScore(input.minutesActual, Math.max(1, input.minutesExpectedSoFar));
+  const score = paceProgressRatio(input.minutesActual, input.minutesExpectedSoFar);
   const goalMin = input.weeklyPrayerGoalMinutes ?? DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES;
   return {
     id: "pray",
@@ -98,7 +104,20 @@ export function buildChatPillar(input: {
   /** loosely behind but not empty */
   paceRecoverable: boolean;
   chatHref?: string;
+  /** First 7 days after signup: do not show CHAT as behind on pace. */
+  onboardingPaceEase?: boolean;
 }): BadwrPillarModel {
+  if (input.onboardingPaceEase && input.inChatGroup) {
+    return {
+      id: "chat",
+      label: "CHAT",
+      shortLabel: "CHAT",
+      score: 1,
+      tier: tierForScore(1),
+      hint: "Your first week—open your CHAT group and reading when you are ready.",
+      href: input.chatHref ?? "/app/chat",
+    };
+  }
   let score: number;
   let hint: string;
   if (!input.inChatGroup) {
@@ -130,6 +149,8 @@ export function buildThirdsPillar(input: {
   inThirdsGroup: boolean;
   /** When set, pillar score matches the participation % on the 3/3rds Groups panel */
   participationMetrics?: ThirdsParticipationMetrics | null;
+  /** First 7 days: in a 3/3rds group but no meeting yet still counts as on pace. */
+  onboardingPaceEase?: boolean;
 }): BadwrPillarModel {
   const m = input.participationMetrics;
   if (m && m.totalWeeks > 0) {
@@ -161,6 +182,9 @@ export function buildThirdsPillar(input: {
   if (input.attendedCompletedThisWeek) {
     score = 1;
     hint = "You connected with your 3/3rds group this week.";
+  } else if (input.onboardingPaceEase && input.inThirdsGroup) {
+    score = 1;
+    hint = "Your first week in the group—plan a meeting or solo week when you are ready.";
   } else if (input.inThirdsGroup) {
     score = 0.42;
     hint =
@@ -186,7 +210,7 @@ export function buildSharePillar(input: {
   shareExpectedSoFar: number;
   weeklyShareGoalEncounters?: number;
 }): BadwrPillarModel {
-  const score = ratioToScore(input.shareActual, Math.max(1, input.shareExpectedSoFar));
+  const score = paceProgressRatio(input.shareActual, input.shareExpectedSoFar);
   const g = input.weeklyShareGoalEncounters ?? DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
   const people = g === 1 ? "person" : "people";
   return {
@@ -210,4 +234,14 @@ export function expectedReadingTouchesSoFar(daysElapsed: number): number {
   const cap = BADWR_READING_MAX_PER_WEEK;
   const raw = Math.floor(daysElapsed * BADWR_READING_CHAPTERS_PER_DAY);
   return Math.min(cap, Math.max(1, raw));
+}
+
+/** Same as {@link expectedReadingTouchesSoFar} but day 1 can expect 0 for onboarding pace. */
+export function expectedReadingTouchesForPaceDay(
+  dayIndex: number,
+  opts?: { onboardingFirstDayZero?: boolean }
+): number {
+  const d = Math.min(7, Math.max(1, Math.floor(dayIndex)));
+  if (opts?.onboardingFirstDayZero && d === 1) return 0;
+  return expectedReadingTouchesSoFar(d);
 }

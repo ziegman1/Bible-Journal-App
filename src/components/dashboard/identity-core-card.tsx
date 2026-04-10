@@ -69,12 +69,12 @@ export function IdentityCoreCard({
       </div>
 
       {showStats ? (
-        <dl className="relative mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-2">
+        <dl className="relative mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-3">
           {stats.map((s) => (
             <div
               key={s.label}
               className={cn(
-                "rounded-lg border border-indigo-100/60 px-3 py-2",
+                "flex min-h-[4.25rem] flex-col justify-center rounded-lg border border-indigo-100/60 px-3 py-2",
                 "bg-white/60 backdrop-blur-xs",
                 "dark:border-indigo-500/10 dark:bg-white/[0.03]"
               )}
@@ -88,9 +88,13 @@ export function IdentityCoreCard({
                       ? "Consecutive days with at least 60 minutes logged (Prayer Wheel + extra time). Miss a day → streak resets."
                       : s.label.startsWith("Share")
                         ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
-                        : s.label.includes("CHAT")
-                          ? "Consecutive weeks you attended both a 3/3rds family meeting and a CHAT meeting (pillar week, Sun–Sat). Miss either in a week → streak resets."
-                          : undefined
+                        : s.label.startsWith("Scripture Memory")
+                          ? "Consecutive days you logged new memorization or review (practice timezone). Miss a day → streak resets."
+                          : s.label.startsWith("3/3 weekly")
+                            ? "Consecutive pillar weeks (Sun–Sat, practice timezone) after you recorded Complete 3/3 (solo finalize, informal group, or 3/3rds meeting)."
+                            : s.label.startsWith("CHAT weekly")
+                              ? "Consecutive pillar weeks (Sun–Sat) after you submitted the final CHAT reading check-in question—counts regardless of yes/no."
+                              : undefined
                 }
               >
                 {s.label}

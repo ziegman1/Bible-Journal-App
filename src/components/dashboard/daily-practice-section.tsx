@@ -2,6 +2,7 @@ import { ChatDashboardPracticeCard } from "@/components/dashboard/chat-dashboard
 import { PrayDashboardPracticeCard } from "@/components/dashboard/pray-dashboard-practice-card";
 import { ShareDashboardPracticeCard } from "@/components/dashboard/share-dashboard-practice-card";
 import { SoapsDashboardPracticeCard } from "@/components/dashboard/soaps-dashboard-practice-card";
+import { ScriptureMemoryDashboardCard } from "@/components/dashboard/scripture-memory-dashboard-card";
 import { PracticeNodeCard } from "@/components/dashboard/practice-node-card";
 import { mockPracticeNodes } from "@/lib/dashboard/mock-dashboard-data";
 import type { GrowthModePresentation } from "@/lib/growth-mode/types";
@@ -36,6 +37,8 @@ export async function DailyPracticeSection({
             <PrayDashboardPracticeCard key="pray-wheel" toolsOnly={toolsOnly} copyTone={copyTone} />
           ) : node.theme === "share" ? (
             <ShareDashboardPracticeCard key="share-pace" toolsOnly={toolsOnly} copyTone={copyTone} />
+          ) : node.theme === "memory" ? (
+            <ScriptureMemoryDashboardCard key="scripture-memory" />
           ) : node.theme === "chat" && primaryChatGroupId ? (
             <ChatDashboardPracticeCard
               key="chat-pace"

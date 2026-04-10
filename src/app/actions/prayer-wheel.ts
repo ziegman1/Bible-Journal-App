@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prayerfulnessPercent } from "@/lib/prayer-wheel/stats";
+import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +20,10 @@ export type PrayerWheelDashboardStats = {
   fullWheelsThisWeek: number;
   prayerfulnessPercent: number;
   weeklyGoalMinutes: number;
+  /** For dashboard needle: matches {@link getMetricsAnchorWindow} day index. */
+  paceDayIndex: number;
+  /** First 7 days after signup: personal pace window. */
+  onboardingPaceWeek: boolean;
 };
 
 export async function getPrayerWheelDashboardStats(): Promise<
@@ -35,7 +40,9 @@ export async function getPrayerWheelDashboardStats(): Promise<
     fetchUserRhythmGoals(supabase, user.id),
     getPracticeTimeZone(),
   ]);
-  const { startIso, endExclusiveIso } = pillarWeekRangeForQuery(new Date(), tz);
+  const now = new Date();
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const { startIso, endExclusiveIso } = anchor;
 
   const { data: rows, error } = await supabase
     .from("prayer_wheel_segment_completions")
@@ -70,6 +77,8 @@ export async function getPrayerWheelDashboardStats(): Promise<
     fullWheelsThisWeek,
     prayerfulnessPercent: prayerfulnessPercent(weeklyMinutes, prayerWeeklyGoalMinutes),
     weeklyGoalMinutes: prayerWeeklyGoalMinutes,
+    paceDayIndex: anchor.dayIndex,
+    onboardingPaceWeek: anchor.mode === "onboarding",
   };
 }
 

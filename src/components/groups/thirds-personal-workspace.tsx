@@ -336,7 +336,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
       const r = await finalizeThirdsPersonalWeek();
       if ("error" in r) toast.error(r.error);
       else {
-        toast.success("Week finalized — counted toward your participation tracker.");
+        toast.success("Complete 3/3 saved — your week is finalized.");
         refresh();
       }
     });
@@ -347,7 +347,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
       const r = await recordThirdsPersonalGroupComplete();
       if ("error" in r) toast.error(r.error);
       else {
-        toast.success("Recorded: informal 3/3rds group completed.");
+        toast.success("Complete 3/3 recorded for this pillar week.");
         refresh();
       }
     });
@@ -704,12 +704,13 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
                   Save Look Forward
                 </Button>
                 <Button type="button" onClick={onFinalize} disabled={pending}>
-                  Finalize this week
+                  Complete 3/3
                 </Button>
               </div>
             ) : null}
             <p className="text-xs text-muted-foreground">
-              Finalizing requires a saved passage, all four Look Up lines, and obey / share / train.
+              Complete 3/3 saves your week and counts this pillar week toward your 3/3 weekly streak
+              (requires passage, all four Look Up lines, and obey / share / train).
             </p>
           </div>
         </section>
@@ -718,8 +719,8 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
       <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4">
         <h3 className="text-sm font-medium text-foreground">Informal group finished?</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          When an off-app 3/3rds group wraps up, record it here. Your weekly participation still
-          comes from finalized weeks above.
+          When an off-app 3/3rds group wraps up, tap Complete 3/3 to record this pillar week for
+          your streak. Solo participation above still uses the same weekly tracker.
         </p>
         <Button
           type="button"
@@ -729,7 +730,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
           onClick={onGroupComplete}
           disabled={pending}
         >
-          Mark informal 3/3rds group complete
+          Complete 3/3 (informal group)
         </Button>
       </div>
     </div>

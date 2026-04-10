@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { getMeetingDetail } from "@/app/actions/meetings";
 import { Button } from "@/components/ui/button";
+import { CompleteThirdsStreakButton } from "@/components/groups/complete-thirds-streak-button";
 import { GenerateMeetingSummaryButton } from "@/components/groups/meeting-summary-generate-button";
 import { MarkMeetingCompleteButton } from "@/components/groups/mark-meeting-complete-button";
 import { ArrowLeft, FileText } from "lucide-react";
@@ -47,6 +48,15 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
     .maybeSingle();
 
   const meeting = result.meeting;
+
+  const { data: gRow } = await supabase
+    .from("groups")
+    .select("group_kind")
+    .eq("id", groupId)
+    .maybeSingle();
+  const groupKind = gRow?.group_kind ?? "thirds";
+  const showThirdsStreakCta =
+    groupKind === "thirds" && meeting.status === "completed";
 
   /** Full group roster from getMeetingDetail (normalized ids + RLS-safe names). */
   const nameCtx = {
@@ -137,6 +147,15 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
               year: "numeric",
             })}
         </p>
+        {showThirdsStreakCta ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <p className="text-sm text-foreground">
+              Tap when you’ve finished this 3/3rds meeting—this records your weekly streak (one per
+              pillar week).
+            </p>
+            <CompleteThirdsStreakButton meetingId={meetingId} groupId={groupId} />
+          </div>
+        ) : null}
       </header>
 
       {!summary ? (

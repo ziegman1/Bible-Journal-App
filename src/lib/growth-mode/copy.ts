@@ -101,12 +101,16 @@ export function paceMessageForTone(message: string, tone: GrowthCopyTone): strin
   if (tone === "accountability") return message;
   let m = message;
   if (tone === "balanced") {
+    m = m.replace(/\bbehind pace in your first week\b/gi, "room in your rhythm in your first week");
+    m = m.replace(/\bahead of pace in your first week\b/gi, "ahead of your rhythm in your first week");
     m = m.replace(/\bbehind pace this week\b/gi, "room in your rhythm this week");
     m = m.replace(/\bahead of pace this week\b/gi, "ahead of your weekly rhythm");
     m = m.replace(/\bbehind pace\b/gi, "room to grow this week");
     m = m.replace(/\bahead of pace\b/gi, "ahead of your weekly rhythm");
     m = m.replace(/\bon pace toward\b/gi, "in rhythm toward");
   } else {
+    m = m.replace(/\bbehind pace in your first week\b/gi, "there’s space to continue in your first week");
+    m = m.replace(/\bahead of pace in your first week\b/gi, "you have extra margin in your first week");
     m = m.replace(/\bbehind pace this week\b/gi, "there’s space to continue when you’re ready");
     m = m.replace(/\bahead of pace this week\b/gi, "you have extra margin this week");
     m = m.replace(/\bbehind pace\b/gi, "there’s space to keep going when you’re ready");

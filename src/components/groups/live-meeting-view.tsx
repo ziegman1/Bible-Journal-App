@@ -9,6 +9,7 @@ import { LookBackSection } from "@/components/groups/look-back-section";
 import { LookUpSection } from "@/components/groups/look-up-section";
 import { LookForwardSection } from "@/components/groups/look-forward-section";
 import type { StarterTrackLookBackPayload } from "@/lib/groups/starter-track/starter-track-lookback";
+import { CompleteThirdsStreakButton } from "@/components/groups/complete-thirds-streak-button";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { updateMeetingStatus } from "@/app/actions/meetings";
 import { ArrowLeft, FileText, Loader2, Presentation } from "lucide-react";
@@ -137,6 +138,8 @@ interface LiveMeetingViewProps {
   memberDisplayNames: Record<string, string>;
   /** Align practice slide count with facilitator (weekly homework hidden on first ST meeting). */
   starterTrackMeetingOrdinal: number | null;
+  /** From `groups.group_kind` — streak “Complete 3/3” only for 3/3rds groups. */
+  groupKind?: string | null;
 }
 
 export function LiveMeetingView({
@@ -161,6 +164,7 @@ export function LiveMeetingView({
   presenterStateRow,
   memberDisplayNames,
   starterTrackMeetingOrdinal,
+  groupKind = "thirds",
 }: LiveMeetingViewProps) {
   const router = useRouter();
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -707,7 +711,7 @@ export function LiveMeetingView({
               </Link>
               .
             </p>
-            <div className="flex justify-center pt-1">
+            <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-center">
               <Link
                 href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
                 className={cn(
@@ -718,6 +722,9 @@ export function LiveMeetingView({
                 <FileText className="size-4" />
                 View Summary
               </Link>
+              {(groupKind ?? "thirds") === "thirds" ? (
+                <CompleteThirdsStreakButton meetingId={meetingId} groupId={groupId} />
+              ) : null}
             </div>
           </div>
         )}

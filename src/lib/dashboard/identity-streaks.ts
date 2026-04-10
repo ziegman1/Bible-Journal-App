@@ -90,6 +90,25 @@ export function shareStreakFromEncounterDates(
   return consecutiveDayStreak((d) => set.has(d), todayYmd);
 }
 
+/** A Scripture Memory day counts when the user logged new memorization or any review. */
+export function scriptureMemoryDayStreakFromRows(
+  rows: readonly {
+    practice_date: string;
+    memorized_new_count?: number | null;
+    reviewed_count?: number | null;
+  }[],
+  todayYmd: string
+): number {
+  const qualifying = new Set<string>();
+  for (const r of rows) {
+    const d = r.practice_date.slice(0, 10);
+    const mem = r.memorized_new_count ?? 0;
+    const rev = r.reviewed_count ?? 0;
+    if (mem > 0 || rev > 0) qualifying.add(d);
+  }
+  return consecutiveDayStreak((d) => qualifying.has(d), todayYmd);
+}
+
 export type MeetingAttendanceRow = {
   meeting_id: string;
   group_id: string;

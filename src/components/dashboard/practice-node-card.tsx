@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { BookOpen, Heart, MessageCircle, Share2 } from "lucide-react";
+import { BookOpen, Heart, MessageCircle, ScrollText, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const themeIcon = {
   soap: BookOpen,
   pray: Heart,
   share: Share2,
+  memory: ScrollText,
   chat: MessageCircle,
 } as const;
 
@@ -27,6 +28,12 @@ const themeStyles = {
     hover: "hover:border-amber-300/70 hover:shadow-[0_4px_20px_-4px_rgba(251,191,36,0.15)] dark:hover:border-amber-500/30 dark:hover:shadow-[0_4px_20px_-4px_rgba(251,191,36,0.08)]",
     iconBg: "bg-amber-100/70 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     label: "text-amber-700/70 dark:text-amber-400/60",
+  },
+  memory: {
+    card: "border-emerald-200/50 bg-gradient-to-br from-white via-emerald-50/35 to-teal-50/25 dark:border-emerald-500/15 dark:from-card dark:via-emerald-950/15 dark:to-teal-950/10",
+    hover: "hover:border-emerald-300/70 hover:shadow-[0_4px_20px_-4px_rgba(52,211,153,0.15)] dark:hover:border-emerald-500/30 dark:hover:shadow-[0_4px_20px_-4px_rgba(52,211,153,0.08)]",
+    iconBg: "bg-emerald-100/70 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+    label: "text-emerald-700/70 dark:text-emerald-400/60",
   },
   chat: {
     card: "border-indigo-200/50 bg-gradient-to-br from-white via-indigo-50/35 to-slate-50/30 dark:border-indigo-500/15 dark:from-card dark:via-indigo-950/15 dark:to-slate-950/10",

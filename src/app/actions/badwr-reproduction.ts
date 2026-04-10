@@ -9,7 +9,7 @@ import {
   buildSharePillar,
   buildThirdsPillar,
   buildWordSoapsPillar,
-  expectedReadingTouchesSoFar,
+  expectedReadingTouchesForPaceDay,
   overallReproductionPercent,
   type BadwrPillarModel,
 } from "@/lib/dashboard/badwr-reproduction-model";
@@ -23,9 +23,9 @@ import {
   mergeCumulativeIntoWeeklyTemplates,
   type WeekRhythmBucket,
 } from "@/lib/dashboard/badwr-reproduction-cumulative";
+import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import {
   enumeratePillarWeekStartYmids,
-  pillarWeekDaysElapsedInclusive,
   pillarWeekRangeForQuery,
   pillarWeekStartKeyFromDateYmd,
   pillarWeekStartKeyFromInstant,
@@ -33,11 +33,14 @@ import {
   ymdRangesOverlap,
 } from "@/lib/dashboard/pillar-week";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
-import { expectedUnitsThroughWeek } from "@/lib/dashboard/weekly-rhythm-pace";
+import {
+  expectedUnitsForPaceDay,
+} from "@/lib/dashboard/weekly-rhythm-pace";
 import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
+import { formatInTimeZone } from "date-fns-tz";
 
 export type BadwrReproductionSnapshot = {
   overallPercent: number;
@@ -82,15 +85,27 @@ export async function getBadwrReproductionSnapshot(): Promise<
     getPracticeTimeZone(),
   ]);
   const now = new Date();
-  const { startYmd, endYmdInclusive, startIso, endExclusiveIso } =
-    pillarWeekRangeForQuery(now, tz);
+  const pillar = pillarWeekRangeForQuery(now, tz);
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const rhythmStartYmd = anchor.queryStartYmd;
+  const rhythmEndYmd = anchor.queryEndYmdInclusive;
+  const { startIso, endExclusiveIso } = anchor;
 
-  const daysElapsed = pillarWeekDaysElapsedInclusive(now, tz);
+  const daysElapsed = anchor.dayIndex;
+  const onboardingPace = anchor.mode === "onboarding";
 
-  const soapsExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, BADWR_SOAPS_WEEKLY_GOAL);
-  const prayerExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, prayerWeeklyGoalMinutes);
-  const shareExpectedSoFar = expectedUnitsThroughWeek(daysElapsed, shareWeeklyGoalEncounters);
-  const readingExpectedSoFar = expectedReadingTouchesSoFar(daysElapsed);
+  const soapsExpectedSoFar = expectedUnitsForPaceDay(daysElapsed, BADWR_SOAPS_WEEKLY_GOAL, {
+    onboardingFirstDayZero: onboardingPace,
+  });
+  const prayerExpectedSoFar = expectedUnitsForPaceDay(daysElapsed, prayerWeeklyGoalMinutes, {
+    onboardingFirstDayZero: onboardingPace,
+  });
+  const shareExpectedSoFar = expectedUnitsForPaceDay(daysElapsed, shareWeeklyGoalEncounters, {
+    onboardingFirstDayZero: onboardingPace,
+  });
+  const readingExpectedSoFar = expectedReadingTouchesForPaceDay(daysElapsed, {
+    onboardingFirstDayZero: onboardingPace,
+  });
 
   const thirdsResult = await listGroupsForUser({ groupKind: "thirds" });
   const thirdsGroupIds =
@@ -108,8 +123,8 @@ export async function getBadwrReproductionSnapshot(): Promise<
         .select("id")
         .in("group_id", thirdsGroupIds)
         .eq("status", "completed")
-        .gte("meeting_date", startYmd)
-        .lte("meeting_date", endYmdInclusive),
+        .gte("meeting_date", pillar.startYmd)
+        .lte("meeting_date", pillar.endYmdInclusive),
       supabase
         .from("group_meetings")
         .select("id, meeting_date")
@@ -144,8 +159,8 @@ export async function getBadwrReproductionSnapshot(): Promise<
       .from("journal_entries")
       .select("scripture_text, soaps_share, user_reflection, prayer, application")
       .eq("user_id", user.id)
-      .gte("entry_date", startYmd)
-      .lte("entry_date", endYmdInclusive),
+      .gte("entry_date", rhythmStartYmd)
+      .lte("entry_date", rhythmEndYmd),
     supabase
       .from("journal_entries")
       .select("entry_date, scripture_text, soaps_share, user_reflection, prayer, application")
@@ -169,16 +184,16 @@ export async function getBadwrReproductionSnapshot(): Promise<
       .from("share_encounters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("encounter_date", startYmd)
-      .lte("encounter_date", endYmdInclusive),
+      .gte("encounter_date", rhythmStartYmd)
+      .lte("encounter_date", rhythmEndYmd),
     supabase.from("share_encounters").select("encounter_date").eq("user_id", user.id),
     supabase
       .from("thirds_personal_weeks")
       .select("week_start_monday")
       .eq("user_id", user.id)
       .not("finalized_at", "is", null)
-      .gte("week_start_monday", ymdAddCalendarDays(startYmd, -6))
-      .lte("week_start_monday", endYmdInclusive),
+      .gte("week_start_monday", ymdAddCalendarDays(pillar.startYmd, -6))
+      .lte("week_start_monday", pillar.endYmdInclusive),
     supabase
       .from("thirds_personal_weeks")
       .select("week_start_monday")
@@ -250,7 +265,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
   const soloWeekRow = soloCandidates.find((r) => {
     const m = r.week_start_monday.slice(0, 10);
     const soloEnd = ymdAddCalendarDays(m, 6);
-    return ymdRangesOverlap(m, soloEnd, startYmd, endYmdInclusive);
+    return ymdRangesOverlap(m, soloEnd, pillar.startYmd, pillar.endYmdInclusive);
   });
   const soloSettingsRow =
     !participationRes.error && participationRes.data ? participationRes.data : null;
@@ -310,11 +325,13 @@ export async function getBadwrReproductionSnapshot(): Promise<
       paceAheadOrOn,
       paceRecoverable,
       chatHref: chatGroupId ? `/app/chat/groups/${chatGroupId}` : "/app/chat",
+      onboardingPaceEase: onboardingPace,
     }),
     buildThirdsPillar({
       attendedCompletedThisWeek: attendedThirdsThisWeek,
       inThirdsGroup,
       participationMetrics: thirdsParticipationForWeeklyHints,
+      onboardingPaceEase: onboardingPace,
     }),
     buildSharePillar({
       shareActual,
@@ -324,7 +341,12 @@ export async function getBadwrReproductionSnapshot(): Promise<
   ];
 
   const earliest: { min: string | null } = { min: null };
-  touchEarliest(user.created_at ?? undefined, earliest);
+  if (user.created_at) {
+    touchEarliest(
+      formatInTimeZone(new Date(user.created_at), tz, "yyyy-MM-dd"),
+      earliest
+    );
+  }
 
   const buckets = new Map<string, WeekRhythmBucket>();
 
@@ -429,17 +451,21 @@ export async function getBadwrReproductionSnapshot(): Promise<
     return false;
   }
 
-  let firstSunday = startYmd;
+  const currentPillarStartYmd = pillar.startYmd;
+  let firstSunday = currentPillarStartYmd;
   if (earliest.min) {
     firstSunday = pillarWeekStartKeyFromDateYmd(earliest.min, tz);
-    if (firstSunday > startYmd) firstSunday = startYmd;
+    if (firstSunday > currentPillarStartYmd) firstSunday = currentPillarStartYmd;
   }
 
-  const pillarWeekStartYmids = enumeratePillarWeekStartYmids(firstSunday, startYmd);
+  const pillarWeekStartYmids = enumeratePillarWeekStartYmids(
+    firstSunday,
+    currentPillarStartYmd
+  );
 
   const cumulative = computeCumulativeBadwr({
     pillarWeekStartYmids,
-    currentPillarWeekStartYmd: startYmd,
+    currentPillarWeekStartYmd: currentPillarStartYmd,
     now,
     practiceTimeZone: tz,
     weeklyShareGoalEncounters: shareWeeklyGoalEncounters,
@@ -453,6 +479,8 @@ export async function getBadwrReproductionSnapshot(): Promise<
     attendedCompletedThisWeekForCurrent: attendedThirdsThisWeek,
     inThirdsGroupNow: inThirdsGroup,
     countAdjustments,
+    currentWeekPaceDayIndex: anchor.dayIndex,
+    currentWeekOnboardingPace: onboardingPace,
   });
 
   const pillars = mergeCumulativeIntoWeeklyTemplates(weeklyPillars, cumulative);

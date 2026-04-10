@@ -2,9 +2,12 @@
 
 import { SOAPS_WEEKLY_GOAL_SESSIONS } from "@/lib/dashboard/soaps-weekly-constants";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
-import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
+import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
-import { computeWeeklyRhythmPace } from "@/lib/dashboard/weekly-rhythm-pace";
+import {
+  computeWeeklyRhythmPace,
+  expectedUnitsForPaceDay,
+} from "@/lib/dashboard/weekly-rhythm-pace";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
@@ -20,18 +23,25 @@ export async function getSoapsWeeklyPace(): Promise<
 
   const tz = await getPracticeTimeZone();
   const now = new Date();
-  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now, tz);
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const ob = anchor.mode === "onboarding";
 
   const { data: rows, error } = await supabase
     .from("journal_entries")
     .select("scripture_text, soaps_share, user_reflection, prayer, application")
     .eq("user_id", user.id)
-    .gte("entry_date", startYmd)
-    .lte("entry_date", endYmd);
+    .gte("entry_date", anchor.queryStartYmd)
+    .lte("entry_date", anchor.queryEndYmdInclusive);
 
   if (error) return { error: error.message };
 
   const actual = (rows ?? []).filter((r) => isQualifyingSoapsEntry(r)).length;
+
+  const expectedSoFar = expectedUnitsForPaceDay(
+    anchor.dayIndex,
+    SOAPS_WEEKLY_GOAL_SESSIONS,
+    { onboardingFirstDayZero: ob }
+  );
 
   return computeWeeklyRhythmPace({
     actual,
@@ -42,5 +52,8 @@ export async function getSoapsWeeklyPace(): Promise<
     goalLabel: `${SOAPS_WEEKLY_GOAL_SESSIONS} SOAPS sessions`,
     asOf: now,
     practiceTimeZone: tz,
+    daysElapsed: anchor.dayIndex,
+    expectedSoFarOverride: expectedSoFar,
+    paceContext: ob ? "onboarding_first_week" : "default",
   });
 }

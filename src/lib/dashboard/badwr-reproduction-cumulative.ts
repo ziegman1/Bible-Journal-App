@@ -4,12 +4,12 @@ import {
   buildSharePillar,
   buildThirdsPillar,
   buildWordSoapsPillar,
-  expectedReadingTouchesSoFar,
+  expectedReadingTouchesForPaceDay,
   tierForScore,
   type BadwrPillarModel,
 } from "@/lib/dashboard/badwr-reproduction-model";
 import { pillarWeekDaysElapsedInclusive } from "@/lib/dashboard/pillar-week";
-import { expectedUnitsThroughWeek } from "@/lib/dashboard/weekly-rhythm-pace";
+import { expectedUnitsForPaceDay } from "@/lib/dashboard/weekly-rhythm-pace";
 import type { ThirdsParticipationMetrics } from "@/lib/groups/thirds-participation-metrics";
 import type { BadwrReproductionCountAdjustments } from "@/lib/dashboard/badwr-reproduction-count-adjustments";
 import {
@@ -102,6 +102,12 @@ export function computeCumulativeBadwr(input: {
   inThirdsGroupNow: boolean;
   /** Added to rhythm bucket totals (spread per week) and 3/3rds counts before averaging. */
   countAdjustments?: BadwrReproductionCountAdjustments;
+  /**
+   * When set (onboarding window), overrides elapsed “days” for the current pillar week row only.
+   */
+  currentWeekPaceDayIndex?: number;
+  /** Use day-1 zero expected for Word/Pray/Share reading on that row. */
+  currentWeekOnboardingPace?: boolean;
 }): CumulativeBadwrResult {
   const {
     pillarWeekStartYmids,
@@ -119,6 +125,8 @@ export function computeCumulativeBadwr(input: {
     attendedCompletedThisWeekForCurrent,
     inThirdsGroupNow,
     countAdjustments,
+    currentWeekPaceDayIndex,
+    currentWeekOnboardingPace,
   } = input;
 
   const adj = countAdjustments ?? {};
@@ -154,17 +162,31 @@ export function computeCumulativeBadwr(input: {
 
   for (const weekStart of pillarWeekStartYmids) {
     const b = buckets.get(weekStart) ?? emptyBucket();
-    const days = daysElapsedForHistoricalWeek(
-      weekStart,
-      currentPillarWeekStartYmd,
-      now,
-      practiceTimeZone
-    );
+    const isCurrentWeekRow = weekStart === currentPillarWeekStartYmd;
+    const days =
+      isCurrentWeekRow && currentWeekPaceDayIndex != null
+        ? Math.min(7, Math.max(1, Math.floor(currentWeekPaceDayIndex)))
+        : daysElapsedForHistoricalWeek(
+            weekStart,
+            currentPillarWeekStartYmd,
+            now,
+            practiceTimeZone
+          );
 
-    const soapsExpectedSoFar = expectedUnitsThroughWeek(days, BADWR_SOAPS_WEEKLY_GOAL);
-    const prayerExpectedSoFar = expectedUnitsThroughWeek(days, weeklyPrayerGoalMinutes);
-    const shareExpectedSoFar = expectedUnitsThroughWeek(days, weeklyShareGoalEncounters);
-    const readingExpectedSoFar = expectedReadingTouchesSoFar(days);
+    const obZero = Boolean(isCurrentWeekRow && currentWeekOnboardingPace);
+
+    const soapsExpectedSoFar = expectedUnitsForPaceDay(days, BADWR_SOAPS_WEEKLY_GOAL, {
+      onboardingFirstDayZero: obZero,
+    });
+    const prayerExpectedSoFar = expectedUnitsForPaceDay(days, weeklyPrayerGoalMinutes, {
+      onboardingFirstDayZero: obZero,
+    });
+    const shareExpectedSoFar = expectedUnitsForPaceDay(days, weeklyShareGoalEncounters, {
+      onboardingFirstDayZero: obZero,
+    });
+    const readingExpectedSoFar = expectedReadingTouchesForPaceDay(days, {
+      onboardingFirstDayZero: obZero,
+    });
 
     wordScores.push(
       buildWordSoapsPillar({

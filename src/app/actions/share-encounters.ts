@@ -8,9 +8,9 @@ import {
   isShareEncounterSharedType,
   type ShareReceivedCounts,
 } from "@/lib/dashboard/share-encounter-types";
+import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import { buildShareWeeklyPace } from "@/lib/dashboard/share-weekly-pace";
 import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
-import { pillarWeekRangeForQuery } from "@/lib/dashboard/pillar-week";
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -34,14 +34,15 @@ export async function getShareDashboardStats(): Promise<
     getPracticeTimeZone(),
   ]);
   const now = new Date();
-  const { startYmd, endYmdInclusive: endYmd } = pillarWeekRangeForQuery(now, tz);
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const ob = anchor.mode === "onboarding";
 
   const { data: rows, error } = await supabase
     .from("share_encounters")
     .select("received")
     .eq("user_id", user.id)
-    .gte("encounter_date", startYmd)
-    .lte("encounter_date", endYmd);
+    .gte("encounter_date", anchor.queryStartYmd)
+    .lte("encounter_date", anchor.queryEndYmdInclusive);
 
   if (error) return { error: error.message };
 
@@ -54,7 +55,10 @@ export async function getShareDashboardStats(): Promise<
   }
 
   const actual = rows?.length ?? 0;
-  const pace = buildShareWeeklyPace(actual, now, tz, shareWeeklyGoalEncounters);
+  const pace = buildShareWeeklyPace(actual, now, tz, shareWeeklyGoalEncounters, {
+    anchorDayIndex: anchor.dayIndex,
+    onboardingFirstWeek: ob,
+  });
   return { ...pace, receivedCounts };
 }
 
