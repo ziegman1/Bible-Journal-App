@@ -5,39 +5,64 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { upsertScriptureMemoryLog } from "@/app/actions/scripture-memory";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+/** Dropdown options for logging: always 1–30 (goals only affect meters, not selectable range). */
+const LOG_COUNT_OPTIONS = Array.from({ length: 30 }, (_, i) => i + 1);
+
+function clampToLogRange(n: number): number {
+  return Math.min(30, Math.max(1, Math.floor(n)));
+}
 
 export function ScriptureMemoryLogForm({
   practiceDateYmd,
   initialMemorized,
   initialReviewed,
+  monthlyGoal,
+  dailyReviewGoal,
 }: {
   practiceDateYmd: string;
   initialMemorized: number;
   initialReviewed: number;
+  monthlyGoal: number;
+  dailyReviewGoal: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
   const [memYes, setMemYes] = useState(initialMemorized > 0);
   const [revYes, setRevYes] = useState(initialReviewed > 0);
-  const [memCount, setMemCount] = useState(String(Math.max(0, initialMemorized)));
-  const [revCount, setRevCount] = useState(String(Math.max(0, initialReviewed)));
-
-  function parseCount(s: string): number {
-    const n = parseInt(s, 10);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
-  }
+  const [memCount, setMemCount] = useState(
+    String(initialMemorized > 0 ? clampToLogRange(initialMemorized) : 1)
+  );
+  const [revCount, setRevCount] = useState(
+    String(initialReviewed > 0 ? clampToLogRange(initialReviewed) : 1)
+  );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const memorized = memYes ? parseCount(memCount) : 0;
-    const reviewed = revYes ? parseCount(revCount) : 0;
+    const memorized = memYes ? parseInt(memCount, 10) : 0;
+    const reviewed = revYes ? parseInt(revCount, 10) : 0;
+    if (memYes && (!Number.isFinite(memorized) || memorized < 1 || memorized > 30)) {
+      toast.error("Choose how many new passages (1–30).");
+      return;
+    }
+    if (revYes && (!Number.isFinite(reviewed) || reviewed < 1 || reviewed > 30)) {
+      toast.error("Choose how many reviews (1–30).");
+      return;
+    }
     startTransition(async () => {
       const res = await upsertScriptureMemoryLog({
         practiceDateYmd,
-        memorizedNew: memorized,
-        reviewed,
+        memorizedNew: memYes ? memorized : 0,
+        reviewed: revYes ? reviewed : 0,
       });
       if ("error" in res && res.error) {
         toast.error(res.error);
@@ -75,14 +100,27 @@ export function ScriptureMemoryLogForm({
         {memYes ? (
           <div className="space-y-1.5 max-w-xs">
             <Label htmlFor="mem-n">How many new passages?</Label>
-            <Input
-              id="mem-n"
-              type="number"
-              min={0}
-              inputMode="numeric"
+            <Select
               value={memCount}
-              onChange={(e) => setMemCount(e.target.value)}
-            />
+              onValueChange={(v) => {
+                if (v != null) setMemCount(v);
+              }}
+            >
+              <SelectTrigger id="mem-n">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {LOG_COUNT_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Monthly goal ({monthlyGoal}/mo) sets the memorization meter; you can still log up to
+              30 in a day.
+            </p>
           </div>
         ) : null}
       </div>
@@ -107,14 +145,27 @@ export function ScriptureMemoryLogForm({
         {revYes ? (
           <div className="space-y-1.5 max-w-xs">
             <Label htmlFor="rev-n">How many reviews?</Label>
-            <Input
-              id="rev-n"
-              type="number"
-              min={0}
-              inputMode="numeric"
+            <Select
               value={revCount}
-              onChange={(e) => setRevCount(e.target.value)}
-            />
+              onValueChange={(v) => {
+                if (v != null) setRevCount(v);
+              }}
+            >
+              <SelectTrigger id="rev-n">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {LOG_COUNT_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Daily review goal ({dailyReviewGoal}/day) sets the review meter; you can still log up
+              to 30 in a day.
+            </p>
           </div>
         ) : null}
       </div>

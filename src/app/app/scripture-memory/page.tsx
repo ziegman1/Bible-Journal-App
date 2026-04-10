@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getScriptureMemoryPageData } from "@/app/actions/scripture-memory";
 import { ScriptureMemoryLogForm } from "@/components/scripture-memory/scripture-memory-log-form";
+import { ScriptureMemoryProgressBars } from "@/components/scripture-memory/scripture-memory-progress-bars";
+import { ScriptureMemorySettingsPanel } from "@/components/scripture-memory/scripture-memory-settings-panel";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -33,33 +35,56 @@ export default async function ScriptureMemoryPage() {
           <h1 className="text-2xl font-serif font-light text-foreground">Scripture Memory</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Log new memorization and reviews. A day counts toward your streak when you log at least
-            one new passage or one review.
+            one new passage or one review. Monthly and daily meters use your practice timezone.
           </p>
         </div>
-        <Link href="/app" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-          Dashboard
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <ScriptureMemorySettingsPanel initial={data.settings} />
+          <Link href="/app" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            Dashboard
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
           <p className="text-2xl font-light text-foreground">{data.streakDays}</p>
           <p className="text-xs text-muted-foreground">Day streak</p>
         </div>
         <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
-          <p className="text-2xl font-light text-foreground">{data.totals.memorized}</p>
-          <p className="text-xs text-muted-foreground">Total new (logged)</p>
+          <p className="text-2xl font-light text-foreground">
+            {data.settings.current_total_memorized}
+          </p>
+          <p className="text-xs text-muted-foreground">Total passages memorized</p>
         </div>
-        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
-          <p className="text-2xl font-light text-foreground">{data.totals.reviewed}</p>
-          <p className="text-xs text-muted-foreground">Total reviews (logged)</p>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-foreground">Progress</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          New passages this calendar month vs monthly goal · reviews logged today vs daily goal
+        </p>
+        <div className="mt-4">
+          <ScriptureMemoryProgressBars
+            labelA="This month (new passages)"
+            valueA={data.monthlyMemorized}
+            goalA={data.settings.monthly_new_passages_goal}
+            ratioA={data.monthMeterRatio}
+            labelB="Today (reviews)"
+            valueB={data.todayReviewed}
+            goalB={data.settings.daily_review_goal}
+            ratioB={data.dayMeterRatio}
+          />
         </div>
       </div>
 
       <ScriptureMemoryLogForm
+        key={`${data.settings.monthly_new_passages_goal}-${data.settings.daily_review_goal}-${data.todayYmd}`}
         practiceDateYmd={data.todayYmd}
         initialMemorized={memToday}
         initialReviewed={revToday}
+        monthlyGoal={data.settings.monthly_new_passages_goal}
+        dailyReviewGoal={data.settings.daily_review_goal}
       />
 
       <section className="space-y-3">
