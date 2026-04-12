@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getGroup } from "@/app/actions/groups";
+import { getEvangelisticPrayerFocusNames } from "@/app/actions/list-of-100";
 import { createClient } from "@/lib/supabase/server";
 import { ChatAccountabilityGuide } from "@/components/chat/chat-accountability-guide";
 import { ChatReadingPaceCard } from "@/components/chat/chat-reading-pace-card";
@@ -49,6 +50,10 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
   const memberCount = count ?? 0;
   const growthPresentation = await fetchUserGrowthPresentation(supabase, user.id);
 
+  const focusRes = await getEvangelisticPrayerFocusNames();
+  const evangelisticFocusNames =
+    "error" in focusRes ? [] : focusRes.names;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 pb-20 sm:px-6">
       <div className="mb-6">
@@ -94,7 +99,11 @@ export default async function ChatGroupMeetingPage({ params }: PageProps) {
           variant="meeting"
           copyTone={growthPresentation.copyTone}
         />
-        <ChatAccountabilityGuide variant="meeting" groupId={groupId} />
+        <ChatAccountabilityGuide
+          variant="meeting"
+          groupId={groupId}
+          evangelisticFocusNames={evangelisticFocusNames}
+        />
       </div>
     </div>
   );

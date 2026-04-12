@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import {
   countChaptersThroughInclusiveBookmark,
   practiceTodayYmd,
-  practiceWeekStartSundayYmd,
 } from "@/lib/chat-soaps/reading-pace";
+import { pillarWeekStartKeyFromInstant } from "@/lib/dashboard/pillar-week";
 import { getBookById } from "@/lib/scripture/books";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -36,7 +36,7 @@ export async function getChatReadingCheckinForWeek(
   if (!user) return { error: "Not authenticated" };
 
   const tz = await getPracticeTimeZone();
-  const weekStart = practiceWeekStartSundayYmd(new Date(), tz);
+  const weekStart = pillarWeekStartKeyFromInstant(new Date(), tz);
 
   const { data, error } = await supabase
     .from("chat_reading_check_ins")
@@ -68,7 +68,14 @@ export async function submitChatReadingCheckIn(input: {
   restartBookId?: string;
   restartChapter?: number;
 }): Promise<
-  { error: string } | { success: true; graceApplied: boolean; skippedDuplicateWeek?: boolean }
+  | { error: string }
+  | {
+      success: true;
+      graceApplied: boolean;
+      skippedDuplicateWeek?: boolean;
+      /** Saved for streak; pace/grace may have failed — show a gentle warning in UI if set. */
+      warning?: string;
+    }
 > {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
@@ -93,8 +100,15 @@ export async function submitChatReadingCheckIn(input: {
   if (!mem) return { error: "Not a member" };
 
   const tz = await getPracticeTimeZone();
-  const weekStart = practiceWeekStartSundayYmd(new Date(), tz);
+  const weekStart = pillarWeekStartKeyFromInstant(new Date(), tz);
   const todayYmd = practiceTodayYmd(new Date(), tz);
+
+  function revalidateChatStreakSurfaces() {
+    revalidatePath(`/app/chat/groups/${input.groupId}`);
+    revalidatePath(`/app/chat/groups/${input.groupId}/manage`);
+    revalidatePath("/app/chat");
+    revalidatePath("/app");
+  }
 
   if (input.keptUp) {
     const { error: upErr } = await supabase.from("chat_reading_check_ins").upsert(
@@ -112,8 +126,7 @@ export async function submitChatReadingCheckIn(input: {
     );
     if (upErr) return { error: upErr.message };
 
-    revalidatePath(`/app/chat/groups/${input.groupId}`);
-    revalidatePath("/app");
+    revalidateChatStreakSurfaces();
     return { success: true, graceApplied: false };
   }
 
@@ -163,10 +176,29 @@ export async function submitChatReadingCheckIn(input: {
     chapter
   );
 
+  const noCheckInRow = (graceApplied: boolean) => ({
+    group_id: input.groupId,
+    user_id: user.id,
+    week_start_ymd: weekStart,
+    kept_up: false,
+    restart_book_id: book.id,
+    restart_chapter: chapter,
+    grace_was_applied: graceApplied,
+    updated_at: new Date().toISOString(),
+  });
+
+  /** Q18 answer counts for BADWR streak even if restart is before plan start or grace fails. */
   if (chaptersFromPlan < 1) {
+    const { error: upErr } = await supabase
+      .from("chat_reading_check_ins")
+      .upsert(noCheckInRow(false), { onConflict: "group_id,user_id,week_start_ymd" });
+    if (upErr) return { error: upErr.message };
+    revalidateChatStreakSurfaces();
     return {
-      error:
-        "That chapter is before your group's plan start. Pick a book and chapter on or after where your plan begins (Manage → reading pace).",
+      success: true,
+      graceApplied: false,
+      warning:
+        "Your check-in was saved. Choose a chapter on or after your plan start (Manage → reading pace) if you want the pair’s pace realigned.",
     };
   }
 
@@ -183,36 +215,46 @@ export async function submitChatReadingCheckIn(input: {
     }
   );
 
-  if (rpcErr) return { error: rpcErr.message };
+  if (rpcErr) {
+    const { error: upErr } = await supabase
+      .from("chat_reading_check_ins")
+      .upsert(noCheckInRow(false), { onConflict: "group_id,user_id,week_start_ymd" });
+    if (upErr) return { error: upErr.message };
+    revalidateChatStreakSurfaces();
+    return {
+      success: true,
+      graceApplied: false,
+      warning: "Your check-in was saved. Reading pace could not be updated just now—you can try again from Manage.",
+    };
+  }
 
   const payload = rpcData as RpcGracePayload | null;
   if (!payload?.ok) {
-    return { error: payload?.error ?? "Could not apply reading grace" };
+    const { error: upErr } = await supabase
+      .from("chat_reading_check_ins")
+      .upsert(noCheckInRow(false), { onConflict: "group_id,user_id,week_start_ymd" });
+    if (upErr) return { error: upErr.message };
+    revalidateChatStreakSurfaces();
+    return {
+      success: true,
+      graceApplied: false,
+      warning:
+        payload?.error === "no_pace_row"
+          ? "Your check-in was saved. Add a reading pace for this group if you need a pair restart."
+          : "Your check-in was saved. Reading pace was not updated.",
+    };
   }
 
   const graceApplied = Boolean(payload.grace_applied);
   const skippedDuplicateWeek =
     !graceApplied && payload.reason === "duplicate_week";
 
-  const { error: upErr } = await supabase.from("chat_reading_check_ins").upsert(
-    {
-      group_id: input.groupId,
-      user_id: user.id,
-      week_start_ymd: weekStart,
-      kept_up: false,
-      restart_book_id: book.id,
-      restart_chapter: chapter,
-      grace_was_applied: graceApplied,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "group_id,user_id,week_start_ymd" }
-  );
+  const { error: upErr } = await supabase
+    .from("chat_reading_check_ins")
+    .upsert(noCheckInRow(graceApplied), { onConflict: "group_id,user_id,week_start_ymd" });
   if (upErr) return { error: upErr.message };
 
-  revalidatePath(`/app/chat/groups/${input.groupId}`);
-  revalidatePath(`/app/chat/groups/${input.groupId}/manage`);
-  revalidatePath("/app/chat");
-  revalidatePath("/app");
+  revalidateChatStreakSurfaces();
 
   return { success: true, graceApplied, skippedDuplicateWeek };
 }

@@ -67,51 +67,71 @@ export async function getPrayerDashboardPracticeStats(): Promise<
   const oldestYmd = ymdAddCalendarDays(todayYmd, -LOOKBACK_DAYS_LOG);
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
 
-  const [winWheel, winExtra, winFree, streakWheel, streakExtra, streakFree] = await Promise.all([
-    supabase
-      .from("prayer_wheel_segment_completions")
-      .select("completed_at")
-      .eq("user_id", user.id)
-      .gte("completed_at", startIso)
-      .lt("completed_at", endExclusiveIso),
-    supabase
-      .from("prayer_extra_minutes")
-      .select("logged_at")
-      .eq("user_id", user.id)
-      .gte("logged_at", startIso)
-      .lt("logged_at", endExclusiveIso),
-    supabase
-      .from("freestyle_prayer_sessions")
-      .select("ended_at")
-      .eq("user_id", user.id)
-      .gte("ended_at", startIso)
-      .lt("ended_at", endExclusiveIso),
-    supabase
-      .from("prayer_wheel_segment_completions")
-      .select("completed_at")
-      .eq("user_id", user.id)
-      .gte("completed_at", oldestIso),
-    supabase
-      .from("prayer_extra_minutes")
-      .select("logged_at")
-      .eq("user_id", user.id)
-      .gte("logged_at", oldestIso),
-    supabase
-      .from("freestyle_prayer_sessions")
-      .select("ended_at")
-      .eq("user_id", user.id)
-      .gte("ended_at", oldestIso),
-  ]);
+  const [winWheel, winExtra, winFree, winOikos, streakWheel, streakExtra, streakFree, streakOikos] =
+    await Promise.all([
+      supabase
+        .from("prayer_wheel_segment_completions")
+        .select("completed_at")
+        .eq("user_id", user.id)
+        .gte("completed_at", startIso)
+        .lt("completed_at", endExclusiveIso),
+      supabase
+        .from("prayer_extra_minutes")
+        .select("logged_at")
+        .eq("user_id", user.id)
+        .gte("logged_at", startIso)
+        .lt("logged_at", endExclusiveIso),
+      supabase
+        .from("freestyle_prayer_sessions")
+        .select("ended_at")
+        .eq("user_id", user.id)
+        .gte("ended_at", startIso)
+        .lt("ended_at", endExclusiveIso),
+      supabase
+        .from("oikos_prayer_visits")
+        .select("started_at")
+        .eq("user_id", user.id)
+        .gte("started_at", startIso)
+        .lt("started_at", endExclusiveIso),
+      supabase
+        .from("prayer_wheel_segment_completions")
+        .select("completed_at")
+        .eq("user_id", user.id)
+        .gte("completed_at", oldestIso),
+      supabase
+        .from("prayer_extra_minutes")
+        .select("logged_at")
+        .eq("user_id", user.id)
+        .gte("logged_at", oldestIso),
+      supabase
+        .from("freestyle_prayer_sessions")
+        .select("ended_at")
+        .eq("user_id", user.id)
+        .gte("ended_at", oldestIso),
+      supabase
+        .from("oikos_prayer_visits")
+        .select("started_at")
+        .eq("user_id", user.id)
+        .gte("started_at", oldestIso),
+    ]);
 
   const err =
-    winWheel.error || winExtra.error || streakWheel.error || streakExtra.error;
+    winWheel.error ||
+    winExtra.error ||
+    winFree.error ||
+    winOikos.error ||
+    streakWheel.error ||
+    streakExtra.error ||
+    streakFree.error ||
+    streakOikos.error;
   if (err) return { error: err.message };
 
   const windowSet = buildPrayerQualifyingDaySet(
     winWheel.data ?? [],
     winExtra.data ?? [],
     winFree.error ? [] : (winFree.data ?? []),
-    tz
+    tz,
+    winOikos.error ? [] : (winOikos.data ?? [])
   );
   const daysWithPrayerThisWeek = countQualifyingDaysInWindow(
     windowSet,
@@ -123,7 +143,8 @@ export async function getPrayerDashboardPracticeStats(): Promise<
     streakWheel.data ?? [],
     streakExtra.data ?? [],
     streakFree.error ? [] : (streakFree.data ?? []),
-    tz
+    tz,
+    streakOikos.error ? [] : (streakOikos.data ?? [])
   );
   const streak = prayerStreakFromQualifyingDays(streakSet, todayYmd);
   const prayedToday = streakSet.has(todayYmd);
@@ -160,6 +181,10 @@ export type PrayerActivityLogRow =
       atIso: string;
       durationSeconds: number;
       note: string | null;
+    }
+  | {
+      kind: "oikos";
+      atIso: string;
     };
 
 export type PrayerActivityLogPageData = {
@@ -187,7 +212,7 @@ export async function getPrayerActivityLogPageData(): Promise<
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
   const recentCutoffYmd = ymdAddCalendarDays(todayYmd, -30);
 
-  const [wheelRes, extraRes, freeRes] = await Promise.all([
+  const [wheelRes, extraRes, freeRes, oikosRes] = await Promise.all([
     supabase
       .from("prayer_wheel_segment_completions")
       .select("completed_at, step_index, duration_minutes")
@@ -209,18 +234,27 @@ export async function getPrayerActivityLogPageData(): Promise<
       .gte("ended_at", oldestIso)
       .order("ended_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("oikos_prayer_visits")
+      .select("started_at")
+      .eq("user_id", user.id)
+      .gte("started_at", oldestIso)
+      .order("started_at", { ascending: false })
+      .limit(200),
   ]);
 
   if (wheelRes.error) return { error: wheelRes.error.message };
   if (extraRes.error) return { error: extraRes.error.message };
 
   const freeRowsSafe = freeRes.error ? [] : (freeRes.data ?? []);
+  const oikosRowsSafe = oikosRes.error ? [] : (oikosRes.data ?? []);
 
   const streakSet = buildPrayerQualifyingDaySet(
     wheelRes.data ?? [],
     extraRes.data ?? [],
     freeRowsSafe,
-    tz
+    tz,
+    oikosRowsSafe
   );
   const streak = prayerStreakFromQualifyingDays(streakSet, todayYmd);
   const longestStreak = longestPrayerStreakInDaySet(streakSet);
@@ -228,8 +262,9 @@ export async function getPrayerActivityLogPageData(): Promise<
   const wheelRows = wheelRes.data ?? [];
   const extraRows = extraRes.data ?? [];
   const freeRows = freeRowsSafe;
+  const oikosRows = oikosRowsSafe;
 
-  const totalSessions = wheelRows.length + extraRows.length + freeRows.length;
+  const totalSessions = wheelRows.length + extraRows.length + freeRows.length + oikosRows.length;
   let totalMinutes = 0;
   for (const r of wheelRows) totalMinutes += r.duration_minutes ?? 0;
   for (const r of extraRows) totalMinutes += r.minutes ?? 0;
@@ -253,6 +288,10 @@ export async function getPrayerActivityLogPageData(): Promise<
       atIso: r.ended_at,
       durationSeconds: r.duration_seconds,
       note: r.note,
+    })),
+    ...oikosRows.map((r) => ({
+      kind: "oikos" as const,
+      atIso: r.started_at,
     })),
   ];
 
@@ -380,6 +419,40 @@ export async function recordFreestylePrayerSession(
   if (error) return { error: error.message };
 
   await upsertPrayerDailyCompletion(supabase, user.id, practiceDateYmd);
+
+  revalidatePath("/app");
+  revalidatePath("/app/prayer/log");
+  return { success: true as const };
+}
+
+/**
+ * User opened “Pray for your Oikos” — counts for daily prayer streak/meter (idempotent per day).
+ * Call once when the flow loads; does not require completing all names.
+ */
+export async function recordOikosPrayerVisit(): Promise<{ error: string } | { success: true }> {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tz = await getPracticeTimeZone();
+  const now = new Date();
+  const ymd = formatInTimeZone(now, tz, "yyyy-MM-dd");
+
+  await upsertPrayerDailyCompletion(supabase, user.id, ymd);
+
+  const { error } = await supabase.from("oikos_prayer_visits").upsert(
+    {
+      user_id: user.id,
+      practice_date: ymd,
+      started_at: now.toISOString(),
+    },
+    { onConflict: "user_id,practice_date" }
+  );
+
+  if (error) return { error: error.message };
 
   revalidatePath("/app");
   revalidatePath("/app/prayer/log");

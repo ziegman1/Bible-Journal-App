@@ -6,13 +6,14 @@ export function isoToPracticeYmd(iso: string, practiceTimeZone: string): string 
 }
 
 /**
- * Days with any qualifying prayer activity (wheel segment, extra time, or freestyle session).
+ * Days with any qualifying prayer activity (wheel, extra time, freestyle, or Oikos visit).
  */
 export function buildPrayerQualifyingDaySet(
   wheel: readonly { completed_at: string }[],
   extra: readonly { logged_at: string }[],
   freestyle: readonly { ended_at: string }[],
-  practiceTimeZone: string
+  practiceTimeZone: string,
+  oikos: readonly { started_at: string }[] = []
 ): Set<string> {
   const out = new Set<string>();
   for (const row of wheel) {
@@ -23,6 +24,9 @@ export function buildPrayerQualifyingDaySet(
   }
   for (const row of freestyle) {
     out.add(isoToPracticeYmd(row.ended_at, practiceTimeZone));
+  }
+  for (const row of oikos) {
+    out.add(isoToPracticeYmd(row.started_at, practiceTimeZone));
   }
   return out;
 }

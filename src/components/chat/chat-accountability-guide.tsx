@@ -1,11 +1,14 @@
+import Link from "next/link";
 import {
   CHAT_ACCOUNTABILITY_INTRO,
   CHAT_ACCOUNTABILITY_QUESTIONS,
+  CHAT_EVANGELISTIC_FOCUS_HELPER,
   CHAT_EVANGELISTIC_PRAYER_INTRO,
   CHAT_EVANGELISTIC_PRAYERS,
   CHAT_READING_CHECKIN_QUESTION_INDEX,
 } from "@/content/chat-accountability-content";
 import { ChatReadingCheckinQuestion } from "@/components/chat/chat-reading-checkin-question";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,6 +19,8 @@ type Props = {
   showTitle?: boolean;
   /** When set with `variant="meeting"`, question 18 collects reading check-in + optional grace restart. */
   groupId?: string;
+  /** List of 100 names marked “this week” on the List of 100 page (max 5). */
+  evangelisticFocusNames?: readonly string[];
 };
 
 export function ChatAccountabilityGuide({
@@ -23,8 +28,10 @@ export function ChatAccountabilityGuide({
   className,
   showTitle = true,
   groupId,
+  evangelisticFocusNames = [],
 }: Props) {
   const isMeeting = variant === "meeting";
+  const focusNames = [...evangelisticFocusNames];
   return (
     <div className={cn(className)}>
       {showTitle && (
@@ -88,6 +95,36 @@ export function ChatAccountabilityGuide({
           — Romans 10:1
         </footer>
       </blockquote>
+
+      <div
+        className={cn(
+          "my-6 rounded-xl border border-violet-200/70 bg-violet-50/50 px-4 py-4 dark:border-violet-900/50 dark:bg-violet-950/25",
+          isMeeting ? "text-sm" : "text-[0.95rem]"
+        )}
+      >
+        <p className="font-medium text-stone-900 dark:text-stone-100">Your prayer focus this week</p>
+        <p className="mt-2 text-stone-600 dark:text-stone-400">{CHAT_EVANGELISTIC_FOCUS_HELPER}</p>
+        {focusNames.length > 0 ? (
+          <ul className="mt-3 list-inside list-disc space-y-1.5 text-stone-800 dark:text-stone-200">
+            {focusNames.map((name, i) => (
+              <li key={`${i}-${name}`}>{name}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-stone-600 dark:text-stone-400">
+            Select up to 5 people from your List of 100 to pray for this week.
+          </p>
+        )}
+        <Link
+          href="/app/list-of-100"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "mt-4 inline-flex"
+          )}
+        >
+          List of 100
+        </Link>
+      </div>
 
       <ol
         className={cn(

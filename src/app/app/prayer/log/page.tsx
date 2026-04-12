@@ -113,7 +113,8 @@ export default async function PrayerActivityLogPage() {
         <ul className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
           {recent.length === 0 ? (
             <li className="px-4 py-8 text-center text-sm text-muted-foreground">
-              When you use the wheel, freestyle prayer, or extra time, it will show up here.
+              When you use the wheel, freestyle prayer, Oikos prayer, or extra time, it will show up
+              here.
             </li>
           ) : (
             recent.map((row, i) => (
@@ -134,6 +135,11 @@ export default async function PrayerActivityLogPage() {
                     <span className="text-xs text-muted-foreground">
                       {row.minutes} min · {formatLogWhen(row.atIso)}
                     </span>
+                  </div>
+                ) : row.kind === "oikos" ? (
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    <span className="text-foreground">Pray for your Oikos</span>
+                    <span className="text-xs text-muted-foreground">{formatLogWhen(row.atIso)}</span>
                   </div>
                 ) : (
                   <div className="space-y-1">

@@ -32,6 +32,10 @@ export const CHAT_ACCOUNTABILITY_QUESTIONS: readonly string[] = [
 export const CHAT_EVANGELISTIC_PRAYER_INTRO =
   "Each person in the CHAT group is to list two or three individuals who need the Lord’s salvation. Write down the names of all those identified in the group on each card so that all of you pray for each of the lost souls weekly. Keep this card in your Bible as a bookmark for your daily reading so that each time you open your Bible you are reminded to pray for these people.";
 
+/** Shown above personalized List of 100 names on the CHAT accountability guide. */
+export const CHAT_EVANGELISTIC_FOCUS_HELPER =
+  "Pray now for the people you are asking God to open up this week.";
+
 export const CHAT_EVANGELISTIC_PRAYERS: readonly string[] = [
   "Lord, I pray that You draw _____ to Yourself (John 6:44).",
   "I pray that _____ hear and believe the Word of God for what it really is (1 Thess 2:13).",

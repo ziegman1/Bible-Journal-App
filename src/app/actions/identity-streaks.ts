@@ -77,6 +77,7 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     wheelRes,
     extraRes,
     freestyleRes,
+    oikosRes,
     shareRes,
     scriptureRes,
     pillarThirdsRes,
@@ -100,6 +101,7 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
       .eq("user_id", user.id)
       .gte("logged_at", oldestIso),
     supabase.from("freestyle_prayer_sessions").select("ended_at").eq("user_id", user.id).gte("ended_at", oldestIso),
+    supabase.from("oikos_prayer_visits").select("started_at").eq("user_id", user.id).gte("started_at", oldestIso),
     supabase
       .from("share_encounters")
       .select("encounter_date")
@@ -130,7 +132,8 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     wheelRes.data ?? [],
     extraRes.data ?? [],
     freestyleRes.error ? [] : (freestyleRes.data ?? []),
-    tz
+    tz,
+    oikosRes.error ? [] : (oikosRes.data ?? [])
   );
   const prayerStreak = prayerStreakFromQualifyingDays(prayerDays, todayYmd);
 

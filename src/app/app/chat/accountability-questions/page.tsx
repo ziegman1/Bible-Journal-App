@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { getEvangelisticPrayerFocusNames } from "@/app/actions/list-of-100";
 import { ChatAccountabilityGuide } from "@/components/chat/chat-accountability-guide";
 
-/** Auth is enforced by `app/layout.tsx`; keep this page static so content always renders. */
-export default function ChatAccountabilityQuestionsPage() {
+export default async function ChatAccountabilityQuestionsPage() {
+  const focusRes = await getEvangelisticPrayerFocusNames();
+  const evangelisticFocusNames = "error" in focusRes ? [] : focusRes.names;
+
   return (
     <div className="mx-auto max-w-3xl p-6 pb-16">
       <Link
@@ -12,7 +15,10 @@ export default function ChatAccountabilityQuestionsPage() {
         ← Back to CHAT overview
       </Link>
 
-      <ChatAccountabilityGuide variant="standalone" />
+      <ChatAccountabilityGuide
+        variant="standalone"
+        evangelisticFocusNames={evangelisticFocusNames}
+      />
     </div>
   );
 }

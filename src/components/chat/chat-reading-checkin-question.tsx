@@ -99,7 +99,9 @@ export function ChatReadingCheckinQuestion({
         return;
       }
       if ("success" in res) {
-        if (res.graceApplied) {
+        if (res.warning) {
+          toast.message("Check-in saved", { description: res.warning });
+        } else if (res.graceApplied) {
           toast.success("Reading restart saved. Your group pace was realigned together.");
         } else if (res.skippedDuplicateWeek) {
           toast.success(

@@ -25,6 +25,11 @@ export function ListOf100Instructions() {
           worksheet and follow up with those listed on it.
         </li>
       </ul>
+      <p className="mt-4 rounded-lg border border-violet-200/60 bg-violet-50/40 px-3 py-2.5 text-sm leading-relaxed text-muted-foreground dark:border-violet-900/40 dark:bg-violet-950/25">
+        Select up to 5 people you will pray for and seek to reach out to this week. Check{" "}
+        <span className="font-medium text-foreground">This week</span> next to their names—those
+        names appear on the CHAT page under Evangelistic prayer for you and your partner.
+      </p>
     </header>
   );
 }
