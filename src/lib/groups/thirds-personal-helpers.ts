@@ -68,3 +68,31 @@ export function formatThirdsPersonalPassageRef(
   if (verseStart === verseEnd) return `${b} ${chapter}:${verseStart}`;
   return `${b} ${chapter}:${verseStart}–${verseEnd}`;
 }
+
+/** Prefer `passage_ref`; if empty, derive from legacy structured columns (pre–single-field solo Look Up). */
+export function effectiveThirdsPersonalPassageRef(w: {
+  passage_ref: string;
+  look_up_book: string;
+  look_up_chapter: number | null;
+  look_up_verse_start: number | null;
+  look_up_verse_end: number | null;
+}): string {
+  const pr = (w.passage_ref ?? "").trim();
+  if (pr) return pr;
+  const b = (w.look_up_book ?? "").trim();
+  const ch = w.look_up_chapter;
+  const vs = w.look_up_verse_start;
+  const ve = w.look_up_verse_end;
+  if (
+    b &&
+    ch != null &&
+    vs != null &&
+    ve != null &&
+    Number.isFinite(ch) &&
+    Number.isFinite(vs) &&
+    Number.isFinite(ve)
+  ) {
+    return formatThirdsPersonalPassageRef(b, Math.floor(ch), Math.floor(vs), Math.floor(ve));
+  }
+  return "";
+}

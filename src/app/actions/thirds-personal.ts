@@ -6,7 +6,7 @@ import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participati
 import {
   buildSuggestedLookForward,
   currentUtcWeekMondayYmd,
-  formatThirdsPersonalPassageRef,
+  effectiveThirdsPersonalPassageRef,
   type PriorFinalizedCommitments,
 } from "@/lib/groups/thirds-personal-helpers";
 import type {
@@ -18,7 +18,6 @@ import { upsertThirdsPillarWeekCompletion } from "@/app/actions/pillar-third-com
 import { pillarWeekStartKeyFromInstant } from "@/lib/dashboard/pillar-week";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
-import { getChapter, sliceChapterByVerseRange } from "@/lib/scripture/web";
 
 async function fetchPriorFinalizedWeek(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
@@ -215,54 +214,11 @@ export async function getThirdsPersonalWorkspace(): Promise<
   const priorFinalized = await fetchPriorFinalizedWeek(supabase, user.id, currentWeekMondayYmd);
   const suggestedLookForward = buildSuggestedLookForward(week, priorFinalized);
 
-  let bookForPassage = week.look_up_book?.trim() ?? "";
-  let passageChapter = week.look_up_chapter;
-  let passageVs = week.look_up_verse_start;
-  let passageVe = week.look_up_verse_end;
-
-  if (
-    (!bookForPassage ||
-      passageChapter == null ||
-      passageVs == null ||
-      passageVe == null) &&
-    week.look_up_preset_story_id
-  ) {
-    const { data: ps } = await supabase
-      .from("preset_stories")
-      .select("book, chapter, verse_start, verse_end")
-      .eq("id", week.look_up_preset_story_id)
-      .maybeSingle();
-    if (ps) {
-      bookForPassage = String(ps.book ?? "").trim();
-      passageChapter = typeof ps.chapter === "number" ? ps.chapter : null;
-      passageVs = typeof ps.verse_start === "number" ? ps.verse_start : null;
-      passageVe = typeof ps.verse_end === "number" ? ps.verse_end : null;
-    }
-  }
-
-  let initialPassageVerses: { verse: number; text: string }[] = [];
-  if (
-    bookForPassage &&
-    passageChapter != null &&
-    passageVs != null &&
-    passageVe != null
-  ) {
-    const chapterData = await getChapter(bookForPassage, passageChapter);
-    if (chapterData) {
-      initialPassageVerses = sliceChapterByVerseRange(
-        chapterData,
-        passageVs,
-        passageVe
-      );
-    }
-  }
-
   return {
     week,
     currentWeekMondayYmd,
     priorFinalized,
     suggestedLookForward,
-    initialPassageVerses,
   };
 }
 
@@ -308,13 +264,7 @@ export async function saveThirdsPersonalLookBack(input: {
 }
 
 export async function saveThirdsPersonalLookUp(input: {
-  passageMode: "preset" | "manual" | "reference_only";
-  presetStoryId?: string | null;
-  book?: string;
-  chapter?: number | null;
-  verseStart?: number | null;
-  verseEnd?: number | null;
-  passageRef: string;
+  scriptureReference: string;
   observationLike: string;
   observationDifficult: string;
   observationTeachesPeople: string;
@@ -339,84 +289,20 @@ export async function saveThirdsPersonalLookUp(input: {
   if (!existing) return { error: "Week not found." };
   if (existing.finalized_at) return { error: "This week is already finalized." };
 
-  type PassageCols = {
-    passage_ref: string;
-    look_up_preset_story_id: string | null;
-    look_up_book: string;
-    look_up_chapter: number | null;
-    look_up_verse_start: number | null;
-    look_up_verse_end: number | null;
-  };
-
-  let passageCols: PassageCols;
-
-  if (input.passageMode === "reference_only") {
-    passageCols = {
-      passage_ref: input.passageRef.trim().slice(0, 500),
-      look_up_preset_story_id: null,
-      look_up_book: "",
-      look_up_chapter: null,
-      look_up_verse_start: null,
-      look_up_verse_end: null,
-    };
-  } else if (input.passageMode === "preset") {
-    const pid = input.presetStoryId?.trim();
-    if (!pid) return { error: "Select a preset story." };
-    const { data: ps, error: pErr } = await supabase
-      .from("preset_stories")
-      .select("book, chapter, verse_start, verse_end")
-      .eq("id", pid)
-      .maybeSingle();
-    if (pErr || !ps) return { error: "Invalid preset story." };
-    const ref =
-      input.passageRef.trim() ||
-      formatThirdsPersonalPassageRef(
-        ps.book,
-        ps.chapter,
-        ps.verse_start,
-        ps.verse_end
-      );
-    passageCols = {
-      passage_ref: ref.slice(0, 500),
-      look_up_preset_story_id: pid,
-      look_up_book: ps.book,
-      look_up_chapter: ps.chapter,
-      look_up_verse_start: ps.verse_start,
-      look_up_verse_end: ps.verse_end,
-    };
-  } else {
-    const book = (input.book ?? "").trim();
-    const ch = input.chapter;
-    let vs = input.verseStart;
-    let ve = input.verseEnd;
-    if (!book || ch == null || vs == null || ve == null) {
-      return { error: "Fill in book, chapter, and verse range for a custom passage." };
-    }
-    if (!Number.isFinite(ch) || ch < 1 || !Number.isFinite(vs) || vs < 1 || !Number.isFinite(ve) || ve < 1) {
-      return { error: "Chapter and verses must be positive numbers." };
-    }
-    if (vs > ve) {
-      const t = vs;
-      vs = ve;
-      ve = t;
-    }
-    const ref =
-      input.passageRef.trim() ||
-      formatThirdsPersonalPassageRef(book, Math.floor(ch), Math.floor(vs), Math.floor(ve));
-    passageCols = {
-      passage_ref: ref.slice(0, 500),
-      look_up_preset_story_id: null,
-      look_up_book: book,
-      look_up_chapter: Math.floor(ch),
-      look_up_verse_start: Math.floor(vs),
-      look_up_verse_end: Math.floor(ve),
-    };
+  const ref = input.scriptureReference.trim().slice(0, 500);
+  if (!ref) {
+    return { error: "Enter a scripture passage." };
   }
 
   const { error } = await supabase
     .from("thirds_personal_weeks")
     .update({
-      ...passageCols,
+      passage_ref: ref,
+      look_up_preset_story_id: null,
+      look_up_book: "",
+      look_up_chapter: null,
+      look_up_verse_start: null,
+      look_up_verse_end: null,
       observation_like: input.observationLike.trim().slice(0, 4000),
       observation_difficult: input.observationDifficult.trim().slice(0, 4000),
       observation_teaches_people: input.observationTeachesPeople.trim().slice(0, 4000),
@@ -493,7 +379,7 @@ export async function finalizeThirdsPersonalWeek(): Promise<{ error: string } | 
   if (!row) return { error: "Week not found." };
   if (row.finalized_at) return { error: "Already finalized." };
 
-  const passage = String(row.passage_ref ?? "").trim();
+  const passage = effectiveThirdsPersonalPassageRef(rowToDto(row as Record<string, unknown>));
   const like = String(row.observation_like ?? "").trim();
   const diff = String(row.observation_difficult ?? "").trim();
   const ppl = String(row.observation_teaches_people ?? "").trim();

@@ -29,8 +29,6 @@ export type ThirdsPersonalWorkspacePayload = {
   currentWeekMondayYmd: string;
   priorFinalized: PriorFinalizedCommitments | null;
   suggestedLookForward: SuggestedLookForward;
-  /** WEB text for saved Look Up coordinates (server-loaded via getChapter, same as reader). */
-  initialPassageVerses: { verse: number; text: string }[];
 };
 
 export type ThirdsParticipationStats = {
