@@ -166,10 +166,9 @@ export async function getPrayerDashboardPracticeStats(): Promise<
 
 export type PrayerActivityLogRow =
   | {
+      /** One row per practice day when any wheel segments were completed (not per segment). */
       kind: "wheel";
       atIso: string;
-      stepIndex: number;
-      durationMinutes: number;
     }
   | {
       kind: "extra";
@@ -264,7 +263,19 @@ export async function getPrayerActivityLogPageData(): Promise<
   const freeRows = freeRowsSafe;
   const oikosRows = oikosRowsSafe;
 
-  const totalSessions = wheelRows.length + extraRows.length + freeRows.length + oikosRows.length;
+  const wheelLogRows: PrayerActivityLogRow[] = [];
+  const wheelDays = new Map<string, string>();
+  for (const r of wheelRows) {
+    const ymd = isoToPracticeYmd(r.completed_at, tz);
+    const cur = wheelDays.get(ymd);
+    if (!cur || r.completed_at > cur) wheelDays.set(ymd, r.completed_at);
+  }
+  for (const atIso of wheelDays.values()) {
+    wheelLogRows.push({ kind: "wheel", atIso });
+  }
+
+  const totalSessions =
+    wheelDays.size + extraRows.length + freeRows.length + oikosRows.length;
   let totalMinutes = 0;
   for (const r of wheelRows) totalMinutes += r.duration_minutes ?? 0;
   for (const r of extraRows) totalMinutes += r.minutes ?? 0;
@@ -272,12 +283,7 @@ export async function getPrayerActivityLogPageData(): Promise<
   const totalMinutesRounded = Math.round(totalMinutes * 10) / 10;
 
   const merged: PrayerActivityLogRow[] = [
-    ...wheelRows.map((r) => ({
-      kind: "wheel" as const,
-      atIso: r.completed_at,
-      stepIndex: r.step_index,
-      durationMinutes: r.duration_minutes ?? 0,
-    })),
+    ...wheelLogRows,
     ...extraRows.map((r) => ({
       kind: "extra" as const,
       atIso: r.logged_at,

@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ExtraPrayerMinutesForm } from "@/components/prayer/extra-prayer-minutes-form";
-import { FreestylePrayerPanel } from "@/components/prayer/freestyle-prayer-panel";
-import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
-import { ResetWeekPrayerButton } from "@/components/prayer/reset-week-prayer-button";
+import { PrayerToolsHub } from "@/components/prayer/prayer-tools-hub";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { prayerToolPageIntro } from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
@@ -51,29 +48,7 @@ export default async function PrayerPage() {
         </div>
       </div>
 
-      <PrayerWheelTimer copyTone={copyTone} />
-
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <p className="text-sm font-medium text-foreground">Evangelistic prayer</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pray through your List of 100 selections with guided points.
-        </p>
-        <Link
-          href="/app/prayer/oikos"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "default" }),
-            "mt-4 inline-flex w-full justify-center sm:w-auto"
-          )}
-        >
-          Pray for your Oikos
-        </Link>
-      </div>
-
-      <FreestylePrayerPanel copyTone={copyTone} />
-
-      <ExtraPrayerMinutesForm copyTone={copyTone} />
-
-      <ResetWeekPrayerButton copyTone={copyTone} />
+      <PrayerToolsHub copyTone={copyTone} />
     </div>
   );
 }

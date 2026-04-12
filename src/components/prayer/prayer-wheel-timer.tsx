@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink } from "lucide-react";
 import { recordPrayerWheelSegment } from "@/app/actions/prayer-wheel";
 import { PRAYER_WHEEL_STEPS } from "@/lib/prayer-wheel/steps";
 import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button-variants";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -543,8 +541,7 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
   );
 
   return (
-    <div className="space-y-8">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
         <div className="flex flex-col items-center justify-center gap-4">
           <PrayerWheelSvg
             activeIndex={
@@ -681,26 +678,5 @@ export function PrayerWheelTimer({ copyTone = "accountability" }: { copyTone?: G
           )}
         </div>
       </div>
-
-      <div className="rounded-xl border border-border border-dashed bg-muted/25 px-4 py-4">
-        <h3 className="text-sm font-medium text-foreground">Prayer hour training</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Zúme Training walks through the twelve-step Prayer Cycle—an hour in prayer with the same
-          kinds of movements as this wheel—with video and a read-along transcript.
-        </p>
-        <a
-          href="https://zume.training/how-to-spend-an-hour-in-prayer"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "mt-3 inline-flex items-center gap-2"
-          )}
-        >
-          Open How to Spend an Hour in Prayer on Zúme
-          <ExternalLink className="size-3.5 opacity-70" aria-hidden />
-        </a>
-      </div>
-    </div>
   );
 }

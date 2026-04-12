@@ -3,7 +3,6 @@ import { Heart, ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getPrayerActivityLogPageData } from "@/app/actions/prayer-wheel";
 import { buttonVariants } from "@/components/ui/button-variants";
-import { PRAYER_WHEEL_STEPS } from "@/lib/prayer-wheel/steps";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -121,13 +120,8 @@ export default async function PrayerActivityLogPage() {
               <li key={`${row.kind}-${row.atIso}-${i}`} className="px-4 py-3 text-sm">
                 {row.kind === "wheel" ? (
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                    <span className="text-foreground">
-                      Prayer wheel ·{" "}
-                      {PRAYER_WHEEL_STEPS[row.stepIndex]?.title ?? `Segment ${row.stepIndex + 1}`}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {row.durationMinutes} min · {formatLogWhen(row.atIso)}
-                    </span>
+                    <span className="text-foreground">Prayer wheel</span>
+                    <span className="text-xs text-muted-foreground">{formatLogWhen(row.atIso)}</span>
                   </div>
                 ) : row.kind === "extra" ? (
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
