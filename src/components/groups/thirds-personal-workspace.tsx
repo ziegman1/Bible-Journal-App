@@ -512,7 +512,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
                       value={book}
                       disabled={readOnly}
                       onChange={(e) => setBook(e.target.value)}
-                      className="mt-1.5 flex h-9 w-full rounded-lg border border-border bg-background px-3 text-sm"
+                      className="mt-1.5 flex h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
                     >
                       <option value="">Select…</option>
                       {BIBLE_BOOKS.map((b) => (

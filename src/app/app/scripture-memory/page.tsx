@@ -4,6 +4,7 @@ import { getScriptureMemoryPageData } from "@/app/actions/scripture-memory";
 import { ScriptureMemoryLogForm } from "@/components/scripture-memory/scripture-memory-log-form";
 import { ScriptureMemoryProgressBars } from "@/components/scripture-memory/scripture-memory-progress-bars";
 import { ScriptureMemorySettingsPanel } from "@/components/scripture-memory/scripture-memory-settings-panel";
+import { ScriptureMemoryTotalMemorizedSection } from "@/components/scripture-memory/scripture-memory-total-memorized-section";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -46,17 +47,11 @@ export default async function ScriptureMemoryPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
-          <p className="text-2xl font-light text-foreground">{data.streakDays}</p>
-          <p className="text-xs text-muted-foreground">Day streak</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
-          <p className="text-2xl font-light text-foreground">
-            {data.settings.current_total_memorized}
-          </p>
-          <p className="text-xs text-muted-foreground">Total passages memorized</p>
-        </div>
+      <ScriptureMemoryTotalMemorizedSection settings={data.settings} />
+
+      <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm sm:max-w-md">
+        <p className="text-2xl font-light text-foreground">{data.streakDays}</p>
+        <p className="text-xs text-muted-foreground">Day streak</p>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
