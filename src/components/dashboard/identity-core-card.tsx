@@ -22,6 +22,11 @@ export function IdentityCoreCard({
 }) {
   const showStats = stats.length > 0;
 
+  const actionButtonClass = cn(
+    buttonVariants({ size: "default", variant: "outline" }),
+    "min-h-11 min-w-[10.5rem] justify-center touch-manipulation border-indigo-300/80 bg-white/70 dark:border-indigo-500/35 dark:bg-white/[0.04]"
+  );
+
   return (
     <div
       className={cn(
@@ -48,23 +53,14 @@ export function IdentityCoreCard({
       </h2>
 
       <div className="relative mt-5 flex flex-wrap items-center justify-center gap-3">
-        <Link
-          href={nextActionHref}
-          className={cn(
-            buttonVariants({ size: "default" }),
-            "shadow-md shadow-indigo-500/10 dark:shadow-indigo-400/5 min-h-11 touch-manipulation"
-          )}
-        >
+        <Link href={nextActionHref} className={actionButtonClass}>
           {nextActionLabel}
         </Link>
-        <Link
-          href={prayHref}
-          className={cn(
-            buttonVariants({ size: "default", variant: "outline" }),
-            "border-indigo-300/80 bg-white/70 dark:border-indigo-500/35 dark:bg-white/[0.04] min-h-11 touch-manipulation"
-          )}
-        >
+        <Link href={prayHref} className={actionButtonClass}>
           {prayLabel}
+        </Link>
+        <Link href="/app/scripture-memory" className={actionButtonClass}>
+          Scripture Memory
         </Link>
       </div>
 

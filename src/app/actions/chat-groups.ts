@@ -154,14 +154,17 @@ export async function proposeChatGroupPlan(
   if (error) return { error: error.message };
   revalidatePath(`/app/groups/${groupId}`);
   revalidatePath("/app/chat");
+  revalidatePath(`/app/chat/groups/${groupId}/manage`);
+  revalidatePath("/app");
   return { success: true as const, proposalId: proposal.id };
 }
 
+/** Returns true when the proposal became the active group plan (all members had agreed). */
 async function tryFinalizeProposal(
   supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   proposalId: string,
   groupId: string
-) {
+): Promise<boolean> {
   const { data: proposal } = await supabase
     .from("chat_group_proposals")
     .select("*")
@@ -169,7 +172,7 @@ async function tryFinalizeProposal(
     .eq("group_id", groupId)
     .single();
 
-  if (!proposal || proposal.status !== "pending_agreement") return;
+  if (!proposal || proposal.status !== "pending_agreement") return false;
 
   const { count: total } = await supabase
     .from("group_members")
@@ -183,7 +186,7 @@ async function tryFinalizeProposal(
     .eq("agreed", true);
 
   const n = total ?? 0;
-  if (n === 0 || (yes?.length ?? 0) < n) return;
+  if (n === 0 || (yes?.length ?? 0) < n) return false;
 
   await supabase
     .from("chat_group_proposals")
@@ -205,6 +208,8 @@ async function tryFinalizeProposal(
       updated_at: new Date().toISOString(),
     })
     .eq("id", groupId);
+
+  return true;
 }
 
 export async function agreeToChatProposal(proposalId: string, groupId: string) {
@@ -236,9 +241,11 @@ export async function agreeToChatProposal(proposalId: string, groupId: string) {
 
   if (error) return { error: error.message };
 
-  await tryFinalizeProposal(supabase, proposalId, groupId);
+  const planJustFinalized = await tryFinalizeProposal(supabase, proposalId, groupId);
 
   revalidatePath(`/app/groups/${groupId}`);
   revalidatePath("/app/chat");
-  return { success: true as const };
+  revalidatePath(`/app/chat/groups/${groupId}/manage`);
+  revalidatePath("/app");
+  return { success: true as const, planJustFinalized };
 }

@@ -26,6 +26,11 @@ import {
   buildSuggestedLookForward,
   effectiveThirdsPersonalPassageRef,
 } from "@/lib/groups/thirds-personal-helpers";
+import {
+  parseSoloScriptureReference,
+  SOLO_SCRIPTURE_REF_HINT,
+} from "@/lib/groups/solo-scripture-reference-parse";
+import { fetchPassageVersesRangeInBrowser } from "@/lib/scripture/fetch-passage-verses-browser";
 import { cn } from "@/lib/utils";
 
 function CheckRow({
@@ -94,6 +99,97 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     initial.week.train_commitment || initial.suggestedLookForward.train_commitment
   );
 
+  /** Server-saved reference string — when this changes (e.g. after refresh), reload passage text. */
+  const savedPassageKey = effectiveThirdsPersonalPassageRef(initial.week);
+
+  const [passageVerses, setPassageVerses] = useState<{ verse: number; text: string }[]>([]);
+  const [passageLoading, setPassageLoading] = useState(false);
+  const [passageLoadError, setPassageLoadError] = useState<string | null>(null);
+  const [lastLoadedInput, setLastLoadedInput] = useState<string | null>(null);
+
+  const loadVersesForRef = useCallback(async (ref: string) => {
+    const trimmed = ref.trim();
+    if (!trimmed) {
+      return { rows: [] as { verse: number; text: string }[], parseError: SOLO_SCRIPTURE_REF_HINT };
+    }
+    const p = parseSoloScriptureReference(trimmed);
+    if (!p.ok) {
+      return { rows: [] as { verse: number; text: string }[], parseError: p.message };
+    }
+    const rows = await fetchPassageVersesRangeInBrowser({
+      book: p.book,
+      chapter: p.chapter,
+      verseStart: p.verseStart,
+      verseEnd: p.verseEnd,
+    });
+    return { rows, parseError: rows.length === 0 ? "No verses found for this range in the library (WEB)." : null };
+  }, []);
+
+  const onLoadPassage = useCallback(() => {
+    const ref = scripturePassage.trim();
+    if (!ref) {
+      toast.error(SOLO_SCRIPTURE_REF_HINT);
+      return;
+    }
+    setPassageLoading(true);
+    setPassageLoadError(null);
+    void (async () => {
+      const { rows, parseError } = await loadVersesForRef(ref);
+      setPassageLoading(false);
+      if (parseError) {
+        setPassageVerses([]);
+        setPassageLoadError(parseError);
+        toast.error(parseError);
+        setLastLoadedInput(null);
+        return;
+      }
+      setPassageVerses(rows);
+      setPassageLoadError(null);
+      setLastLoadedInput(ref);
+    })();
+  }, [loadVersesForRef, scripturePassage]);
+
+  useEffect(() => {
+    setPassageVerses([]);
+    setLastLoadedInput(null);
+    setPassageLoadError(null);
+  }, [initial.week.id]);
+
+  useEffect(() => {
+    const ref = savedPassageKey.trim();
+    if (!ref) {
+      return;
+    }
+    let cancelled = false;
+    setPassageLoading(true);
+    void (async () => {
+      const { rows, parseError } = await loadVersesForRef(ref);
+      if (cancelled) return;
+      setPassageLoading(false);
+      if (parseError) {
+        setPassageVerses([]);
+        setPassageLoadError(null);
+        setLastLoadedInput(null);
+        return;
+      }
+      setPassageVerses(rows);
+      setPassageLoadError(null);
+      setLastLoadedInput(ref);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [savedPassageKey, loadVersesForRef]);
+
+  useEffect(() => {
+    const t = scripturePassage.trim();
+    if (lastLoadedInput !== null && t !== lastLoadedInput) {
+      setPassageVerses([]);
+      setPassageLoadError(null);
+      setLastLoadedInput(null);
+    }
+  }, [scripturePassage, lastLoadedInput]);
+
   useEffect(() => {
     queueMicrotask(() => {
       setWeek(initial.week);
@@ -138,7 +234,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
 
   const onSaveLookUp = () => {
     if (!scripturePassage.trim()) {
-      toast.error("Enter a scripture passage.");
+      toast.error(SOLO_SCRIPTURE_REF_HINT);
       return;
     }
     startTransition(async () => {
@@ -267,9 +363,8 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
           <div className="rounded-lg border border-sky-200/60 bg-sky-50/40 px-4 py-3 dark:border-sky-900/40 dark:bg-sky-950/20">
             <h2 className="text-sm font-semibold text-sky-900 dark:text-sky-200">Look Up</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter the passage you are studying, then answer the four observation prompts. Open{" "}
-              <span className="font-medium text-foreground">Read</span> from the main menu anytime to
-              follow along in the app.
+              Type a reference, tap <span className="font-medium text-foreground">Load Passage</span>{" "}
+              to read the WEB text here, then answer the four observation prompts.
             </p>
           </div>
           <div className={cn(meetingYourRegion, "space-y-4")}>
@@ -278,20 +373,63 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
                 Scripture Passage
               </Label>
               <p className="text-xs text-muted-foreground">
-                Use any clear reference you will recognize later (book, chapter, verse range, or a
-                whole chapter).
+                Examples: Matthew 13:1-58 · Exodus 19:4-6 · John 3:16 · Psalm 23 · 1 Peter 2:9-12
               </p>
-              <Input
-                id="solo-scripture-passage"
-                value={scripturePassage}
-                disabled={readOnly}
-                onChange={(e) => setScripturePassage(e.target.value)}
-                placeholder="Example: Matthew 13:1-58"
-                className="font-medium text-base md:text-base min-h-11"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-              />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <Input
+                  id="solo-scripture-passage"
+                  value={scripturePassage}
+                  disabled={readOnly}
+                  onChange={(e) => setScripturePassage(e.target.value)}
+                  placeholder="Example: Matthew 13:1-58"
+                  className="min-h-11 flex-1 font-medium text-base md:text-base"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                {!readOnly ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="shrink-0 sm:mt-0"
+                    onClick={onLoadPassage}
+                    disabled={pending || passageLoading}
+                  >
+                    {passageLoading ? "Loading…" : "Load Passage"}
+                  </Button>
+                ) : null}
+              </div>
+              {passageLoadError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {passageLoadError}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="rounded-lg border border-border bg-card/80 shadow-sm">
+              <p className="border-b border-border px-3 py-2 text-xs font-medium text-foreground">
+                {scripturePassage.trim() || "Passage"}
+              </p>
+              <div className="max-h-72 overflow-y-auto px-3 py-3">
+                {passageLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading passage…</p>
+                ) : passageVerses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Load a passage to read it here, or adjust the reference and try again.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {passageVerses.map((v) => (
+                      <p key={v.verse} className="text-sm leading-relaxed text-foreground">
+                        <sup className="mr-1 font-mono text-[11px] text-muted-foreground">
+                          {v.verse}
+                        </sup>
+                        {v.text}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

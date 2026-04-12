@@ -33,7 +33,7 @@ export async function ChatReadingPaceCard({
   );
 
   return (
-    <Card className="border-border">
+    <Card id="chat-reading-pace" className="border-border scroll-mt-24">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-serif font-light">Reading pace</CardTitle>
         <CardDescription>{chatReadingPaceCardDescription(copyTone)}</CardDescription>

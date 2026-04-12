@@ -7,6 +7,7 @@ import {
   proposeChatGroupPlan,
 } from "@/app/actions/chat-groups";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { appendSharePromoToPlainText } from "@/lib/share-promo";
+import { cn } from "@/lib/utils";
 import { Check, Circle } from "lucide-react";
 
 export type ChatGroupWorkspaceClient = {
@@ -91,6 +93,7 @@ export function ChatGroupPlanSection({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [showPaceMatchPrompt, setShowPaceMatchPrompt] = useState(false);
   const [weekday, setWeekday] = useState<string>("1");
   const [timeText, setTimeText] = useState("");
   const [readingPlan, setReadingPlan] = useState("");
@@ -140,6 +143,9 @@ export function ChatGroupPlanSection({
         setErr(out.error ?? "Something went wrong");
         return;
       }
+      if ("planJustFinalized" in out && out.planJustFinalized) {
+        setShowPaceMatchPrompt(true);
+      }
       router.refresh();
     });
   };
@@ -168,6 +174,8 @@ export function ChatGroupPlanSection({
     ? `sms:?&body=${encodeURIComponent(pendingShareText)}`
     : null;
 
+  const paceAnchorHref = `${acceptPath}#chat-reading-pace`;
+
   return (
     <div className="space-y-6">
       {err && (
@@ -175,6 +183,48 @@ export function ChatGroupPlanSection({
           {err}
         </p>
       )}
+
+      <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-foreground dark:bg-muted/20">
+        <p className="leading-relaxed">
+          Updating the reading plan here does{" "}
+          <span className="font-medium">not</span> change your pace tracking on the home
+          dashboard. Pace uses start date, chapters per day, and where the plan begins in
+          scripture—set in{" "}
+          <span className="font-medium text-foreground">Reading pace</span> below.
+        </p>
+        <a
+          href={paceAnchorHref}
+          className={cn(
+            buttonVariants({ variant: "secondary", size: "sm" }),
+            "mt-3 inline-flex"
+          )}
+        >
+          Update Reading Pace
+        </a>
+      </div>
+
+      {showPaceMatchPrompt ? (
+        <Card className="border-violet-200/80 bg-violet-50/50 dark:border-violet-900/40 dark:bg-violet-950/25">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-foreground">
+              Update reading pace to match this plan?
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Your agreed schedule and reading text are saved. If you want the dashboard pace
+              meter to line up with this plan, set start date, pace, and scripture start in
+              Reading pace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pt-0">
+            <a href={paceAnchorHref} className={cn(buttonVariants({ size: "sm" }), "inline-flex")}>
+              Open Reading Pace
+            </a>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowPaceMatchPrompt(false)}>
+              Dismiss
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-border bg-card">
         <CardHeader className="border-b border-border pb-4">
