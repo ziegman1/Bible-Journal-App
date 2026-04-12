@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ExtraPrayerMinutesForm } from "@/components/prayer/extra-prayer-minutes-form";
+import { FreestylePrayerPanel } from "@/components/prayer/freestyle-prayer-panel";
 import { PrayerWheelTimer } from "@/components/prayer/prayer-wheel-timer";
 import { ResetWeekPrayerButton } from "@/components/prayer/reset-week-prayer-button";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -31,18 +32,28 @@ export default async function PrayerPage() {
           </p>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-serif font-light text-foreground">
             <Heart className="size-6 text-violet-600 dark:text-violet-400" />
-            Prayer Wheel
+            Prayer
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             {prayerToolPageIntro(copyTone)}
           </p>
         </div>
-        <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-          Dashboard
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/app/prayer/log"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+          >
+            Activity log
+          </Link>
+          <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            Dashboard
+          </Link>
+        </div>
       </div>
 
       <PrayerWheelTimer copyTone={copyTone} />
+
+      <FreestylePrayerPanel copyTone={copyTone} />
 
       <ExtraPrayerMinutesForm copyTone={copyTone} />
 

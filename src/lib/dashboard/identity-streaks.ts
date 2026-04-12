@@ -7,15 +7,8 @@ import {
 import type { SoapsJournalRow } from "@/lib/dashboard/soaps-entry";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
 
-/** Daily prayer goal for streak (≥1 hr logged that calendar day in practice TZ). */
-export const PRAYER_STREAK_MIN_MINUTES_PER_DAY = 60;
-
 export function pillarTodayYmd(now: Date, practiceTimeZone: string): string {
   return formatInTimeZone(now, practiceTimeZone, "yyyy-MM-dd");
-}
-
-function isoToPracticeYmd(iso: string, practiceTimeZone: string): string {
-  return formatInTimeZone(new Date(iso), practiceTimeZone, "yyyy-MM-dd");
 }
 
 /**
@@ -40,6 +33,13 @@ export function consecutiveDayStreak(
   return n;
 }
 
+export function prayerStreakFromQualifyingDays(
+  days: Set<string>,
+  todayYmd: string
+): number {
+  return consecutiveDayStreak((d) => days.has(d), todayYmd);
+}
+
 export function buildSoapsQualifyingDaySet(
   rows: readonly (SoapsJournalRow & { entry_date: string })[]
 ): Set<string> {
@@ -55,31 +55,6 @@ export function buildSoapsQualifyingDaySet(
     if (list.some((r) => isQualifyingSoapsEntry(r))) out.add(day);
   }
   return out;
-}
-
-export function buildPrayerMinutesByPillarDay(
-  wheel: readonly { completed_at: string; duration_minutes: number | null }[],
-  extra: readonly { logged_at: string; minutes: number | null }[],
-  practiceTimeZone: string
-): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const row of wheel) {
-    const day = isoToPracticeYmd(row.completed_at, practiceTimeZone);
-    m.set(day, (m.get(day) ?? 0) + (row.duration_minutes ?? 0));
-  }
-  for (const row of extra) {
-    const day = isoToPracticeYmd(row.logged_at, practiceTimeZone);
-    m.set(day, (m.get(day) ?? 0) + (row.minutes ?? 0));
-  }
-  return m;
-}
-
-export function prayerStreakFromDailyMinutes(
-  byDay: Map<string, number>,
-  todayYmd: string,
-  minMinutes: number = PRAYER_STREAK_MIN_MINUTES_PER_DAY
-): number {
-  return consecutiveDayStreak((d) => (byDay.get(d) ?? 0) >= minMinutes, todayYmd);
 }
 
 export function shareStreakFromEncounterDates(

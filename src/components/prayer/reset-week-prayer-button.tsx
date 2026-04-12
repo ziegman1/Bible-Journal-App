@@ -59,6 +59,9 @@ export function ResetWeekPrayerButton({ copyTone = "accountability" }: { copyTon
           if (res.removedExtraEntries > 0) {
             parts.push(`${res.removedExtraEntries} extra log(s)`);
           }
+          if (res.removedFreestyleSessions > 0) {
+            parts.push(`${res.removedFreestyleSessions} freestyle session(s)`);
+          }
           setDoneMessage(
             parts.length > 0 ? `Removed ${parts.join(" and ")}.` : "Nothing was logged this week."
           );

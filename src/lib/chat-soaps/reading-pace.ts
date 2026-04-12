@@ -8,11 +8,10 @@ export type ChatReadingPaceInput = {
   planStartBookId: string;
   planStartChapter: number;
   /**
-   * Chapters from plan start through the slowest partner who has CHAT SOAPS progress
-   * (min over members with a bookmark). Pace compares this to the calendar, not the viewer’s
-   * personal furthest chapter—so meeting a partner “where they are” does not mark the pair behind.
+   * Chapters completed from the shared plan start through this viewer’s CHAT SOAPS bookmark
+   * (canonical order). Compared to expected chapters from the group’s schedule.
    */
-  pairProgressChaptersFromPlan: number;
+  actualChaptersFromPlan: number;
   /** IANA zone: “today” and elapsed-day count match BADWR practice rhythm (device cookie on web). */
   practiceTimeZone: string;
   asOf?: Date;
@@ -139,6 +138,24 @@ export function pairMinChaptersFromPlan(
 }
 
 /**
+ * Chapters from the shared plan start through one member’s bookmark (canonical order).
+ * Returns 0 if there is no row or the bookmark is before the plan start.
+ */
+export function userChaptersFromPlan(
+  planStartBookId: string,
+  planStartChapter: number,
+  row: { book_id: string; last_completed_chapter: number } | null | undefined
+): number {
+  if (!row) return 0;
+  return countChaptersThroughInclusiveBookmark(
+    planStartBookId,
+    planStartChapter,
+    row.book_id.trim(),
+    row.last_completed_chapter
+  );
+}
+
+/**
  * 1-based ordinal along the plan: first chapter of the plan (plan_start_book_id / plan_start_chapter) is 1.
  */
 export function bookChapterAtOrdinalFromPlan(
@@ -186,7 +203,7 @@ export function computeChatReadingPace(input: ChatReadingPaceInput): ChatReading
 
   const actualChapters = Math.max(
     0,
-    Math.floor(Number.isFinite(input.pairProgressChaptersFromPlan) ? input.pairProgressChaptersFromPlan : 0)
+    Math.floor(Number.isFinite(input.actualChaptersFromPlan) ? input.actualChaptersFromPlan : 0)
   );
 
   const delta = actualChapters - expectedChapters;
@@ -200,11 +217,11 @@ export function computeChatReadingPace(input: ChatReadingPaceInput): ChatReading
 
   let message: string;
   if (status === "on_pace") {
-    message = "Your CHAT pair is on pace with the shared reading schedule.";
+    message = "You are on pace with your CHAT reading plan.";
   } else if (status === "ahead") {
-    message = `Your CHAT pair is ${delta} ${chapterWord(delta)} ahead of the shared schedule.`;
+    message = `You are ${delta} ${chapterWord(delta)} ahead of your reading plan.`;
   } else {
-    message = `Your CHAT pair is ${Math.abs(delta)} ${chapterWord(Math.abs(delta))} behind the shared schedule.`;
+    message = `You are ${Math.abs(delta)} ${chapterWord(Math.abs(delta))} behind your reading plan.`;
   }
 
   return {

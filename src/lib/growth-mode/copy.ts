@@ -120,16 +120,31 @@ export function paceMessageForTone(message: string, tone: GrowthCopyTone): strin
   return m;
 }
 
-/** CHAT / shared reading plan messages (`lib/chat-soaps/reading-pace`). */
+/** CHAT reading plan messages (`lib/chat-soaps/reading-pace`) — individual pace vs shared plan. */
 export function readingPaceMessageForTone(message: string, tone: GrowthCopyTone): string {
   if (tone === "accountability") return message;
   if (
+    /You are on pace with your CHAT reading plan/i.test(message) ||
     /Your CHAT pair is on pace with the shared reading schedule/i.test(message) ||
     /on pace with your group's reading plan/i.test(message)
   ) {
     return tone === "balanced"
-      ? "Your CHAT pair is in rhythm with the shared reading schedule."
-      : "Your pair’s reading lines up with where you agreed to be together.";
+      ? "You’re in rhythm with your CHAT reading plan."
+      : "Your reading lines up with the plan your group agreed on.";
+  }
+  const behindYou = message.match(/^You are (\d+) (\w+) behind your reading plan\.$/i);
+  if (behindYou) {
+    const [, n, unit] = behindYou;
+    return tone === "balanced"
+      ? `About ${n} ${unit} before this week’s expected reading—steady steps still matter.`
+      : `When you’re ready, you can keep reading—about ${n} ${unit} before this week’s plan.`;
+  }
+  const aheadYou = message.match(/^You are (\d+) (\w+) ahead of your reading plan\.$/i);
+  if (aheadYou) {
+    const [, n, unit] = aheadYou;
+    return tone === "balanced"
+      ? `You’re a little ahead—about ${n} ${unit} beyond this week’s plan.`
+      : `You have gentle margin—about ${n} ${unit} beyond your reading plan this week.`;
   }
   const behindPair = message.match(
     /^Your CHAT pair is (\d+) (\w+) behind the shared schedule\.$/i
@@ -342,12 +357,12 @@ export function badwrCombinedMessage(overallPercent: number, tone: GrowthCopyTon
 
 export function chatReadingPaceCardDescription(tone: GrowthCopyTone): string {
   if (tone === "accountability") {
-    return "Calendar pace uses the slower partner's bookmark; today's shared goal uses reader completions logged in order (pair-aligned).";
+    return "Your pace compares your bookmark to the group’s reading plan. Today’s shared line still reflects the pair’s aligned chapters.";
   }
   if (tone === "balanced") {
-    return "Calendar rhythm plus today's next shared chapters—grace when you realign, not a score.";
+    return "Your rhythm vs the agreed plan—plus today’s shared chapter goal when you read together.";
   }
-  return "Pair-aligned pace and today's shared stretch from your CHAT reader—room to meet each other where you are.";
+  return "Your own progress on the group’s plan; today’s shared stretch still tracks reading together.";
 }
 
 export function chatDailyReadingShortLineForTone(

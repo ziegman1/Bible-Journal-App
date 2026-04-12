@@ -42,7 +42,7 @@ export function ChatReadingPaceMeter({
       : dailyShortLine
         ? ` ${dailyShortLine}`
         : "";
-  const ariaDescription = `${message} Expected ${expectedChapters} chapters over ${daysElapsed} day${daysElapsed === 1 ? "" : "s"} at ${chaptersPerDay} per day; the pair has completed ${actualChapters} from the shared plan start.${dailyBit}`;
+  const ariaDescription = `${message} Expected ${expectedChapters} chapters over ${daysElapsed} day${daysElapsed === 1 ? "" : "s"} at ${chaptersPerDay} per day; you have completed ${actualChapters} from the shared plan start.${dailyBit}`;
   const compact = variant === "compact";
 
   return (
@@ -57,7 +57,7 @@ export function ChatReadingPaceMeter({
         detailLine={
           compact
             ? undefined
-            : `Plan: ${expectedChapters} chapter${expectedChapters === 1 ? "" : "s"} expected · ${actualChapters} completed as a pair (${daysElapsed} day${daysElapsed === 1 ? "" : "s"} × ${chaptersPerDay}/day)`
+            : `Plan: ${expectedChapters} chapter${expectedChapters === 1 ? "" : "s"} expected · ${actualChapters} completed by you (${daysElapsed} day${daysElapsed === 1 ? "" : "s"} × ${chaptersPerDay}/day)`
         }
         detailLineCompact={
           compact

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { getPrayerWheelDashboardStats } from "@/app/actions/prayer-wheel";
+import {
+  getPrayerDashboardPracticeStats,
+} from "@/app/actions/prayer-wheel";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
-import { buildPrayerWheelWeeklyPace } from "@/lib/prayer-wheel/weekly-pace";
 import { paceMessageForTone } from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
-import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { cn } from "@/lib/utils";
 
 const prayCard =
@@ -53,7 +53,7 @@ export async function PrayDashboardPracticeCard({
           </span>
         </div>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-foreground">
-          Prayer wheel, lists, and focused time. Open when you are ready.
+          Prayer wheel, freestyle timer, and extra time. Open when you are ready.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
           <p>Your rhythm matters more than a number on the home screen.</p>
@@ -62,15 +62,12 @@ export async function PrayDashboardPracticeCard({
     );
   }
 
-  const [stats, tz] = await Promise.all([
-    getPrayerWheelDashboardStats(),
-    getPracticeTimeZone(),
-  ]);
+  const stats = await getPrayerDashboardPracticeStats();
 
   if ("error" in stats) {
     return (
       <Link
-        href="/app/prayer"
+        href="/app/prayer/log"
         className={cn(
           "group flex min-h-[140px] flex-col rounded-xl border p-4 text-left shadow-sm transition-all duration-200",
           prayCard,
@@ -97,34 +94,25 @@ export async function PrayDashboardPracticeCard({
           </span>
         </div>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-foreground">
-          Prayer wheel, lists, and focused time. Open to begin.
+          Prayer activity, streak, and log. Open to view.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <p>Sign in to track weekly prayer pace.</p>
+          <p>Sign in to track prayer rhythm.</p>
         </div>
       </Link>
     );
   }
 
-  const {
-    weeklyMinutes,
-    weeklyExtraMinutes,
-    weeklyGoalMinutes,
-    fullWheelsThisWeek,
-    paceDayIndex,
-    onboardingPaceWeek,
-  } = stats;
-  const now = new Date();
-  const pace = buildPrayerWheelWeeklyPace(weeklyMinutes, now, tz, weeklyGoalMinutes, {
-    anchorDayIndex: paceDayIndex,
-    onboardingFirstWeek: onboardingPaceWeek,
-  });
+  const { streak, prayedToday, daysWithPrayerThisWeek, pace, onboardingPaceWeek } = stats;
   const paceMessage = paceMessageForTone(pace.message, copyTone);
-  const ariaDesc = `${paceMessage} ${pace.expectedSoFar} minutes expected so far toward ${weeklyGoalMinutes}; you have logged ${pace.actual} minutes total. ${fullWheelsThisWeek} full wheel${fullWheelsThisWeek === 1 ? "" : "s"} this week.`;
+  const streakLine =
+    streak <= 0 ? "Start a streak today" : streak === 1 ? "1-day streak" : `${streak}-day streak`;
+  const todayLine = prayedToday ? "Prayed today" : "Not yet today — there is still time";
+  const ariaDesc = `${paceMessage} ${daysWithPrayerThisWeek} days with prayer so far this week toward showing up each day. Streak: ${streakLine}. ${todayLine}.`;
 
   return (
     <Link
-      href="/app/prayer"
+      href="/app/prayer/log"
       className={cn(
         "group flex min-h-[140px] flex-col rounded-xl border p-4 text-left shadow-sm transition-all duration-200",
         prayCard,
@@ -148,7 +136,9 @@ export async function PrayDashboardPracticeCard({
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-foreground">
-        Prayer Wheel: twelve guided segments with a timer.
+        {streakLine}
+        <span className="text-muted-foreground"> · </span>
+        {todayLine}
       </p>
 
       <div className="mt-2 border-t border-border/60 pt-2">
@@ -158,7 +148,7 @@ export async function PrayDashboardPracticeCard({
           status={pace.status}
           message={paceMessage}
           copyTone={copyTone}
-          detailLineCompact={`${pace.expectedSoFar} min expected · ${pace.actual} min total · day ${pace.daysElapsed} of 7 · goal ${weeklyGoalMinutes} min/wk${weeklyExtraMinutes > 0 ? ` · +${weeklyExtraMinutes} extra` : ""}${fullWheelsThisWeek > 0 ? ` · ${fullWheelsThisWeek} wheel${fullWheelsThisWeek === 1 ? "" : "s"}` : ""}`}
+          detailLineCompact={`${daysWithPrayerThisWeek} of 7 days with prayer${onboardingPaceWeek ? " · first week" : ""}`}
           ariaDescription={ariaDesc}
         />
       </div>

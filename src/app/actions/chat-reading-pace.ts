@@ -9,6 +9,7 @@ import {
   computeChatReadingPace,
   pairMinChaptersFromPlan,
   practiceTodayYmd,
+  userChaptersFromPlan,
   type ChatReadingPaceResult,
 } from "@/lib/chat-soaps/reading-pace";
 import { refreshChatGroupPairSharedProgress } from "@/lib/chat-soaps/pair-pace-sync";
@@ -88,10 +89,19 @@ export async function getChatReadingPaceBundle(
     .select("user_id, book_id, last_completed_chapter")
     .eq("group_id", groupId);
 
-  const pairProgressChaptersFromPlan = pairMinChaptersFromPlan(
+  const rows = progressRows ?? [];
+  const userRow = rows.find((r) => r.user_id === user.id);
+  const actualChaptersFromPlan = userChaptersFromPlan(
     paceRow.plan_start_book_id,
     paceRow.plan_start_chapter,
-    progressRows ?? []
+    userRow ?? undefined
+  );
+
+  /** Pair minimum — still used for stored `pair_shared_chapters_from_plan` fallback and daily “shared” line. */
+  const pairChaptersFromPlan = pairMinChaptersFromPlan(
+    paceRow.plan_start_book_id,
+    paceRow.plan_start_chapter,
+    rows
   );
 
   const { data: memberRows } = await supabase
@@ -114,7 +124,7 @@ export async function getChatReadingPaceBundle(
   const pairSharedForDaily =
     typeof pacePairStored === "number" && Number.isFinite(pacePairStored)
       ? pacePairStored
-      : pairProgressChaptersFromPlan;
+      : pairChaptersFromPlan;
 
   const dailyShared = computeChatDailySharedReading({
     practiceDateYmd: todayYmd,
@@ -124,7 +134,7 @@ export async function getChatReadingPaceBundle(
     pairSharedChaptersFromPlan: pairSharedForDaily,
     memberUserIds,
     events: eventsError ? [] : (eventRows ?? []),
-    progressRows: progressRows ?? [],
+    progressRows: rows,
   });
 
   const readingStartDateYmd =
@@ -138,7 +148,7 @@ export async function getChatReadingPaceBundle(
     chaptersPerDay: paceRow.chapters_per_day,
     planStartBookId: paceRow.plan_start_book_id,
     planStartChapter: paceRow.plan_start_chapter,
-    pairProgressChaptersFromPlan,
+    actualChaptersFromPlan,
     practiceTimeZone: tz,
     asOf: now,
   });
@@ -150,7 +160,7 @@ export async function getChatReadingPaceBundle(
       status: "on_pace",
       delta: 0,
       needleDegrees: 90,
-      message: "Your CHAT pair is on pace with the shared reading schedule.",
+      message: "You are on pace with your CHAT reading plan.",
     };
   }
 

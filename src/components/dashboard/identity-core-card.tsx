@@ -24,7 +24,10 @@ export function IdentityCoreCard({
 
   const actionButtonClass = cn(
     buttonVariants({ size: "default", variant: "outline" }),
-    "min-h-11 min-w-[10.5rem] justify-center touch-manipulation border-indigo-300/80 bg-white/70 dark:border-indigo-500/35 dark:bg-white/[0.04]"
+    "flex min-h-11 w-full min-w-0 items-center justify-center touch-manipulation whitespace-normal px-2 py-2 text-center text-xs leading-snug sm:px-3 sm:text-sm",
+    "border-indigo-300/80 dark:border-indigo-500/35",
+    "bg-black text-white hover:bg-neutral-900",
+    "dark:bg-white dark:text-black dark:hover:bg-neutral-100"
   );
 
   return (
@@ -52,7 +55,7 @@ export function IdentityCoreCard({
         {displayName}
       </h2>
 
-      <div className="relative mt-5 flex flex-wrap items-center justify-center gap-3">
+      <div className="relative mt-5 grid w-full grid-cols-3 gap-2 sm:gap-3">
         <Link href={nextActionHref} className={actionButtonClass}>
           {nextActionLabel}
         </Link>
@@ -81,7 +84,7 @@ export function IdentityCoreCard({
                   s.label.startsWith("SOAPS")
                     ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
                     : s.label.startsWith("Prayer")
-                      ? "Consecutive days with at least 60 minutes logged (Prayer Wheel + extra time). Miss a day → streak resets."
+                      ? "Consecutive days you engaged in prayer (Prayer Wheel, freestyle timer, or extra time—practice timezone). Miss a day → streak resets."
                       : s.label.startsWith("Share")
                         ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
                         : s.label.startsWith("Scripture Memory")

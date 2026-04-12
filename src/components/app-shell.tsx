@@ -8,6 +8,7 @@ import {
   Home,
   BookOpen,
   BookMarked,
+  Heart,
   Settings,
   Menu,
   LogOut,
@@ -62,6 +63,10 @@ function isSoapsHubActive(pathname: string): boolean {
   );
 }
 
+function isPrayerHubActive(pathname: string): boolean {
+  return pathname.startsWith("/app/prayer");
+}
+
 function NavLinks({
   pathname,
   onNavigate,
@@ -103,6 +108,19 @@ function NavLinks({
       >
         <BookMarked className="size-4 shrink-0" />
         SOAPS
+      </Link>
+      <Link
+        href="/app/prayer"
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation",
+          isPrayerHubActive(pathname)
+            ? "bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
+            : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 hover:text-stone-900 dark:hover:text-stone-100"
+        )}
+      >
+        <Heart className="size-4 shrink-0" />
+        Prayer
       </Link>
       {navItems.slice(2).map((item) => {
         const Icon = item.icon;

@@ -2,14 +2,14 @@
 
 import { listGroupsForUser } from "@/app/actions/groups";
 import {
-  buildPrayerMinutesByPillarDay,
   buildSoapsQualifyingDaySet,
   consecutiveDayStreak,
   pillarTodayYmd,
-  prayerStreakFromDailyMinutes,
+  prayerStreakFromQualifyingDays,
   scriptureMemoryDayStreakFromRows,
   shareStreakFromEncounterDates,
 } from "@/lib/dashboard/identity-streaks";
+import { buildPrayerQualifyingDaySet } from "@/lib/prayer/activity";
 import { consecutivePillarWeekStreak } from "@/lib/dashboard/pillar-week-streak";
 import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -76,6 +76,7 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     journalRes,
     wheelRes,
     extraRes,
+    freestyleRes,
     shareRes,
     scriptureRes,
     pillarThirdsRes,
@@ -98,6 +99,7 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
       .select("logged_at, minutes")
       .eq("user_id", user.id)
       .gte("logged_at", oldestIso),
+    supabase.from("freestyle_prayer_sessions").select("ended_at").eq("user_id", user.id).gte("ended_at", oldestIso),
     supabase
       .from("share_encounters")
       .select("encounter_date")
@@ -124,12 +126,13 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
   const soapsDays = buildSoapsQualifyingDaySet(journalRes.data ?? []);
   const soapsStreak = consecutiveDayStreak((d) => soapsDays.has(d), todayYmd);
 
-  const prayerByDay = buildPrayerMinutesByPillarDay(
+  const prayerDays = buildPrayerQualifyingDaySet(
     wheelRes.data ?? [],
     extraRes.data ?? [],
+    freestyleRes.error ? [] : (freestyleRes.data ?? []),
     tz
   );
-  const prayerStreak = prayerStreakFromDailyMinutes(prayerByDay, todayYmd);
+  const prayerStreak = prayerStreakFromQualifyingDays(prayerDays, todayYmd);
 
   const shareStreak = shareStreakFromEncounterDates(
     (shareRes.data ?? []).map((r) => r.encounter_date),
