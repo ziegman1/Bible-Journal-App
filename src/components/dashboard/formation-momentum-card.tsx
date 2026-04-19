@@ -5,6 +5,7 @@ import { computeNextBestSteps } from "@/lib/metrics/formation-momentum/next-best
 import type { CategoryId } from "@/lib/metrics/formation-momentum/types";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { cn } from "@/lib/utils";
+import { DiscipleshipMomentumInfoModal } from "@/components/dashboard/discipleship-momentum-info-modal";
 import {
   FormationMomentumCardInteractive,
   type FormationMomentumRowVM,
@@ -93,12 +94,16 @@ export async function FormationMomentumCard() {
         "dark:border-indigo-500/15 dark:from-card dark:to-indigo-950/20"
       )}
     >
-      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-500/90 dark:text-indigo-400/80">
-        Discipleship momentum
-      </p>
-      <p className="mt-1 text-center text-xs text-muted-foreground">
-        A picture of your growth in foundation, formation, and reproduction this week.
-      </p>
+      {/* Info control: pastoral explainer modal (non-technical copy); see DiscipleshipMomentumInfoModal */}
+      <div className="relative">
+        <DiscipleshipMomentumInfoModal className="absolute right-0 top-0" />
+        <p className="px-9 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-500/90 dark:text-indigo-400/80">
+          Discipleship momentum
+        </p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          A picture of your growth in foundation, formation, and reproduction this week.
+        </p>
+      </div>
 
       <FormationMomentumCardInteractive
         rows={rows}
