@@ -61,6 +61,7 @@ export const mockCommunityNodes = [
   },
 ] as const;
 
+/** Pathway links only (no legacy %-metrics here — home momentum is `FormationMomentumCard`). */
 export const mockMultiplicationNodes = [
   {
     title: "Transformed Person",
@@ -75,8 +76,8 @@ export const mockMultiplicationNodes = [
     href: "/app/assist",
   },
   {
-    title: "Gen Map",
-    description: "BADWR pathway and multiplication flow.",
+    title: "Pathway",
+    description: "Discipleship pathway and next steps.",
     statusLabel: "Explore",
     href: "/app/pathway",
   },

@@ -147,6 +147,7 @@ export function isAllowedPostAuthPath(path: string): boolean {
   if (!path.startsWith("/") || path.startsWith("//")) return false;
   if (path.startsWith("/app")) return true;
   if (path === "/onboarding") return true;
+  if (path.startsWith("/scripture")) return true;
   return false;
 }
 

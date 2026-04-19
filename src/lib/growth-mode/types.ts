@@ -8,6 +8,7 @@ export type GrowthCopyTone = "invitational" | "balanced" | "accountability";
 export type GrowthModePresentation = {
   mode: GrowthMode;
   showStreakStats: boolean;
+  /** When true, home shows **formation-momentum** (F/F/R), not the legacy BADWR %-card. */
   showBadwrReproductionCard: boolean;
   showPracticePaceMeters: boolean;
   showWeeklyRhythmGoalsInSettings: boolean;

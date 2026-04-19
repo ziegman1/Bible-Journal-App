@@ -7,7 +7,11 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     const path = request.nextUrl.pathname;
-    if (path.startsWith("/app") || path.startsWith("/onboarding")) {
+    if (
+      path.startsWith("/app") ||
+      path.startsWith("/onboarding") ||
+      path.startsWith("/scripture")
+    ) {
       return NextResponse.redirect(new URL("/setup", request.url));
     }
     return NextResponse.next({ request });
@@ -38,8 +42,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAppRoute = request.nextUrl.pathname.startsWith("/app");
-  const isOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
+  const path = request.nextUrl.pathname;
+  const isAppRoute = path.startsWith("/app");
+  const isOnboarding = path.startsWith("/onboarding");
+  const isScriptureRoute = path.startsWith("/scripture");
   // Optional trailing slash so layout still gets x-invite-route after redirects / copy-paste
   const isInviteAcceptRoute = /^\/app\/groups\/invite\/[^/]+\/?$/.test(
     request.nextUrl.pathname
@@ -74,7 +80,6 @@ export async function updateSession(request: NextRequest) {
     );
     supabaseResponse = presentResponse;
   }
-  const path = request.nextUrl.pathname;
   const isAuthRoute =
     path === "/login" ||
     path === "/signup" ||
@@ -95,10 +100,13 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  if (!user && (isAppRoute || isOnboarding) && !isInviteAcceptRoute) {
+  if (!user && (isAppRoute || isOnboarding || isScriptureRoute) && !isInviteAcceptRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirectTo", request.nextUrl.pathname);
+    const back =
+      request.nextUrl.pathname +
+      (request.nextUrl.search ? request.nextUrl.search : "");
+    url.searchParams.set("redirectTo", back);
     return redirectWithCookies(url);
   }
 

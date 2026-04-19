@@ -1,5 +1,5 @@
 import { getIdentityStreakStats } from "@/app/actions/identity-streaks";
-import { BadwrReproductionCard } from "@/components/dashboard/badwr-reproduction-card";
+import { FormationMomentumCard } from "@/components/dashboard/formation-momentum-card";
 import { IdentityCoreCard } from "@/components/dashboard/identity-core-card";
 import { mockIdentityCore } from "@/lib/dashboard/mock-dashboard-data";
 import type { GrowthModePresentation } from "@/lib/growth-mode/types";
@@ -41,9 +41,8 @@ export async function IdentityCoreSection({
         stats={stats}
         invitationalSubtitle={presentation.showStreakStats ? null : GUIDED_IDENTITY_SUBTITLE}
       />
-      {presentation.showBadwrReproductionCard ? (
-        <BadwrReproductionCard copyTone={presentation.copyTone} />
-      ) : null}
+      {/* `showBadwrReproductionCard` now gates the formation-momentum card (legacy BADWR %-UI retired from home). */}
+      {presentation.showBadwrReproductionCard ? <FormationMomentumCard /> : null}
     </section>
   );
 }

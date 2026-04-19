@@ -1,3 +1,7 @@
+/**
+ * Legacy BADWR cumulative %-based “Reproduction check” UI.
+ * Retained for reference; no longer mounted on the home dashboard — see `FormationMomentumCard`.
+ */
 import Link from "next/link";
 import { getBadwrReproductionSnapshot } from "@/app/actions/badwr-reproduction";
 import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";

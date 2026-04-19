@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { getChatWeeklyLogSnapshot } from "@/app/actions/chat-weekly-log";
 import { getChatGroupWorkspace } from "@/app/actions/chat-groups";
+import { ChatWeeklyLogSection } from "@/components/chat/chat-weekly-log-section";
 import { ChatReadingPaceCard } from "@/components/chat/chat-reading-pace-card";
 import { ChatGroupPlanSection } from "@/components/groups/chat-group-plan-section";
 import { GroupWorkspaceManageSection } from "@/components/groups/group-workspace-manage-section";
@@ -29,7 +31,10 @@ export async function ChatGroupManageView({
   senderDisplayName: string;
   growthCopyTone?: GrowthCopyTone;
 }) {
-  const ws = await getChatGroupWorkspace(groupId);
+  const [ws, weeklyLog] = await Promise.all([
+    getChatGroupWorkspace(groupId),
+    getChatWeeklyLogSnapshot(groupId),
+  ]);
   if ("error" in ws) {
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-6">
@@ -102,6 +107,21 @@ export async function ChatGroupManageView({
       />
 
       <ChatReadingPaceCard groupId={groupId} variant="manage" copyTone={growthCopyTone} />
+
+      {"error" in weeklyLog ? (
+        <ChatWeeklyLogSection
+          groupId={groupId}
+          rows={[]}
+          meetingHint={null}
+          error={weeklyLog.error}
+        />
+      ) : (
+        <ChatWeeklyLogSection
+          groupId={groupId}
+          rows={weeklyLog.rows}
+          meetingHint={weeklyLog.meetingHint}
+        />
+      )}
 
       <section>
         <Link

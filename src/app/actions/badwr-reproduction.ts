@@ -70,6 +70,7 @@ function touchEarliest(e: string | null | undefined, ref: { min: string | null }
   if (!ref.min || d < ref.min) ref.min = d;
 }
 
+/** Legacy %-of-goal cumulative BADWR snapshot — still used by settings adjustments / `BadwrReproductionCard` if re-mounted; home dashboard uses formation-momentum instead. */
 export async function getBadwrReproductionSnapshot(): Promise<
   { error: string } | BadwrReproductionSnapshot
 > {

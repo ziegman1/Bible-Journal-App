@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicSiteBaseUrl } from "@/lib/public-site-url";
+import { isAllowedPostAuthPath } from "@/lib/site-config";
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export async function signUp(formData: FormData) {
 
   const baseUrl = getPublicSiteBaseUrl();
   const callbackUrl =
-    redirectTo && (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
+    redirectTo && isAllowedPostAuthPath(redirectTo)
       ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
       : `${baseUrl}/auth/callback`;
 
@@ -45,10 +46,7 @@ export async function signUp(formData: FormData) {
       message = error.message ?? "Something went wrong. Please try again.";
     }
     const q = new URLSearchParams({ error: message });
-    if (
-      redirectTo &&
-      (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
-    ) {
+    if (redirectTo && isAllowedPostAuthPath(redirectTo)) {
       q.set("redirectTo", redirectTo);
     }
     redirect(`/signup?${q.toString()}`);
@@ -58,10 +56,7 @@ export async function signUp(formData: FormData) {
   const loginQ = new URLSearchParams({
     message: "Check your email to confirm your account",
   });
-  if (
-    redirectTo &&
-    (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
-  ) {
+  if (redirectTo && isAllowedPostAuthPath(redirectTo)) {
     loginQ.set("redirectTo", redirectTo);
   }
   redirect(`/login?${loginQ.toString()}`);
@@ -85,19 +80,15 @@ export async function signIn(formData: FormData) {
         ? "Unable to connect. Please check your internet connection and try again."
         : error.message;
     const q = new URLSearchParams({ error: message });
-    if (
-      redirectTo &&
-      (redirectTo.startsWith("/app") || redirectTo === "/onboarding")
-    ) {
+    if (redirectTo && isAllowedPostAuthPath(redirectTo)) {
       q.set("redirectTo", redirectTo);
     }
     redirect(`/login?${q.toString()}`);
   }
 
   revalidatePath("/", "layout");
-  const target = redirectTo?.startsWith("/app") || redirectTo === "/onboarding"
-    ? redirectTo
-    : "/app";
+  const target =
+    redirectTo && isAllowedPostAuthPath(redirectTo) ? redirectTo : "/app";
   redirect(target);
 }
 
