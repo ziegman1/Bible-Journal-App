@@ -96,14 +96,14 @@ export async function SoapsDashboardPracticeCard({
           Scripture, observation, application, prayer, share.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <p>Sign in to see your weekly SOAPS pace.</p>
+          <p>Sign in to see your overall SOAPS completion.</p>
         </div>
       </Link>
     );
   }
 
   const paceMessage = paceMessageForTone(pace.message, copyTone);
-  const ariaDesc = `${paceMessage} ${pace.expectedSoFar} sessions expected so far this week toward ${SOAPS_WEEKLY_GOAL_SESSIONS}; you have completed ${pace.actual}.`;
+  const ariaDesc = `${paceMessage} Overall daily completion: ${pace.qualifyingDays} qualifying days of ${pace.totalDays} days since start (${pace.completionPercent}%). Weekly rhythm goal remains ${SOAPS_WEEKLY_GOAL_SESSIONS} qualifying sessions per week.`;
 
   return (
     <Link
@@ -141,7 +141,8 @@ export async function SoapsDashboardPracticeCard({
           status={pace.status}
           message={paceMessage}
           copyTone={copyTone}
-          detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} done · day ${pace.daysElapsed} of 7 · goal ${SOAPS_WEEKLY_GOAL_SESSIONS}/wk`}
+          detailLineCompact={`Overall daily completion · ${pace.completionPercent}% · ${pace.qualifyingDays}/${pace.totalDays} days · goal ${SOAPS_WEEKLY_GOAL_SESSIONS}/wk`}
+          statusHeading="Daily completion"
           ariaDescription={ariaDesc}
         />
       </div>

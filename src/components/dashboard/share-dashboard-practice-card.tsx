@@ -104,9 +104,17 @@ export async function ShareDashboardPracticeCard({
     );
   }
 
-  const { receivedCounts, weeklyGoal, ...pace } = stats;
-  const paceMessage = paceMessageForTone(pace.message, copyTone);
-  const ariaDesc = `${paceMessage} ${pace.expectedSoFar} shares expected so far toward ${weeklyGoal} this week; you have logged ${pace.actual}. Responses: ${receivedCounts.red_light} no, ${receivedCounts.yellow_light} maybe, ${receivedCounts.green_light} yes, ${receivedCounts.already_christian} already Christian.`;
+  const {
+    receivedCounts,
+    weeklyGoal,
+    pillarWeeksCounted,
+    completionPercent,
+    needleDegrees,
+    status,
+    message,
+  } = stats;
+  const paceMessage = paceMessageForTone(message, copyTone);
+  const ariaDesc = `${paceMessage} Average weekly goal completion ${completionPercent}% across ${pillarWeeksCounted} pillar weeks (each week capped at 100%). Weekly goal ${weeklyGoal} encounters. This week’s responses: ${receivedCounts.red_light} no, ${receivedCounts.yellow_light} maybe, ${receivedCounts.green_light} yes, ${receivedCounts.already_christian} already Christian.`;
 
   return (
     <Link
@@ -136,10 +144,11 @@ export async function ShareDashboardPracticeCard({
       <p className="mt-2 text-sm leading-relaxed text-foreground">
         {copyTone === "accountability" ? (
           <>
-            Gospel, testimony, and how they responded—pace toward {weeklyGoal}/week.
+            Gospel, testimony, and responses—gauge shows average weekly goal completion ({weeklyGoal}
+            /wk).
           </>
         ) : (
-          <>Gospel, testimony, and how they responded—with a light view of your weekly rhythm.</>
+          <>Gospel, testimony, and how they responded—a gentle view of average weekly goal completion.</>
         )}
       </p>
 
@@ -150,11 +159,12 @@ export async function ShareDashboardPracticeCard({
       <div className="mt-2 border-t border-border/60 pt-2">
         <PaceNeedleMeter
           variant="compact"
-          needleDegrees={pace.needleDegrees}
-          status={pace.status}
+          needleDegrees={needleDegrees}
+          status={status}
           message={paceMessage}
           copyTone={copyTone}
-          detailLineCompact={`${pace.expectedSoFar} expected · ${pace.actual} logged · day ${pace.daysElapsed} of 7 · goal ${weeklyGoal}/wk`}
+          detailLineCompact={`Avg weekly goal completion · ${completionPercent}% · ${pillarWeeksCounted} weeks · goal ${weeklyGoal}/wk`}
+          statusHeading="Goal completion"
           ariaDescription={ariaDesc}
         />
       </div>

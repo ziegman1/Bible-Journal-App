@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { getChatReadingPaceBundle } from "@/app/actions/chat-reading-pace";
-import { ChatReadingPaceMeter } from "@/components/chat/chat-reading-pace-meter";
-import { chatDailyReadingShortLineForTone, paceMessageForTone } from "@/lib/growth-mode/copy";
+import { getChatWeeklyCompletionGauge } from "@/app/actions/chat-weekly-completion-gauge";
+import { PaceNeedleMeter } from "@/components/dashboard/pace-needle-meter";
+import { paceMessageForTone } from "@/lib/growth-mode/copy";
 import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +52,7 @@ export async function ChatDashboardPracticeCard({
             <MessageCircle className="size-3.5" />
           </span>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-foreground">
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-foreground">
           Accountability group hub—meetings, reading, and conversation.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
@@ -62,8 +62,13 @@ export async function ChatDashboardPracticeCard({
     );
   }
 
-  const bundle = await getChatReadingPaceBundle(groupId);
-  const hasPace = !("error" in bundle);
+  const gauge = await getChatWeeklyCompletionGauge(groupId);
+  const hasGauge = !("error" in gauge);
+
+  const paceMessage = hasGauge ? paceMessageForTone(gauge.message, copyTone) : "";
+  const ariaDesc = hasGauge
+    ? `${paceMessage} Overall weekly completion: ${gauge.weeksWithCheckIn} pillar weeks with a reading check-in of ${gauge.totalPillarWeeks} since start (${gauge.completionPercent}%).`
+    : "CHAT completion unavailable.";
 
   return (
     <Link
@@ -94,36 +99,30 @@ export async function ChatDashboardPracticeCard({
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-foreground">
-        Accountability group meeting hub and reading pace.
+        Accountability group hub—gauge shows weeks with a reading check-in vs all pillar weeks since
+        start.
       </p>
 
-      {hasPace ? (
+      {hasGauge ? (
         <div className="mt-2 border-t border-border/60 pt-2">
-          <ChatReadingPaceMeter
+          <PaceNeedleMeter
             variant="compact"
-            needleDegrees={bundle.pace.needleDegrees}
-            status={bundle.pace.status}
-            message={paceMessageForTone(bundle.pace.message, copyTone)}
-            expectedChapters={bundle.pace.expectedChapters}
-            actualChapters={bundle.pace.actualChapters}
-            daysElapsed={bundle.pace.daysElapsed}
-            chaptersPerDay={bundle.settings.chapters_per_day}
+            needleDegrees={gauge.needleDegrees}
+            status={gauge.status}
+            message={paceMessage}
             copyTone={copyTone}
-            dailyShortLine={chatDailyReadingShortLineForTone(
-              bundle.dailyShared.pairMetGoalToday,
-              copyTone
-            )}
-            dailyTargetSummary={bundle.dailyShared.targetSummary}
-            pairMetDaily={bundle.dailyShared.pairMetGoalToday}
+            detailLineCompact={`Overall weekly completion · ${gauge.completionPercent}% · ${gauge.weeksWithCheckIn}/${gauge.totalPillarWeeks} weeks with check-in`}
+            statusHeading="Weekly completion"
+            ariaDescription={ariaDesc}
           />
         </div>
       ) : (
         <div className="mt-3 space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <p>Reading pace will show here once your group schedule is available.</p>
+          <p>Reading completion will show here when available.</p>
         </div>
       )}
 
-      <p className="mt-2 text-[11px] text-muted-foreground/80">Open meeting · adjust pace in Manage</p>
+      <p className="mt-2 text-[11px] text-muted-foreground/80">Open meeting · log check-ins in Manage</p>
     </Link>
   );
 }

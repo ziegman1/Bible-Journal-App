@@ -6,7 +6,17 @@ import {
   scriptureMemoryDayStreakFromRows,
 } from "@/lib/dashboard/identity-streaks";
 import { practiceMonthStartEndYmd, clampMeterRatio } from "@/lib/scripture-memory/metrics";
-import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
+import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+  metricsQueryFloorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
+import {
+  buildDailyCompletionGauge,
+  countDaysInRangeInSet,
+  type PracticeCompletionGaugeVm,
+} from "@/lib/dashboard/practice-completion-gauge";
+import { inclusiveCalendarDaysBetween } from "@/lib/dashboard/metrics-anchor-window";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
 
@@ -125,19 +135,24 @@ export async function getScriptureMemoryDashboardBundle(): Promise<{
   const { monthStartYmd, monthEndYmd } = practiceMonthStartEndYmd(now, tz);
   const monthUpper = todayYmd < monthEndYmd ? todayYmd : monthEndYmd;
 
-  const ensured = await ensureScriptureMemorySettings(supabase, user.id);
+  const [ensured, anchorYmd] = await Promise.all([
+    ensureScriptureMemorySettings(supabase, user.id),
+    fetchPracticeMetricsAnchorYmd(supabase, user.id),
+  ]);
   const settings = ensured.data ?? {
     monthly_new_passages_goal: 5,
     daily_review_goal: 5,
     current_total_memorized: 0,
   };
 
+  const streakFloorYmd = metricsQueryFloorYmd(todayYmd, LOOKBACK, anchorYmd);
+
   const [{ data: streakRows }, { data: monthRows }, { data: todayRow }] = await Promise.all([
     supabase
       .from("scripture_memory_logs")
       .select("practice_date, memorized_new_count, reviewed_count")
       .eq("user_id", user.id)
-      .gte("practice_date", ymdAddCalendarDays(todayYmd, -LOOKBACK)),
+      .gte("practice_date", streakFloorYmd),
     supabase
       .from("scripture_memory_logs")
       .select("memorized_new_count")
@@ -175,6 +190,59 @@ export async function getScriptureMemoryDashboardBundle(): Promise<{
   };
 }
 
+/**
+ * Home gauge: **overall daily completion %** — days with new memorization or any review /
+ * total days since account start.
+ */
+export async function getScriptureMemoryDailyCompletionGauge(): Promise<
+  | { error: string }
+  | (PracticeCompletionGaugeVm & { totalDays: number; memoryActiveDays: number })
+> {
+  const supabase = await createClient();
+  if (!supabase) return { error: "Supabase not configured" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const tz = await getPracticeTimeZone();
+  const now = new Date();
+  const anchorYmd = await fetchPracticeMetricsAnchorYmd(supabase, user.id);
+  const startYmd = effectiveMetricsStartYmd(user.created_at, anchorYmd, tz);
+  const todayYmd = pillarTodayYmd(now, tz);
+
+  const { data: rows, error } = await supabase
+    .from("scripture_memory_logs")
+    .select("practice_date, memorized_new_count, reviewed_count")
+    .eq("user_id", user.id)
+    .gte("practice_date", startYmd)
+    .lte("practice_date", todayYmd);
+
+  if (error) return { error: error.message };
+
+  const active = new Set<string>();
+  for (const r of rows ?? []) {
+    const d = String(r.practice_date).slice(0, 10);
+    const mem = r.memorized_new_count ?? 0;
+    const rev = r.reviewed_count ?? 0;
+    if (mem > 0 || rev > 0) active.add(d);
+  }
+
+  const memoryActiveDays = countDaysInRangeInSet(active, startYmd, todayYmd);
+  const totalDays = inclusiveCalendarDaysBetween(startYmd, todayYmd);
+  const gauge = buildDailyCompletionGauge(
+    memoryActiveDays,
+    totalDays,
+    "Scripture Memory active days"
+  );
+
+  return {
+    ...gauge,
+    totalDays,
+    memoryActiveDays,
+  };
+}
+
 /** @deprecated Use getScriptureMemoryDashboardBundle for card metrics */
 export async function getScriptureMemoryStreakSummary(): Promise<{
   streakDays: number;
@@ -209,13 +277,18 @@ export async function getScriptureMemoryPageData(): Promise<
   const tz = await getPracticeTimeZone();
   const now = new Date();
   const todayYmd = pillarTodayYmd(now, tz);
-  const recentStart = ymdAddCalendarDays(todayYmd, -13);
   const { monthStartYmd, monthEndYmd } = practiceMonthStartEndYmd(now, tz);
   const monthUpper = todayYmd < monthEndYmd ? todayYmd : monthEndYmd;
 
-  const ensured = await ensureScriptureMemorySettings(supabase, user.id);
+  const [ensured, anchorYmd] = await Promise.all([
+    ensureScriptureMemorySettings(supabase, user.id),
+    fetchPracticeMetricsAnchorYmd(supabase, user.id),
+  ]);
   if (!ensured.data) return { error: ensured.error ?? "Settings unavailable" };
   const settings = ensured.data;
+
+  const streakFloorYmd = metricsQueryFloorYmd(todayYmd, LOOKBACK, anchorYmd);
+  const recentFloorYmd = metricsQueryFloorYmd(todayYmd, 13, anchorYmd);
 
   const [
     { data: allForStreak },
@@ -227,7 +300,7 @@ export async function getScriptureMemoryPageData(): Promise<
       .from("scripture_memory_logs")
       .select("practice_date, memorized_new_count, reviewed_count")
       .eq("user_id", user.id)
-      .gte("practice_date", ymdAddCalendarDays(todayYmd, -LOOKBACK)),
+      .gte("practice_date", streakFloorYmd),
     supabase
       .from("scripture_memory_logs")
       .select("practice_date, memorized_new_count, reviewed_count")
@@ -238,7 +311,7 @@ export async function getScriptureMemoryPageData(): Promise<
       .from("scripture_memory_logs")
       .select("practice_date, memorized_new_count, reviewed_count")
       .eq("user_id", user.id)
-      .gte("practice_date", recentStart)
+      .gte("practice_date", recentFloorYmd)
       .lte("practice_date", todayYmd)
       .order("practice_date", { ascending: false }),
     supabase

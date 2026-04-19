@@ -15,6 +15,8 @@ export interface Profile {
   weekly_prayer_goal_minutes: number;
   /** Count adjustments for BADWR reproduction cumulative math (optional). */
   badwr_reproduction_count_adjustments?: Record<string, unknown> | null;
+  /** First calendar day counted toward practice metrics after “reset metrics”; null = use account signup. */
+  practice_metrics_anchor_ymd?: string | null;
   created_at: string;
   updated_at: string;
 }

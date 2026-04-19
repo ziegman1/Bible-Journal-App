@@ -14,6 +14,7 @@ import {
 } from "@/lib/chat-soaps/reading-pace";
 import { refreshChatGroupPairSharedProgress } from "@/lib/chat-soaps/pair-pace-sync";
 import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
+import { fetchPracticeMetricsAnchorYmd } from "@/lib/profile/practice-metrics-anchor";
 import { getBookById } from "@/lib/scripture/books";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -56,7 +57,10 @@ export async function getChatReadingPaceBundle(
     .maybeSingle();
   if (!mem) return { error: "Not a member" };
 
-  const tz = await getPracticeTimeZone();
+  const [tz, metricsAnchorYmd] = await Promise.all([
+    getPracticeTimeZone(),
+    fetchPracticeMetricsAnchorYmd(supabase, user.id),
+  ]);
 
   let { data: paceRow } = await supabase
     .from("chat_group_reading_pace")
@@ -153,7 +157,7 @@ export async function getChatReadingPaceBundle(
     asOf: now,
   });
 
-  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz, metricsAnchorYmd);
   if (anchor.mode === "onboarding" && pace.status === "behind") {
     pace = {
       ...pace,

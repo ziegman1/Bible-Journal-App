@@ -1,7 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+  metricsQueryFloorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
+import {
+  buildDailyCompletionGauge,
+  countDaysInRangeInSet,
+  type PracticeCompletionGaugeVm,
+} from "@/lib/dashboard/practice-completion-gauge";
+import { inclusiveCalendarDaysBetween } from "@/lib/dashboard/metrics-anchor-window";
 import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import {
   pillarTodayYmd,
@@ -14,7 +25,6 @@ import {
   isoToPracticeYmd,
   longestPrayerStreakInDaySet,
 } from "@/lib/prayer/activity";
-import { buildPrayerWeeklyCompletionPace } from "@/lib/prayer-wheel/prayer-completion-pace";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -42,7 +52,7 @@ export type PrayerDashboardPracticeStats = {
   daysWithPrayerThisWeek: number;
   paceDayIndex: number;
   onboardingPaceWeek: boolean;
-  pace: ReturnType<typeof buildPrayerWeeklyCompletionPace>;
+  pace: PracticeCompletionGaugeVm & { totalDays: number; completedPrayerDays: number };
 };
 
 /** Streak + completion rhythm (days with prayer / week) for the dashboard prayer card. */
@@ -59,16 +69,36 @@ export async function getPrayerDashboardPracticeStats(): Promise<
   const tz = await getPracticeTimeZone();
   const now = new Date();
   const todayYmd = pillarTodayYmd(now, tz);
-  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const anchorYmd = await fetchPracticeMetricsAnchorYmd(supabase, user.id);
+  const startYmd = effectiveMetricsStartYmd(user.created_at, anchorYmd, tz);
+  const lifeStartIso = fromZonedTime(`${startYmd}T00:00:00`, tz).toISOString();
+  const lifeEndExclusiveIso = fromZonedTime(
+    `${ymdAddCalendarDays(todayYmd, 1)}T00:00:00`,
+    tz
+  ).toISOString();
+
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz, anchorYmd);
   const { startIso, endExclusiveIso } = anchor;
   const windowEndCap =
     todayYmd < anchor.queryEndYmdInclusive ? todayYmd : anchor.queryEndYmdInclusive;
 
-  const oldestYmd = ymdAddCalendarDays(todayYmd, -LOOKBACK_DAYS_LOG);
+  const oldestYmd = metricsQueryFloorYmd(todayYmd, LOOKBACK_DAYS_LOG, anchorYmd);
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
 
-  const [winWheel, winExtra, winFree, winOikos, streakWheel, streakExtra, streakFree, streakOikos] =
-    await Promise.all([
+  const [
+    winWheel,
+    winExtra,
+    winFree,
+    winOikos,
+    streakWheel,
+    streakExtra,
+    streakFree,
+    streakOikos,
+    lifeWheel,
+    lifeExtra,
+    lifeFree,
+    lifeOikos,
+  ] = await Promise.all([
       supabase
         .from("prayer_wheel_segment_completions")
         .select("completed_at")
@@ -113,6 +143,30 @@ export async function getPrayerDashboardPracticeStats(): Promise<
         .select("started_at")
         .eq("user_id", user.id)
         .gte("started_at", oldestIso),
+      supabase
+        .from("prayer_wheel_segment_completions")
+        .select("completed_at")
+        .eq("user_id", user.id)
+        .gte("completed_at", lifeStartIso)
+        .lt("completed_at", lifeEndExclusiveIso),
+      supabase
+        .from("prayer_extra_minutes")
+        .select("logged_at")
+        .eq("user_id", user.id)
+        .gte("logged_at", lifeStartIso)
+        .lt("logged_at", lifeEndExclusiveIso),
+      supabase
+        .from("freestyle_prayer_sessions")
+        .select("ended_at")
+        .eq("user_id", user.id)
+        .gte("ended_at", lifeStartIso)
+        .lt("ended_at", lifeEndExclusiveIso),
+      supabase
+        .from("oikos_prayer_visits")
+        .select("started_at")
+        .eq("user_id", user.id)
+        .gte("started_at", lifeStartIso)
+        .lt("started_at", lifeEndExclusiveIso),
     ]);
 
   const err =
@@ -123,7 +177,11 @@ export async function getPrayerDashboardPracticeStats(): Promise<
     streakWheel.error ||
     streakExtra.error ||
     streakFree.error ||
-    streakOikos.error;
+    streakOikos.error ||
+    lifeWheel.error ||
+    lifeExtra.error ||
+    lifeFree.error ||
+    lifeOikos.error;
   if (err) return { error: err.message };
 
   const windowSet = buildPrayerQualifyingDaySet(
@@ -149,10 +207,20 @@ export async function getPrayerDashboardPracticeStats(): Promise<
   const streak = prayerStreakFromQualifyingDays(streakSet, todayYmd);
   const prayedToday = streakSet.has(todayYmd);
 
-  const pace = buildPrayerWeeklyCompletionPace(daysWithPrayerThisWeek, now, tz, {
-    anchorDayIndex: anchor.dayIndex,
-    onboardingFirstWeek: anchor.mode === "onboarding",
-  });
+  const lifeSet = buildPrayerQualifyingDaySet(
+    lifeWheel.data ?? [],
+    lifeExtra.data ?? [],
+    lifeFree.error ? [] : (lifeFree.data ?? []),
+    tz,
+    lifeOikos.error ? [] : (lifeOikos.data ?? [])
+  );
+  const completedPrayerDays = countDaysInRangeInSet(lifeSet, startYmd, todayYmd);
+  const totalDays = inclusiveCalendarDaysBetween(startYmd, todayYmd);
+  const paceVm = buildDailyCompletionGauge(
+    completedPrayerDays,
+    totalDays,
+    "days with prayer"
+  );
 
   return {
     streak,
@@ -160,7 +228,11 @@ export async function getPrayerDashboardPracticeStats(): Promise<
     daysWithPrayerThisWeek,
     paceDayIndex: anchor.dayIndex,
     onboardingPaceWeek: anchor.mode === "onboarding",
-    pace,
+    pace: {
+      ...paceVm,
+      totalDays,
+      completedPrayerDays,
+    },
   };
 }
 

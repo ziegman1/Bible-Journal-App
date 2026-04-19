@@ -31,6 +31,11 @@ export type GraceOptions = {
   now: Date;
   /** `auth.users.created_at` ISO string when available (same anchor family as metrics windows). */
   userCreatedAt: string | null;
+  /**
+   * When set (e.g. after metrics reset), onboarding-window grace uses this `yyyy-MM-dd` instead of
+   * deriving signup from `userCreatedAt`.
+   */
+  graceSignupYmd?: string | null;
   /** Pillar weeks ago for this signal (align with recency). */
   signalWeeksAgo: number;
   /**
@@ -91,7 +96,7 @@ export function signalWeekOverlapsOnboardingWindow(
  * in the engine product — it does not replace those signals.
  */
 export function applyGrace(signal: NormalizedSignal, options: GraceOptions): GraceResult {
-  const { timeZone, now, userCreatedAt, signalWeeksAgo, allSignals } = options;
+  const { timeZone, now, userCreatedAt, graceSignupYmd, signalWeeksAgo, allSignals } = options;
   const reasons: GraceReason[] = [];
 
   let bonus = 0;
@@ -99,13 +104,18 @@ export function applyGrace(signal: NormalizedSignal, options: GraceOptions): Gra
   const parsed = parseWeekWindowKey(signal.windowKey);
   const signalWeekStartYmd = parsed?.sundayYmd ?? null;
 
-  if (userCreatedAt && signalWeekStartYmd) {
-    const signupYmd = formatInTimeZone(new Date(userCreatedAt), timeZone, "yyyy-MM-dd");
-    if (signalWeekOverlapsOnboardingWindow(signalWeekStartYmd, signupYmd)) {
+  const resolvedSignupYmd =
+    graceSignupYmd?.trim().slice(0, 10) ??
+    (userCreatedAt
+      ? formatInTimeZone(new Date(userCreatedAt), timeZone, "yyyy-MM-dd")
+      : null);
+
+  if (resolvedSignupYmd && /^\d{4}-\d{2}-\d{2}$/.test(resolvedSignupYmd) && signalWeekStartYmd) {
+    if (signalWeekOverlapsOnboardingWindow(signalWeekStartYmd, resolvedSignupYmd)) {
       bonus += BONUS_ONBOARDING_WEEK_OVERLAP;
       reasons.push({
         kind: "onboarding_window_overlap",
-        signupYmd,
+        signupYmd: resolvedSignupYmd,
         signalWeekStartYmd,
       });
     }

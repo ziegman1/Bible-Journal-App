@@ -97,7 +97,7 @@ export async function PrayDashboardPracticeCard({
           Prayer activity, streak, and log. Open to view.
         </p>
         <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <p>Sign in to track prayer rhythm.</p>
+          <p>Sign in to see your overall prayer day completion.</p>
         </div>
       </Link>
     );
@@ -108,7 +108,7 @@ export async function PrayDashboardPracticeCard({
   const streakLine =
     streak <= 0 ? "Start a streak today" : streak === 1 ? "1-day streak" : `${streak}-day streak`;
   const todayLine = prayedToday ? "Prayed today" : "Not yet today — there is still time";
-  const ariaDesc = `${paceMessage} ${daysWithPrayerThisWeek} days with prayer so far this week toward showing up each day. Streak: ${streakLine}. ${todayLine}.`;
+  const ariaDesc = `${paceMessage} Overall daily completion: ${pace.completedPrayerDays} days with prayer of ${pace.totalDays} days since start (${pace.completionPercent}%). This week: ${daysWithPrayerThisWeek} days with prayer. Streak: ${streakLine}. ${todayLine}.`;
 
   return (
     <Link
@@ -148,7 +148,8 @@ export async function PrayDashboardPracticeCard({
           status={pace.status}
           message={paceMessage}
           copyTone={copyTone}
-          detailLineCompact={`${daysWithPrayerThisWeek} of 7 days with prayer${onboardingPaceWeek ? " · first week" : ""}`}
+          detailLineCompact={`Overall daily completion · ${pace.completionPercent}% · ${pace.completedPrayerDays}/${pace.totalDays} days · this week ${daysWithPrayerThisWeek}/7${onboardingPaceWeek ? " · first week" : ""}`}
+          statusHeading="Daily completion"
           ariaDescription={ariaDesc}
         />
       </div>

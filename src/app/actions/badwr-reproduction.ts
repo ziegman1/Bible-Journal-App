@@ -25,6 +25,10 @@ import {
 } from "@/lib/dashboard/badwr-reproduction-cumulative";
 import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
 import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
+import {
   enumeratePillarWeekStartYmids,
   pillarWeekRangeForQuery,
   pillarWeekStartKeyFromDateYmd,
@@ -40,7 +44,6 @@ import { fetchThirdsParticipationMetrics } from "@/lib/groups/thirds-participati
 import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
-import { formatInTimeZone } from "date-fns-tz";
 
 export type BadwrReproductionSnapshot = {
   overallPercent: number;
@@ -81,13 +84,15 @@ export async function getBadwrReproductionSnapshot(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const [{ shareWeeklyGoalEncounters, prayerWeeklyGoalMinutes }, tz] = await Promise.all([
-    fetchUserRhythmGoals(supabase, user.id),
-    getPracticeTimeZone(),
-  ]);
+  const [{ shareWeeklyGoalEncounters, prayerWeeklyGoalMinutes }, tz, metricsAnchorYmd] =
+    await Promise.all([
+      fetchUserRhythmGoals(supabase, user.id),
+      getPracticeTimeZone(),
+      fetchPracticeMetricsAnchorYmd(supabase, user.id),
+    ]);
   const now = new Date();
   const pillar = pillarWeekRangeForQuery(now, tz);
-  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
+  const anchor = getMetricsAnchorWindow(user.created_at, now, tz, metricsAnchorYmd);
   const rhythmStartYmd = anchor.queryStartYmd;
   const rhythmEndYmd = anchor.queryEndYmdInclusive;
   const { startIso, endExclusiveIso } = anchor;
@@ -342,12 +347,7 @@ export async function getBadwrReproductionSnapshot(): Promise<
   ];
 
   const earliest: { min: string | null } = { min: null };
-  if (user.created_at) {
-    touchEarliest(
-      formatInTimeZone(new Date(user.created_at), tz, "yyyy-MM-dd"),
-      earliest
-    );
-  }
+  touchEarliest(effectiveMetricsStartYmd(user.created_at, metricsAnchorYmd, tz), earliest);
 
   const buckets = new Map<string, WeekRhythmBucket>();
 

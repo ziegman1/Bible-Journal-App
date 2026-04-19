@@ -34,6 +34,10 @@ import type {
   NormalizedSignal,
   NormalizedSignalExplainSlice,
 } from "@/lib/metrics/formation-momentum/types";
+import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 
@@ -45,6 +49,7 @@ function applyModifiers(
     goals: GoalAlignmentInputGoals;
     allSignals: readonly NormalizedSignal[];
     userCreatedAt: string | null;
+    graceSignupYmd: string | null;
   }
 ): ModifiedSignal {
   const rec = applyRecency(signal, { timeZone: ctx.timeZone, now: ctx.now });
@@ -54,6 +59,7 @@ function applyModifiers(
     timeZone: ctx.timeZone,
     now: ctx.now,
     userCreatedAt: ctx.userCreatedAt,
+    graceSignupYmd: ctx.graceSignupYmd,
     signalWeeksAgo: rec.weeksAgo,
     allSignals: ctx.allSignals,
   });
@@ -257,15 +263,21 @@ export async function computeFormationMomentum(
 ): Promise<MomentumSnapshot> {
   const now = new Date();
   const supabase = await createClient();
-  const [{ events }, tz, goals, authUser] = await Promise.all([
-    getUserPracticeEvents(userId),
+  const [tz, goals, authUser, anchorYmd] = await Promise.all([
     getPracticeTimeZone(),
     supabase ? loadGoalAlignmentInputGoals(supabase, userId) : Promise.resolve(defaultGoalAlignmentInputGoals()),
     supabase ? supabase.auth.getUser() : Promise.resolve({ data: { user: null } }),
+    supabase ? fetchPracticeMetricsAnchorYmd(supabase, userId) : Promise.resolve(null),
   ]);
+
+  const { events } = await getUserPracticeEvents(userId, {
+    practiceMetricsAnchorYmd: anchorYmd,
+  });
 
   const userCreatedAt =
     authUser.data.user?.id === userId ? authUser.data.user.created_at ?? null : null;
+
+  const graceSignupYmd = effectiveMetricsStartYmd(userCreatedAt, anchorYmd, tz);
 
   const normalized = normalizeEvents(events, { timeZone: tz, now });
   const modified: ModifiedSignal[] = normalized.map((s) =>
@@ -275,6 +287,7 @@ export async function computeFormationMomentum(
       goals,
       allSignals: normalized,
       userCreatedAt,
+      graceSignupYmd,
     })
   );
 

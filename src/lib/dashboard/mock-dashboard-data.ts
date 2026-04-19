@@ -50,6 +50,13 @@ export const mockPracticeNodes = [
     href: "/app/chat",
     theme: "chat" as const,
   },
+  {
+    title: "3/3rds" as const,
+    description: "Weekly meeting rhythm.",
+    statusLabel: "Open",
+    href: "/app/groups",
+    theme: "thirds" as const,
+  },
 ] as const;
 
 export const mockCommunityNodes = [

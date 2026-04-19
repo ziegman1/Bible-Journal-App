@@ -1,5 +1,6 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { FALLBACK_PRACTICE_TIMEZONE } from "@/lib/timezone/practice-timezone-shared";
+import { effectiveMetricsStartYmd } from "@/lib/profile/practice-metrics-anchor";
 import {
   pillarWeekDaysElapsedInclusive,
   pillarWeekRangeForQuery,
@@ -56,7 +57,9 @@ export type MetricsAnchorWindow =
 export function getMetricsAnchorWindow(
   userCreatedAt: string | null | undefined,
   now: Date,
-  timeZone?: string
+  timeZone?: string,
+  /** Profile reset anchor — first metrics day after “start over” (see `practice_metrics_anchor_ymd`). */
+  practiceMetricsAnchorYmd?: string | null
 ): MetricsAnchorWindow {
   const tz = resolveTz(timeZone);
   const todayYmd = formatInTimeZone(now, tz, "yyyy-MM-dd");
@@ -65,7 +68,7 @@ export function getMetricsAnchorWindow(
     return weeklyAnchor(now, tz);
   }
 
-  const signupYmd = formatInTimeZone(new Date(userCreatedAt), tz, "yyyy-MM-dd");
+  const signupYmd = effectiveMetricsStartYmd(userCreatedAt, practiceMetricsAnchorYmd, tz);
   const daysSinceSignup = inclusiveCalendarDaysBetween(signupYmd, todayYmd);
 
   if (daysSinceSignup > 7) {

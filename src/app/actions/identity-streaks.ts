@@ -11,7 +11,12 @@ import {
 } from "@/lib/dashboard/identity-streaks";
 import { buildPrayerQualifyingDaySet } from "@/lib/prayer/activity";
 import { consecutivePillarWeekStreak } from "@/lib/dashboard/pillar-week-streak";
-import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
+import { pillarWeekStartKeyFromDateYmd } from "@/lib/dashboard/pillar-week";
+import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+  metricsQueryFloorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,8 +67,11 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
   const tz = await getPracticeTimeZone();
   const now = new Date();
   const todayYmd = pillarTodayYmd(now, tz);
-  const oldestYmd = ymdAddCalendarDays(todayYmd, -LOOKBACK_DAYS);
+  const anchorYmd = await fetchPracticeMetricsAnchorYmd(supabase, user.id);
+  const oldestYmd = metricsQueryFloorYmd(todayYmd, LOOKBACK_DAYS, anchorYmd);
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
+  const effectiveStartYmd = effectiveMetricsStartYmd(user.created_at, anchorYmd, tz);
+  const firstCountableWeekSun = pillarWeekStartKeyFromDateYmd(effectiveStartYmd, tz);
 
   const thirdsResult = await listGroupsForUser({ groupKind: "thirds" });
   const chatResult = await listGroupsForUser({ groupKind: "chat" });
@@ -115,14 +123,16 @@ export async function getIdentityStreakStats(): Promise<IdentityStreakStat[]> {
     supabase
       .from("pillar_week_streak_completions")
       .select("pillar_week_start_ymd")
-      .eq("user_id", user.id),
+      .eq("user_id", user.id)
+      .gte("pillar_week_start_ymd", firstCountableWeekSun),
     chatGroupIds.length === 0
       ? Promise.resolve({ data: [] as { week_start_ymd: string }[], error: null })
       : supabase
           .from("chat_reading_check_ins")
           .select("week_start_ymd")
           .eq("user_id", user.id)
-          .in("group_id", chatGroupIds),
+          .in("group_id", chatGroupIds)
+          .gte("week_start_ymd", firstCountableWeekSun),
   ]);
 
   const soapsDays = buildSoapsQualifyingDaySet(journalRes.data ?? []);

@@ -2,8 +2,8 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
-import { ymdAddCalendarDays } from "@/lib/dashboard/pillar-week";
 import { pillarTodayYmd } from "@/lib/dashboard/identity-streaks";
+import { metricsQueryFloorYmd } from "@/lib/profile/practice-metrics-anchor";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
 import type { RawEvent } from "@/lib/metrics/formation-momentum/types";
 
@@ -35,7 +35,10 @@ function isoFromDateYmd(ymd: string): string {
  * - **Scripture memory:** One row per calendar day in DB; `value` is total touches (new + review); split in `metadata`.
  * - **CHAT:** One row per group per pillar week; same week can appear for multiple groups.
  */
-export async function getUserPracticeEvents(userId: string): Promise<IngestionResult> {
+export async function getUserPracticeEvents(
+  userId: string,
+  opts?: { practiceMetricsAnchorYmd?: string | null }
+): Promise<IngestionResult> {
   const supabase = await createClient();
   if (!supabase) {
     return { events: [] };
@@ -44,7 +47,7 @@ export async function getUserPracticeEvents(userId: string): Promise<IngestionRe
   const tz = await getPracticeTimeZone();
   const now = new Date();
   const todayYmd = pillarTodayYmd(now, tz);
-  const oldestYmd = ymdAddCalendarDays(todayYmd, -LOOKBACK_DAYS);
+  const oldestYmd = metricsQueryFloorYmd(todayYmd, LOOKBACK_DAYS, opts?.practiceMetricsAnchorYmd);
   const oldestIso = `${oldestYmd}T00:00:00.000Z`;
 
   const [

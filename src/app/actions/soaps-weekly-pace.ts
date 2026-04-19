@@ -1,18 +1,37 @@
 "use server";
 
+/**
+ * SOAPS dashboard gauge — **overall daily completion %** (qualifying SOAPS days / days since
+ * account start). Not used by Formation Momentum.
+ */
+
 import { SOAPS_WEEKLY_GOAL_SESSIONS } from "@/lib/dashboard/soaps-weekly-constants";
 import { isQualifyingSoapsEntry } from "@/lib/dashboard/soaps-entry";
-import { getMetricsAnchorWindow } from "@/lib/dashboard/metrics-anchor-window";
-import type { WeeklyRhythmPaceResult } from "@/lib/dashboard/weekly-rhythm-pace";
 import {
-  computeWeeklyRhythmPace,
-  expectedUnitsForPaceDay,
-} from "@/lib/dashboard/weekly-rhythm-pace";
+  buildDailyCompletionGauge,
+  type PracticeCompletionGaugeVm,
+} from "@/lib/dashboard/practice-completion-gauge";
+import {
+  effectiveMetricsStartYmd,
+  fetchPracticeMetricsAnchorYmd,
+} from "@/lib/profile/practice-metrics-anchor";
+import { inclusiveCalendarDaysBetween } from "@/lib/dashboard/metrics-anchor-window";
+import {
+  buildSoapsQualifyingDaySet,
+  pillarTodayYmd,
+} from "@/lib/dashboard/identity-streaks";
 import { createClient } from "@/lib/supabase/server";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
+import { countDaysInRangeInSet } from "@/lib/dashboard/practice-completion-gauge";
+
+export type SoapsCompletionGaugeResult = PracticeCompletionGaugeVm & {
+  totalDays: number;
+  qualifyingDays: number;
+  weeklyGoalSessions: number;
+};
 
 export async function getSoapsWeeklyPace(): Promise<
-  { error: string } | WeeklyRhythmPaceResult
+  { error: string } | SoapsCompletionGaugeResult
 > {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
@@ -23,37 +42,33 @@ export async function getSoapsWeeklyPace(): Promise<
 
   const tz = await getPracticeTimeZone();
   const now = new Date();
-  const anchor = getMetricsAnchorWindow(user.created_at, now, tz);
-  const ob = anchor.mode === "onboarding";
+  const anchorYmd = await fetchPracticeMetricsAnchorYmd(supabase, user.id);
+  const startYmd = effectiveMetricsStartYmd(user.created_at, anchorYmd, tz);
+  const todayYmd = pillarTodayYmd(now, tz);
 
   const { data: rows, error } = await supabase
     .from("journal_entries")
-    .select("scripture_text, soaps_share, user_reflection, prayer, application")
+    .select("scripture_text, soaps_share, user_reflection, prayer, application, entry_date")
     .eq("user_id", user.id)
-    .gte("entry_date", anchor.queryStartYmd)
-    .lte("entry_date", anchor.queryEndYmdInclusive);
+    .gte("entry_date", startYmd)
+    .lte("entry_date", todayYmd);
 
   if (error) return { error: error.message };
 
-  const actual = (rows ?? []).filter((r) => isQualifyingSoapsEntry(r)).length;
+  const daySet = buildSoapsQualifyingDaySet(rows ?? []);
+  const qualifyingDays = countDaysInRangeInSet(daySet, startYmd, todayYmd);
+  const totalDays = inclusiveCalendarDaysBetween(startYmd, todayYmd);
 
-  const expectedSoFar = expectedUnitsForPaceDay(
-    anchor.dayIndex,
-    SOAPS_WEEKLY_GOAL_SESSIONS,
-    { onboardingFirstDayZero: ob }
+  const gauge = buildDailyCompletionGauge(
+    qualifyingDays,
+    totalDays,
+    "qualifying SOAPS days"
   );
 
-  return computeWeeklyRhythmPace({
-    actual,
-    weeklyGoal: SOAPS_WEEKLY_GOAL_SESSIONS,
-    needleSensitivity: 9,
-    unitSingular: "session",
-    unitPlural: "sessions",
-    goalLabel: `${SOAPS_WEEKLY_GOAL_SESSIONS} SOAPS sessions`,
-    asOf: now,
-    practiceTimeZone: tz,
-    daysElapsed: anchor.dayIndex,
-    expectedSoFarOverride: expectedSoFar,
-    paceContext: ob ? "onboarding_first_week" : "default",
-  });
+  return {
+    ...gauge,
+    totalDays,
+    qualifyingDays,
+    weeklyGoalSessions: SOAPS_WEEKLY_GOAL_SESSIONS,
+  };
 }

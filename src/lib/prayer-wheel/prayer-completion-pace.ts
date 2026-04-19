@@ -5,7 +5,11 @@ import {
 
 const WEEKLY_PRAYER_DAY_GOAL = 7;
 
-/** Rhythm meter: distinct days with prayer this week vs showing up all 7 days (no minute targets). */
+/**
+ * Weekly **days-with-prayer** meter (7-day goal). The home dashboard prayer card uses cumulative
+ * minutes pace instead (home dashboard uses `practice-completion-gauge.ts`); this helper remains
+ * for any weekly-only callers.
+ */
 export function buildPrayerWeeklyCompletionPace(
   daysWithPrayerThisWeek: number,
   asOf: Date = new Date(),
