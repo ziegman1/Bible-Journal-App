@@ -8,8 +8,11 @@ import { cn } from "@/lib/utils";
 export function meetingTextareaClass(extra?: string) {
   return cn(
     "min-h-[4.5rem] w-full resize-none rounded-md border border-[#e0dcd7] bg-white px-3 py-2.5 text-sm text-[#1c252e]",
-    "placeholder:text-muted-foreground/65",
+    /* Dark: shared Textarea applies dark:bg-input/30 — without explicit dark text/background, merge can leave dark-on-dark typed text. */
+    "dark:border-input dark:bg-background dark:text-foreground dark:caret-foreground",
+    "placeholder:text-muted-foreground/65 dark:placeholder:text-muted-foreground/80",
     "focus-visible:border-[#83b0da] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#83b0da]/30",
+    "dark:focus-visible:border-ring dark:focus-visible:ring-ring/50",
     extra
   );
 }

@@ -189,6 +189,32 @@ export type FormationMomentumExplain = {
     id: GrowthStageId;
     label: string;
   };
+  /**
+   * Foundation-first guardrail: early users stay stage 1 until enough pillar weeks / signals exist,
+   * even when provisional shares would elevate to stage 2+.
+   */
+  stageGuardrail?: {
+    forcedToFoundation: boolean;
+    reason: string | null;
+    elapsedPillarWeeks: number;
+    normalizedSignalCount: number;
+    provisionalStageId: GrowthStageId;
+  };
+  /**
+   * Foundation-first progression: Formation (and lightly Reproduction) are scaled until Foundation’s
+   * share of provisional mass crosses `unlockThreshold` — models ordered discipleship growth (v1).
+   */
+  progressionGate: {
+    /** Foundation ÷ sum(provisional categories) using baseline matrix — unlock progress for v1. */
+    foundationProgressForUnlock: number;
+    unlockThreshold: number;
+    /** True when Foundation progress is still below the unlock threshold. */
+    formationGated: boolean;
+    /** Multiplier applied to Formation category mass after stage + sharing (1 when ungated). */
+    formationGatingMultiplier: number;
+    /** Multiplier applied to Reproduction mass while gated (1 when ungated). */
+    reproductionGatingMultiplier: number;
+  };
   /** Matrix id applied to produce final `categoryTotals` and per-signal `categoryContribution`. */
   contributionMatrixId: string;
   /**

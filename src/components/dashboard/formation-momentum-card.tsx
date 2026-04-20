@@ -1,6 +1,7 @@
 import { getFormationMomentumDashboard } from "@/app/actions/formation-momentum-dashboard";
 import { scoreToPhaseGauge } from "@/lib/metrics/formation-momentum/phase-gauge";
 import { topInsightPhrasesForCategory } from "@/lib/metrics/formation-momentum/category-contributors";
+import { resolveDiscipleshipMomentumInstruction } from "@/lib/metrics/formation-momentum/discipleship-momentum-instruction";
 import { computeNextBestSteps } from "@/lib/metrics/formation-momentum/next-best-steps";
 import type { CategoryId } from "@/lib/metrics/formation-momentum/types";
 import { getPracticeTimeZone } from "@/lib/timezone/get-practice-timezone";
@@ -10,12 +11,6 @@ import {
   FormationMomentumCardInteractive,
   type FormationMomentumRowVM,
 } from "@/components/dashboard/formation-momentum-card-interactive";
-
-const CATEGORY_LABEL: Record<CategoryId, string> = {
-  foundation: "Foundation",
-  formation: "Formation",
-  reproduction: "Reproduction",
-};
 
 const CATEGORY_ORDER: CategoryId[] = ["foundation", "formation", "reproduction"];
 
@@ -85,7 +80,14 @@ export async function FormationMomentumCard() {
   const byStrength = orderCategoriesByStrength(scores);
   const strongest = byStrength[0]!.category;
   const weakest = byStrength[2]!.category;
-  const summaryLine = `You are strongest in ${CATEGORY_LABEL[strongest]}. Focus next on growing in ${CATEGORY_LABEL[weakest]}.`;
+  /** Primary coaching line: early Foundation path vs default strongest/weakest (see `discipleship-momentum-instruction.ts`). */
+  const { summaryLine } = resolveDiscipleshipMomentumInstruction({
+    strongest,
+    weakest,
+    growthStageId: snapshot.meta?.growthStageId,
+    foundationScore: scores.foundation,
+    explain,
+  });
 
   return (
     <div

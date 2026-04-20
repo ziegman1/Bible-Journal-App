@@ -112,7 +112,7 @@ export async function ThirdsDashboardPracticeCard({
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-foreground">
-        Weekly meeting rhythm—overall week completion since you started participating.
+        Solo or group rhythm—pillar weeks completed since your metrics start (including reset).
       </p>
 
       <div className="mt-2 border-t border-border/60 pt-2">

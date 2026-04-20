@@ -1,8 +1,9 @@
 "use server";
 
 /**
- * 3/3rds dashboard gauge — **overall weekly completion %**: finalized solo weeks / total weeks since
- * participation start (same model as `fetchThirdsParticipationMetrics`). Not Formation Momentum.
+ * 3/3rds dashboard gauge — **overall weekly completion %**: distinct pillar weeks completed (solo
+ * finalize and/or group streak) / pillar weeks since metrics anchor (same as
+ * `fetchThirdsParticipationMetrics`). Not Formation Momentum.
  */
 
 import {
@@ -30,7 +31,7 @@ export async function getThirdsWeeklyCompletionGauge(): Promise<
 
   const metrics = await fetchThirdsParticipationMetrics(supabase, user.id);
   if (!metrics) {
-    const gauge = buildWeeklyCompletionGauge(0, 1, "3/3rds finalized weeks");
+    const gauge = buildWeeklyCompletionGauge(0, 1, "3/3rds");
     return {
       ...gauge,
       participatedWeeks: 0,
@@ -43,7 +44,7 @@ export async function getThirdsWeeklyCompletionGauge(): Promise<
   const gauge = buildWeeklyCompletionGauge(
     participatedWeeks,
     Math.max(1, totalWeeks),
-    "3/3rds weeks finalized"
+    "3/3rds"
   );
 
   return {

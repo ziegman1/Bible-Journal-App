@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatInTimeZone } from "date-fns-tz";
 import {
   applyMatrixWithPerSignalContributions,
   applyMatrixWithShareRowOverride,
@@ -14,6 +15,15 @@ import {
   DEFAULT_CONTRIBUTION_MATRIX,
   STAGE_CONTRIBUTION_MATRICES,
 } from "@/lib/metrics/formation-momentum/matrix";
+import { WEEKLY_ANCHOR_UNITS, normalizeEvents } from "@/lib/metrics/formation-momentum/normalization";
+import { applyProgressionCategoryGate } from "@/lib/metrics/formation-momentum/progression-gate";
+import {
+  applyGrowthStageGuardrail,
+  countElapsedPillarWeeksInclusive,
+  EARLY_WEEKLY_ANCHOR_UNITS,
+  MIN_ELAPSED_PILLAR_WEEKS_FOR_STAGE_ESCALATION,
+  type GrowthStageGuardrailResult,
+} from "@/lib/metrics/formation-momentum/stage-guardrail";
 import { detectGrowthStage } from "@/lib/metrics/formation-momentum/stage-detection";
 import { applyConsistency } from "@/lib/metrics/formation-momentum/modifiers/consistency";
 import { applyGrace } from "@/lib/metrics/formation-momentum/modifiers/grace";
@@ -24,7 +34,6 @@ import {
   type GoalAlignmentInputGoals,
 } from "@/lib/metrics/formation-momentum/modifiers/goal-alignment";
 import { applyRecency } from "@/lib/metrics/formation-momentum/modifiers/recency";
-import { normalizeEvents } from "@/lib/metrics/formation-momentum/normalization";
 import type {
   ComputeFormationMomentumOptions,
   FormationMomentumExplain,
@@ -139,6 +148,8 @@ function buildExplain(
       reproduction: number;
     };
     growthStage: { id: 1 | 2 | 3; label: string };
+    stageGuardrail: FormationMomentumExplain["stageGuardrail"];
+    progressionGate: FormationMomentumExplain["progressionGate"];
     appliedMatrixId: string;
     sharingImpact: FormationMomentumExplain["sharingImpact"];
   }
@@ -201,6 +212,8 @@ function buildExplain(
     provisionalCategoryTotals: stageCtx.provisionalCategoryTotals,
     provisionalShares: stageCtx.provisionalShares,
     growthStage: stageCtx.growthStage,
+    stageGuardrail: stageCtx.stageGuardrail,
+    progressionGate: stageCtx.progressionGate,
     contributionMatrixId: stageCtx.appliedMatrixId,
     sharingImpact: stageCtx.sharingImpact,
     normalizedSignals,
@@ -220,14 +233,32 @@ function runStageBasedAggregation(
   modified: readonly ModifiedSignal[],
   normalized: readonly NormalizedSignal[],
   timeZone: string,
-  now: Date
-) {
+  now: Date,
+  guardInputs: { elapsedPillarWeeks: number }
+): {
+  totals: ReturnType<typeof applyShareDragToPerSignalAndTotals>["totals"];
+  perSignal: ReturnType<typeof applyShareDragToPerSignalAndTotals>["perSignal"];
+  provisionalTotals: { foundation: number; formation: number; reproduction: number };
+  growthGuard: GrowthStageGuardrailResult;
+  appliedMatrixId: string;
+  sharingModel: ReturnType<typeof evaluateSharingImpactModel>;
+  shareOnlyTotalsBeforeDrag: {
+    foundation: number;
+    formation: number;
+    reproduction: number;
+  };
+} {
   const provisional = applyMatrixWithPerSignalContributions(
     modified,
     DEFAULT_CONTRIBUTION_MATRIX
   );
-  const detection = detectGrowthStage(provisional.totals);
-  const appliedMatrix = STAGE_CONTRIBUTION_MATRICES[detection.stage];
+  const provisionalDetection = detectGrowthStage(provisional.totals);
+  const growthGuard = applyGrowthStageGuardrail(
+    provisionalDetection,
+    guardInputs.elapsedPillarWeeks,
+    normalized.length
+  );
+  const appliedMatrix = STAGE_CONTRIBUTION_MATRICES[growthGuard.stage];
   const sharingModel = evaluateSharingImpactModel(normalized, timeZone, now);
 
   const beforeDrag = applyMatrixWithShareRowOverride(
@@ -245,8 +276,8 @@ function runStageBasedAggregation(
     totals: afterDrag.totals,
     perSignal: afterDrag.perSignal,
     provisionalTotals: provisional.totals,
-    detection,
-    appliedMatrixId: appliedMatrixIdForStage(detection.stage),
+    growthGuard,
+    appliedMatrixId: appliedMatrixIdForStage(growthGuard.stage),
     sharingModel,
     shareOnlyTotalsBeforeDrag: beforeDrag.shareOnlyTotals,
   };
@@ -254,6 +285,10 @@ function runStageBasedAggregation(
 
 /**
  * End-to-end formation momentum (full v1 modifier chain: recency, consistency, goal alignment, grace).
+ *
+ * After stage matrix + sharing, {@link applyProgressionCategoryGate} scales Formation (and lightly
+ * Reproduction) until Foundation’s provisional share crosses a threshold — ordered discipleship without
+ * rewriting modifiers or stage detection.
  *
  * Pass `{ explain: true }` to attach structured pipeline inspection data (server-side tuning; not for end-user UI yet).
  */
@@ -278,8 +313,22 @@ export async function computeFormationMomentum(
     authUser.data.user?.id === userId ? authUser.data.user.created_at ?? null : null;
 
   const graceSignupYmd = effectiveMetricsStartYmd(userCreatedAt, anchorYmd, tz);
+  const todayYmd = formatInTimeZone(now, tz, "yyyy-MM-dd");
+  const elapsedPillarWeeks = countElapsedPillarWeeksInclusive(
+    graceSignupYmd,
+    todayYmd,
+    tz
+  );
+  const weeklyAnchorUnitsForChatAndThirds =
+    elapsedPillarWeeks < MIN_ELAPSED_PILLAR_WEEKS_FOR_STAGE_ESCALATION
+      ? EARLY_WEEKLY_ANCHOR_UNITS
+      : WEEKLY_ANCHOR_UNITS;
 
-  const normalized = normalizeEvents(events, { timeZone: tz, now });
+  const normalized = normalizeEvents(events, {
+    timeZone: tz,
+    now,
+    weeklyAnchorUnitsForChatAndThirds,
+  });
   const modified: ModifiedSignal[] = normalized.map((s) =>
     applyModifiers(s, {
       timeZone: tz,
@@ -293,14 +342,36 @@ export async function computeFormationMomentum(
 
   const wantExplain = options?.explain === true;
 
-  const staged = runStageBasedAggregation(modified, normalized, tz, now);
-  const aggregates = staged.totals;
+  const staged = runStageBasedAggregation(modified, normalized, tz, now, {
+    elapsedPillarWeeks,
+  });
+
+  const progression = applyProgressionCategoryGate(
+    staged.totals,
+    staged.perSignal,
+    staged.provisionalTotals
+  );
+  const aggregates = progression.totals;
 
   const explain: FormationMomentumExplain | undefined = wantExplain
-    ? buildExplain(normalized, modified, staged.totals, staged.perSignal, {
+    ? buildExplain(normalized, modified, progression.totals, progression.perSignal, {
         provisionalCategoryTotals: staged.provisionalTotals,
-        provisionalShares: staged.detection.shares,
-        growthStage: { id: staged.detection.stage, label: staged.detection.label },
+        provisionalShares: staged.growthGuard.shares,
+        growthStage: { id: staged.growthGuard.stage, label: staged.growthGuard.label },
+        stageGuardrail: {
+          forcedToFoundation: staged.growthGuard.forcedToFoundation,
+          reason: staged.growthGuard.reason,
+          elapsedPillarWeeks: staged.growthGuard.elapsedPillarWeeks,
+          normalizedSignalCount: staged.growthGuard.normalizedSignalCount,
+          provisionalStageId: staged.growthGuard.provisionalStageId,
+        },
+        progressionGate: {
+          foundationProgressForUnlock: progression.foundationProgressForUnlock,
+          unlockThreshold: progression.unlockThreshold,
+          formationGated: progression.formationGated,
+          formationGatingMultiplier: progression.formationGatingMultiplier,
+          reproductionGatingMultiplier: progression.reproductionGatingMultiplier,
+        },
         appliedMatrixId: staged.appliedMatrixId,
         sharingImpact: {
           windowPillarWeeks: staged.sharingModel.windowPillarWeeks,
@@ -329,8 +400,8 @@ export async function computeFormationMomentum(
     meta: {
       signalCount: normalized.length,
       modifiedSignalCount: modified.length,
-      growthStageId: staged.detection.stage,
-      growthStageLabel: staged.detection.label,
+      growthStageId: staged.growthGuard.stage,
+      growthStageLabel: staged.growthGuard.label,
       appliedMatrixId: staged.appliedMatrixId,
     },
     ...(explain ? { explain } : {}),

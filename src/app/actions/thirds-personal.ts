@@ -97,28 +97,24 @@ export async function getThirdsParticipationStats(): Promise<
 
   if (settingsErr) return { error: settingsErr.message };
 
-  if (!settings?.participation_started_on) {
-    const { count: completions, error: compErr } = await supabase
-      .from("thirds_personal_group_completions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    if (compErr) return { error: compErr.message };
-    return {
-      hasSettings: false,
-      participationStartedOn: null,
-      participatedWeeks: 0,
-      totalWeeks: 0,
-      percent: null,
-      informalGroupsCompleted: completions ?? 0,
-    };
-  }
+  const { count: completions, error: compErr } = await supabase
+    .from("thirds_personal_group_completions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  if (compErr) return { error: compErr.message };
 
-  const startMonday = utcDateYmd(
-    startOfUtcWeekMonday(new Date(`${settings.participation_started_on}T12:00:00.000Z`))
-  );
-
-  const metrics = await fetchThirdsParticipationMetrics(supabase, user.id, startMonday);
+  const metrics = await fetchThirdsParticipationMetrics(supabase, user.id);
   if (!metrics) {
+    if (!settings?.participation_started_on) {
+      return {
+        hasSettings: false,
+        participationStartedOn: null,
+        participatedWeeks: 0,
+        totalWeeks: 0,
+        percent: null,
+        informalGroupsCompleted: completions ?? 0,
+      };
+    }
     return { error: "Could not load participation weeks." };
   }
 
@@ -126,11 +122,20 @@ export async function getThirdsParticipationStats(): Promise<
   const percent =
     totalWeeks > 0 ? Math.min(100, Math.round(ratio * 100)) : null;
 
-  const { count: completions, error: compErr2 } = await supabase
-    .from("thirds_personal_group_completions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id);
-  if (compErr2) return { error: compErr2.message };
+  if (!settings?.participation_started_on) {
+    return {
+      hasSettings: false,
+      participationStartedOn: null,
+      participatedWeeks,
+      totalWeeks,
+      percent,
+      informalGroupsCompleted: completions ?? 0,
+    };
+  }
+
+  const startMonday = utcDateYmd(
+    startOfUtcWeekMonday(new Date(`${settings.participation_started_on}T12:00:00.000Z`))
+  );
 
   return {
     hasSettings: true,

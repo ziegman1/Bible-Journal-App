@@ -14,6 +14,11 @@ export type NormalizeEventsOptions = {
   timeZone?: string;
   /** Reserved for future anchor windows (e.g. trailing 4-week analysis); unused in v1 normalization. */
   now?: Date;
+  /**
+   * Mass for CHAT + 3/3rds merged weekly rows (default {@link WEEKLY_ANCHOR_UNITS}).
+   * Engine may pass a lower value in early weeks so weekly anchors do not overpower Foundation.
+   */
+  weeklyAnchorUnitsForChatAndThirds?: number;
 };
 
 const PRACTICE_ORDER: PracticeType[] = ["soaps", "prayer", "memory", "chat", "thirds", "share"];
@@ -24,7 +29,7 @@ const PRACTICE_ORDER: PracticeType[] = ["soaps", "prayer", "memory", "chat", "th
  * Scale weekly rows so one completed week carries mass comparable to **~6 days** of typical daily volume
  * before modifiers — reflecting their role as full-week discipleship anchors (not stacking extra rows).
  */
-const WEEKLY_ANCHOR_UNITS = 6;
+export const WEEKLY_ANCHOR_UNITS = 6;
 
 /**
  * Column names on `scripture_memory_settings` for goal alignment later.
@@ -126,14 +131,20 @@ type MemoryWeekBucket = {
  *   prorate month across remaining pillar weeks, or policy-specific factors) without reintroducing monthly windows.
  * - **3/3rds dedupe:** One merged signal per week; see `metadata.sourcesSeen` / `traceEventIds`.
  * - **CHAT:** `week_start_ymd` aligns with the same `week:*` keys. One row per pillar week; `totalUnits`
- *   uses {@link WEEKLY_ANCHOR_UNITS} when any check-in exists (multiple groups do not multiply units).
- * - **3/3rds:** One merged row per pillar week; `totalUnits` uses {@link WEEKLY_ANCHOR_UNITS} for participation.
+ *   uses the weekly anchor (default {@link WEEKLY_ANCHOR_UNITS}) when any check-in exists.
+ * - **3/3rds:** One merged row per pillar week; same weekly anchor mass for participation.
  */
 export function normalizeEvents(
   events: readonly RawEvent[],
   options?: NormalizeEventsOptions
 ): NormalizedSignal[] {
   const tz = resolveTz(options);
+  const weeklyAnchorUnits =
+    typeof options?.weeklyAnchorUnitsForChatAndThirds === "number" &&
+    Number.isFinite(options.weeklyAnchorUnitsForChatAndThirds) &&
+    options.weeklyAnchorUnitsForChatAndThirds > 0
+      ? options.weeklyAnchorUnitsForChatAndThirds
+      : WEEKLY_ANCHOR_UNITS;
   const soapsByWeek = new Map<string, WeeklyAgg>();
   const prayerByWeek = new Map<string, WeeklyAgg>();
   const chatByWeek = new Map<
@@ -337,7 +348,7 @@ export function normalizeEvents(
   }
 
   for (const [wk, row] of [...chatByWeek.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const anchorUnits = row.checkIns > 0 ? WEEKLY_ANCHOR_UNITS : 0;
+    const anchorUnits = row.checkIns > 0 ? weeklyAnchorUnits : 0;
     out.push({
       id: `chat:${wk}`,
       practiceType: "chat",
@@ -373,8 +384,8 @@ export function normalizeEvents(
       windowKey: wk,
       subtype: "thirds_week_participation",
       /** Scaled to weekly anchor mass; still one merged row per pillar week (deduped sources). */
-      totalUnits: WEEKLY_ANCHOR_UNITS,
-      qualifyingUnits: WEEKLY_ANCHOR_UNITS,
+      totalUnits: weeklyAnchorUnits,
+      qualifyingUnits: weeklyAnchorUnits,
       daysWithActivity: days.size,
       goalTarget: null,
       metadata: {
