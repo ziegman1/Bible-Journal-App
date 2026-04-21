@@ -1,92 +1,170 @@
 import type { PerSignalCategoryMass } from "@/lib/metrics/formation-momentum/aggregator";
-import type { CategoryId } from "@/lib/metrics/formation-momentum/types";
+import type { CategoryContributionBreakdown, CategoryId } from "@/lib/metrics/formation-momentum/types";
 
 /**
- * Progressive discipleship ordering (v1): **Foundation** is established first; **Formation** meaningfully
- * accumulates only after Foundation represents a sufficient share of baseline category mass. **Reproduction**
- * stays comparatively light early. Formation is intentionally unlocked only after Foundation begins taking root
- * in the provisional (baseline-matrix) balance — not a rewrite of modifiers, stage detection, or sharing.
+ * **Progression gate** — post–stage-matrix / post–sharing-drag, pre–final snapshot.
+ *
+ * Aligns unlock **shares** with staged category totals **after** stage matrix, sharing overlay/drag, and
+ * **rolling rhythm** multipliers on pillar masses (same units as `preGateTotals` here). Stage detection still
+ * uses provisional baseline totals elsewhere — do not confuse the two.
+ *
+ * **Foundation** is never scaled. **Formation** ramps with Foundation share. **Reproduction** uses the
+ * minimum of a Foundation ramp and a Formation ramp so it trails both (overflow, not independence).
  */
 
-/** Foundation must reach this share of provisional (baseline) category mass before Formation scores at full strength. */
+/** Foundation share of (F+Fo+R) at/above this ⇒ Formation at full strength (`formationMultiplier === 1`). */
 export const FOUNDATION_PROGRESS_UNLOCK_THRESHOLD = 0.4;
 
-/**
- * When gated, Formation contributions are scaled toward zero so Foundation can lead early.
- * Kept aggressive so weekly anchors (CHAT / 3/3rds) do not outrank dailies on day one.
- */
-export const FORMATION_GATED_MULTIPLIER = 0.05;
+/** Floor for Formation multiplier when Foundation share is 0 (smooth emergence, not a dead cliff). */
+export const FORMATION_MIN_MULTIPLIER_BEFORE_UNLOCK = 0.1;
+
+/** Formation share of totals at/above this ⇒ Formation leg of Reproduction gate fully open. */
+export const FORMATION_PROGRESS_REPRODUCTION_UNLOCK_THRESHOLD = 0.3;
+
+/** Floor for Reproduction from Formation ramp when Formation share is 0. */
+export const REPRODUCTION_MIN_MULTIPLIER_BEFORE_FORMATION_UNLOCK = 0.15;
+
+/** Floor for Reproduction from Foundation ramp when Foundation share is 0. */
+export const REPRODUCTION_MIN_MULTIPLIER_BEFORE_FOUNDATION_UNLOCK = 0.35;
+
+function clamp01(n: number): number {
+  return Math.min(1, Math.max(0, n));
+}
+
+/** Share of one category in F+Fo+R; 0 if sum is non-positive. */
+export function categoryShareOfTotal(
+  totals: Record<CategoryId, number>,
+  category: CategoryId
+): number {
+  const sum = totals.foundation + totals.formation + totals.reproduction;
+  if (!(sum > 0)) return 0;
+  return totals[category] / sum;
+}
 
 /**
- * Optional light dampening for Reproduction until Foundation is established (share-derived mass can still spike).
+ * Foundation progress for unlock: **Foundation ÷ sum(staged categories)** using totals **immediately before**
+ * this gate (stage matrix + sharing row + share drag already applied).
  */
-export const REPRODUCTION_GATED_MULTIPLIER = 0.55;
+export function computeFoundationProgressForUnlock(preGateTotals: Record<CategoryId, number>): number {
+  return categoryShareOfTotal(preGateTotals, "foundation");
+}
+
+function formationMultiplierFromFoundationShare(foundationShare: number): number {
+  if (foundationShare >= FOUNDATION_PROGRESS_UNLOCK_THRESHOLD) return 1;
+  const ratio = clamp01(foundationShare / FOUNDATION_PROGRESS_UNLOCK_THRESHOLD);
+  return (
+    FORMATION_MIN_MULTIPLIER_BEFORE_UNLOCK +
+    (1 - FORMATION_MIN_MULTIPLIER_BEFORE_UNLOCK) * ratio
+  );
+}
+
+function reproductionFoundationMultiplierFromFoundationShare(foundationShare: number): number {
+  if (foundationShare >= FOUNDATION_PROGRESS_UNLOCK_THRESHOLD) return 1;
+  const ratio = clamp01(foundationShare / FOUNDATION_PROGRESS_UNLOCK_THRESHOLD);
+  return (
+    REPRODUCTION_MIN_MULTIPLIER_BEFORE_FOUNDATION_UNLOCK +
+    (1 - REPRODUCTION_MIN_MULTIPLIER_BEFORE_FOUNDATION_UNLOCK) * ratio
+  );
+}
+
+function reproductionFormationMultiplierFromFormationShare(formationShare: number): number {
+  if (formationShare >= FORMATION_PROGRESS_REPRODUCTION_UNLOCK_THRESHOLD) return 1;
+  const ratio = clamp01(formationShare / FORMATION_PROGRESS_REPRODUCTION_UNLOCK_THRESHOLD);
+  return (
+    REPRODUCTION_MIN_MULTIPLIER_BEFORE_FORMATION_UNLOCK +
+    (1 - REPRODUCTION_MIN_MULTIPLIER_BEFORE_FORMATION_UNLOCK) * ratio
+  );
+}
 
 export type ProgressionCategoryGateResult = {
   totals: Record<CategoryId, number>;
   perSignal: PerSignalCategoryMass[];
-  /** Foundation’s share of provisional category mass (baseline matrix) — v1 “progress toward unlock”. */
+  preGateTotals: CategoryContributionBreakdown;
+  postGateTotals: CategoryContributionBreakdown;
   foundationProgressForUnlock: number;
+  formationProgressForReproductionUnlock: number;
+  formationMultiplier: number;
+  reproductionFoundationMultiplier: number;
+  reproductionFormationMultiplier: number;
+  reproductionMultiplier: number;
+  foundationUnlockReached: boolean;
+  formationReproductionUnlockReached: boolean;
+  /**
+   * True when Foundation share is still below {@link FOUNDATION_PROGRESS_UNLOCK_THRESHOLD} (legacy name for UI).
+   * Not “Formation dead” — {@link formationMultiplier} is a ramp, not a cliff.
+   */
   formationGated: boolean;
-  formationGatingMultiplier: number;
-  reproductionGatingMultiplier: number;
   unlockThreshold: number;
+  formationReproductionUnlockThreshold: number;
 };
 
 /**
- * v1 unlock metric: ratio of **Foundation** to total provisional mass (`DEFAULT_CONTRIBUTION_MATRIX`),
- * i.e. how much of the baseline discipleship split is Foundation-weighted before stage matrices and sharing layers.
- */
-export function computeFoundationProgressForUnlock(
-  provisionalTotals: Record<CategoryId, number>
-): number {
-  const sum =
-    provisionalTotals.foundation + provisionalTotals.formation + provisionalTotals.reproduction;
-  if (!(sum > 0)) return 0;
-  return provisionalTotals.foundation / sum;
-}
-
-/**
- * Layered after stage matrix + sharing: scales **Formation** (and lightly **Reproduction**) category masses
- * when Foundation progress is below the unlock threshold. Does not alter recency, consistency, goal alignment,
- * grace, stage detection inputs, or sharing model logic — only post-aggregation category weights.
+ * Scales **only** Formation and Reproduction masses using **pre-gate staged** totals for progress ratios.
+ *
+ * @param preGateTotals — `runStageBasedAggregation` totals after matrix + share override + share drag.
+ * @param perSignal — matching per-signal masses (same pipeline point).
  */
 export function applyProgressionCategoryGate(
-  totals: Record<CategoryId, number>,
-  perSignal: readonly PerSignalCategoryMass[],
-  provisionalTotals: Record<CategoryId, number>
+  preGateTotals: Record<CategoryId, number>,
+  perSignal: readonly PerSignalCategoryMass[]
 ): ProgressionCategoryGateResult {
-  const foundationProgressForUnlock = computeFoundationProgressForUnlock(provisionalTotals);
-  const below = foundationProgressForUnlock < FOUNDATION_PROGRESS_UNLOCK_THRESHOLD;
-  const formationGatingMultiplier = below ? FORMATION_GATED_MULTIPLIER : 1;
-  const reproductionGatingMultiplier = below ? REPRODUCTION_GATED_MULTIPLIER : 1;
+  const foundationProgressForUnlock = computeFoundationProgressForUnlock(preGateTotals);
+  const formationProgressForReproductionUnlock = categoryShareOfTotal(preGateTotals, "formation");
+
+  const foundationUnlockReached = foundationProgressForUnlock >= FOUNDATION_PROGRESS_UNLOCK_THRESHOLD;
+  const formationReproductionUnlockReached =
+    formationProgressForReproductionUnlock >= FORMATION_PROGRESS_REPRODUCTION_UNLOCK_THRESHOLD;
+
+  const formationMultiplier = formationMultiplierFromFoundationShare(foundationProgressForUnlock);
+  const reproductionFoundationMultiplier =
+    reproductionFoundationMultiplierFromFoundationShare(foundationProgressForUnlock);
+  const reproductionFormationMultiplier =
+    reproductionFormationMultiplierFromFormationShare(formationProgressForReproductionUnlock);
+  const reproductionMultiplier = Math.min(
+    reproductionFoundationMultiplier,
+    reproductionFormationMultiplier
+  );
+
+  const preGateTotalsSnapshot: CategoryContributionBreakdown = {
+    foundation: preGateTotals.foundation,
+    formation: preGateTotals.formation,
+    reproduction: preGateTotals.reproduction,
+  };
 
   const scaleLine = (p: PerSignalCategoryMass): PerSignalCategoryMass => ({
     signalId: p.signalId,
     foundation: p.foundation,
-    formation: p.formation * formationGatingMultiplier,
-    reproduction: p.reproduction * reproductionGatingMultiplier,
+    formation: p.formation * formationMultiplier,
+    reproduction: p.reproduction * reproductionMultiplier,
   });
 
   const scaledPer = perSignal.map(scaleLine);
-  const outTotals: Record<CategoryId, number> = {
+  const postGateTotals: CategoryContributionBreakdown = {
     foundation: 0,
     formation: 0,
     reproduction: 0,
   };
   for (const p of scaledPer) {
-    outTotals.foundation += p.foundation;
-    outTotals.formation += p.formation;
-    outTotals.reproduction += p.reproduction;
+    postGateTotals.foundation += p.foundation;
+    postGateTotals.formation += p.formation;
+    postGateTotals.reproduction += p.reproduction;
   }
 
   return {
-    totals: outTotals,
+    totals: postGateTotals,
     perSignal: scaledPer,
+    preGateTotals: preGateTotalsSnapshot,
+    postGateTotals,
     foundationProgressForUnlock,
-    formationGated: below,
-    formationGatingMultiplier,
-    reproductionGatingMultiplier,
+    formationProgressForReproductionUnlock,
+    formationMultiplier,
+    reproductionFoundationMultiplier,
+    reproductionFormationMultiplier,
+    reproductionMultiplier,
+    foundationUnlockReached,
+    formationReproductionUnlockReached,
+    formationGated: !foundationUnlockReached,
     unlockThreshold: FOUNDATION_PROGRESS_UNLOCK_THRESHOLD,
+    formationReproductionUnlockThreshold: FORMATION_PROGRESS_REPRODUCTION_UNLOCK_THRESHOLD,
   };
 }

@@ -12,6 +12,7 @@ import { getSoapsHomeActionHref } from "@/app/actions/soaps-home-action";
 import { SOAPS_HUB_PDF_URL, SOAPS_HUB_ZUME_VIDEO_URL } from "@/lib/config/soaps-hub-resources";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { SoapsOverviewTraining } from "@/components/soaps-overview-training";
 import { cn } from "@/lib/utils";
 
 export default async function SoapsHubPage() {
@@ -82,6 +83,7 @@ export default async function SoapsHubPage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Learn
         </h2>
+        <SoapsOverviewTraining />
         <div className="grid gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader>
@@ -89,7 +91,7 @@ export default async function SoapsHubPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Printable overview of the SOAPS pattern. Replace the placeholder URL in{" "}
+                Optional printable handout of the SOAPS pattern. Set{" "}
                 <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_SOAPS_PDF_URL</code> when your
                 PDF is ready.
               </p>

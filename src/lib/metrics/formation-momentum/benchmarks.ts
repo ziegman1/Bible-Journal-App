@@ -1,5 +1,6 @@
 /**
- * **v1 presentation layer:** maps raw category mass (engine output) to named levels and within-band progress.
+ * **v1 presentation layer:** maps raw category mass (engine **post–progression-gate** `CategoryScore.score`)
+ * to named levels and within-band progress.
  *
  * This is for **user clarity only** — not engine truth. Thresholds are placeholders; tune after field testing.
  * Changing bands here does **not** change scoring — only labels and progress bars in the UI.

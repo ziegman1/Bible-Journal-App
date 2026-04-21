@@ -159,6 +159,35 @@ export function applyShareDragToPerSignalAndTotals(
 }
 
 /**
+ * Second-order **rolling rhythm** lift: multiplies each pillar’s mass on every signal line by the
+ * same capped multipliers (Foundation / Formation / Reproduction). Foundation column uses the
+ * foundation-family rolling score; Formation uses formation-family; Reproduction stays 1 in v1.
+ * Does not change `effectiveWeight` on {@link ModifiedSignal} — only category breakdown lines.
+ */
+export function applyCategoryRhythmMultipliersToPerSignal(
+  perSignal: readonly PerSignalCategoryMass[],
+  multipliers: Record<CategoryId, number>
+): MatrixAggregateResult {
+  const scaled: PerSignalCategoryMass[] = perSignal.map((p) => ({
+    signalId: p.signalId,
+    foundation: p.foundation * multipliers.foundation,
+    formation: p.formation * multipliers.formation,
+    reproduction: p.reproduction * multipliers.reproduction,
+  }));
+  const totals: Record<CategoryId, number> = {
+    foundation: 0,
+    formation: 0,
+    reproduction: 0,
+  };
+  for (const p of scaled) {
+    totals.foundation += p.foundation;
+    totals.formation += p.formation;
+    totals.reproduction += p.reproduction;
+  }
+  return { totals, perSignal: scaled };
+}
+
+/**
  * Distribute modified effective weights into category dimensions using the contribution matrix.
  */
 export function applyMatrix(

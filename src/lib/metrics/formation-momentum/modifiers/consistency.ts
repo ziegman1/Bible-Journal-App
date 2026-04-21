@@ -144,3 +144,11 @@ export function applyConsistency(
     weeklyHadActivity: null,
   };
 }
+
+/** Rolling 6-week family rhythm (capped pillar multipliers after matrix+sharing) — see `rolling-rhythm.ts`. */
+export {
+  computeRollingRhythmContext,
+  FOUNDATION_STREAK_BONUS_CAP,
+  FORMATION_STREAK_BONUS_CAP,
+  ROLLING_CONSISTENCY_LOOKBACK_WEEKS,
+} from "@/lib/metrics/formation-momentum/modifiers/rolling-rhythm";

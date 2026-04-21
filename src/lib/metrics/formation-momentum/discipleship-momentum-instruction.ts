@@ -1,9 +1,13 @@
 /**
  * **Discipleship Momentum card — primary summary instruction** (presentation only).
  *
- * Branches on discipleship **stage** and engine signals so early users see concrete practice guidance
- * instead of generic “focus on Formation.” Later stages should use different paths (Formation-focused,
- * Reproduction-focused, etc.) — extend `DiscipleshipInstructionKind` and `resolveDiscipleshipMomentumInstruction`.
+ * Branches on discipleship **stage** and engine signals so early users see concrete guidance instead of
+ * generic “focus on Formation.” Later stages should use different paths — extend `DiscipleshipInstructionKind`
+ * and `resolveDiscipleshipMomentumInstruction`.
+ *
+ * **Scope honesty:** Card copy describes rhythms the **formation-momentum engine** can reflect (SOAPS, prayer,
+ * Scripture memory, CHAT, 3/3rds, logged share encounters per `ingestion.ts`). It must **not** imply separate
+ * products (e.g. list-of-100 workflows) are scored unless wired into that pipeline.
  */
 
 import { scoreToBenchmarkProgress } from "@/lib/metrics/formation-momentum/benchmarks";
@@ -17,11 +21,11 @@ const CATEGORY_LABEL: Record<CategoryId, string> = {
 };
 
 /**
- * Actionable copy for **early Foundation** discipleship — daily habits, weekly community, light reproduction nudge.
- * Used when the user is still in the Foundation-first phase (stage 1, gated Formation, or low Foundation mass band).
+ * Pastoral + accurate: encourages rhythms that **are** engine inputs. Wider discipleship habits (prayer lists,
+ * oikos, etc.) belong in other UI — not stated here as part of this score.
  */
 export const EARLY_FOUNDATION_SUMMARY_LINE =
-  "Keep focusing on growing in your Foundation by doing your SOAPS, praying and Scripture memory daily, and meeting with your 3/3rds group and CHAT group weekly. Pray for 5 from your list of 100 and set a time to reach out and share with them.";
+  "Keep focusing on growing in your Foundation by doing your SOAPS, praying, practicing Scripture memory, and meeting with your 3/3rds and CHAT rhythms consistently. As you log sharing encounters, Reproduction will grow alongside those habits.";
 
 export type DiscipleshipInstructionKind =
   | "early_foundation"
@@ -47,8 +51,8 @@ export type ResolveDiscipleshipMomentumInstructionArgs = {
 
 /**
  * True when we should show **early Foundation** coaching instead of generic category balance.
- * Uses OR of: growth stage 1, Formation still gated, Foundation unlock progress below threshold,
- * or Foundation mass still in the early part of its benchmark band.
+ * Uses OR of: growth stage 1, Foundation staged share still below unlock threshold, or Foundation mass in the
+ * first benchmark band (presentation layer).
  */
 export function isEarlyFoundationInstructionPath(
   args: ResolveDiscipleshipMomentumInstructionArgs

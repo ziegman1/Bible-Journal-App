@@ -126,7 +126,7 @@ export type CategoryId = "foundation" | "formation" | "reproduction";
 
 export type CategoryScore = {
   category: CategoryId;
-  /** 0–1 or arbitrary scale; snapshot contract TBD when wired to UI */
+  /** Raw category mass after the full engine pipeline (including progression gate); not normalized 0–1. */
   score: number;
 };
 
@@ -170,6 +170,32 @@ export type NormalizedSignalExplainSlice = Pick<
  */
 export type GrowthStageId = 1 | 2 | 3;
 
+export type WeeklyRhythmStatusExplain = "complete" | "partial" | "empty";
+
+export type RollingRhythmWeekRowExplain = {
+  weekKey: string;
+  status: WeeklyRhythmStatusExplain;
+  score: number;
+};
+
+/**
+ * Trailing 6-week family rhythm → capped multipliers on **category masses** (after matrix + sharing drag,
+ * before progression gate). Does not replace per-signal {@link ModifiedSignal} consistency modifier.
+ */
+export type RollingRhythmConsistency = {
+  rollingConsistencyLookbackWeeks: number;
+  rollingFoundationScore: number;
+  rollingFormationScore: number;
+  rollingReproductionScore: number;
+  foundationConsistencyMultiplier: number;
+  formationConsistencyMultiplier: number;
+  reproductionConsistencyMultiplier: number;
+  foundationWeeklyRhythm: RollingRhythmWeekRowExplain[];
+  formationWeeklyRhythm: RollingRhythmWeekRowExplain[];
+  reproductionWeeklyRhythm: RollingRhythmWeekRowExplain[];
+  formationRhythmModelNote: string;
+};
+
 export type FormationMomentumExplain = {
   /**
    * Baseline matrix id used only to compute provisional category totals for growth-stage detection
@@ -201,20 +227,41 @@ export type FormationMomentumExplain = {
     provisionalStageId: GrowthStageId;
   };
   /**
-   * Foundation-first progression: Formation (and lightly Reproduction) are scaled until Foundation’s
-   * share of provisional mass crosses `unlockThreshold` — models ordered discipleship growth (v1).
+   * Progression gate: ramps Formation with Foundation share and Reproduction with both Foundation and
+   * Formation shares, using **pre-gate staged** totals (same basis as dashboard masses before final scaling).
    */
   progressionGate: {
-    /** Foundation ÷ sum(provisional categories) using baseline matrix — unlock progress for v1. */
+    /** Category totals after stage matrix + sharing drag + rolling rhythm, before progression scaling (F unchanged by gate). */
+    preGateTotals: CategoryContributionBreakdown;
+    /** Category totals after applying progression multipliers to Formation/Reproduction only. */
+    postGateTotals: CategoryContributionBreakdown;
+    /** Foundation ÷ sum(F+Fo+R) using `preGateTotals` — aligns unlock with displayed/staged scoring. */
     foundationProgressForUnlock: number;
+    /** Formation ÷ sum(F+Fo+R) using `preGateTotals` — input to Reproduction’s Formation leg. */
+    formationProgressForReproductionUnlock: number;
+    /** Threshold on `foundationProgressForUnlock` for full Formation strength. */
     unlockThreshold: number;
-    /** True when Foundation progress is still below the unlock threshold. */
+    /** Threshold on `formationProgressForReproductionUnlock` for full Reproduction (Formation leg). */
+    formationReproductionUnlockThreshold: number;
+    /** `foundationProgressForUnlock >= unlockThreshold`. */
+    foundationUnlockReached: boolean;
+    /** `formationProgressForReproductionUnlock >= formationReproductionUnlockThreshold`. */
+    formationReproductionUnlockReached: boolean;
+    /**
+     * Legacy: `!foundationUnlockReached`. Does not mean Formation is zero — see `formationMultiplier`.
+     */
     formationGated: boolean;
-    /** Multiplier applied to Formation category mass after stage + sharing (1 when ungated). */
-    formationGatingMultiplier: number;
-    /** Multiplier applied to Reproduction mass while gated (1 when ungated). */
-    reproductionGatingMultiplier: number;
+    /** Applied to Formation mass only (1 when Foundation share has reached unlock). */
+    formationMultiplier: number;
+    /** Smooth ramp from Foundation share before Foundation unlock (1 when unlocked). */
+    reproductionFoundationMultiplier: number;
+    /** Smooth ramp from Formation share before Formation threshold (1 when unlocked). */
+    reproductionFormationMultiplier: number;
+    /** `min(reproductionFoundationMultiplier, reproductionFormationMultiplier)` applied to Reproduction mass. */
+    reproductionMultiplier: number;
   };
+  /** Rolling 6-week family rhythm; capped multipliers applied to category masses before progression gate. */
+  rollingRhythmConsistency: RollingRhythmConsistency;
   /** Matrix id applied to produce final `categoryTotals` and per-signal `categoryContribution`. */
   contributionMatrixId: string;
   /**
@@ -263,7 +310,7 @@ export type MomentumSnapshot = {
   meta?: {
     signalCount: number;
     modifiedSignalCount: number;
-    /** Growth stage from provisional category balance (same as `explain.growthStage` when explain is on). */
+    /** Applied growth stage **after** stage guardrail (same as `explain.growthStage` when explain is on). */
     growthStageId?: GrowthStageId;
     growthStageLabel?: string;
     appliedMatrixId?: string;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { formatInTimeZone } from "date-fns-tz";
 import {
+  applyCategoryRhythmMultipliersToPerSignal,
   applyMatrixWithPerSignalContributions,
   applyMatrixWithShareRowOverride,
   applyShareDragToPerSignalAndTotals,
@@ -33,8 +34,10 @@ import {
   loadGoalAlignmentInputGoals,
   type GoalAlignmentInputGoals,
 } from "@/lib/metrics/formation-momentum/modifiers/goal-alignment";
+import { computeRollingRhythmContext } from "@/lib/metrics/formation-momentum/modifiers/rolling-rhythm";
 import { applyRecency } from "@/lib/metrics/formation-momentum/modifiers/recency";
 import type {
+  CategoryId,
   ComputeFormationMomentumOptions,
   FormationMomentumExplain,
   FormationMomentumSignalExplain,
@@ -150,6 +153,7 @@ function buildExplain(
     growthStage: { id: 1 | 2 | 3; label: string };
     stageGuardrail: FormationMomentumExplain["stageGuardrail"];
     progressionGate: FormationMomentumExplain["progressionGate"];
+    rollingRhythmConsistency: FormationMomentumExplain["rollingRhythmConsistency"];
     appliedMatrixId: string;
     sharingImpact: FormationMomentumExplain["sharingImpact"];
   }
@@ -214,6 +218,7 @@ function buildExplain(
     growthStage: stageCtx.growthStage,
     stageGuardrail: stageCtx.stageGuardrail,
     progressionGate: stageCtx.progressionGate,
+    rollingRhythmConsistency: stageCtx.rollingRhythmConsistency,
     contributionMatrixId: stageCtx.appliedMatrixId,
     sharingImpact: stageCtx.sharingImpact,
     normalizedSignals,
@@ -227,17 +232,21 @@ function buildExplain(
  * Provisional pass uses the baseline matrix for category-balance → growth stage (unchanged).
  * Final pass applies the stage matrix for all practices **except share**: share uses the
  * progressive sharing-impact profile from {@link evaluateSharingImpactModel}, then bounded
- * weakness drag rescales share-derived mass only.
+ * weakness drag rescales share-derived mass only, then **rolling rhythm** pillar multipliers.
  */
 function runStageBasedAggregation(
   modified: readonly ModifiedSignal[],
   normalized: readonly NormalizedSignal[],
   timeZone: string,
   now: Date,
-  guardInputs: { elapsedPillarWeeks: number }
+  guardInputs: {
+    elapsedPillarWeeks: number;
+    /** Capped `1 + cap×score` multipliers per pillar; applied to category masses only. */
+    rhythmMultipliers: Record<CategoryId, number>;
+  }
 ): {
-  totals: ReturnType<typeof applyShareDragToPerSignalAndTotals>["totals"];
-  perSignal: ReturnType<typeof applyShareDragToPerSignalAndTotals>["perSignal"];
+  totals: ReturnType<typeof applyCategoryRhythmMultipliersToPerSignal>["totals"];
+  perSignal: ReturnType<typeof applyCategoryRhythmMultipliersToPerSignal>["perSignal"];
   provisionalTotals: { foundation: number; formation: number; reproduction: number };
   growthGuard: GrowthStageGuardrailResult;
   appliedMatrixId: string;
@@ -271,10 +280,14 @@ function runStageBasedAggregation(
     modified,
     sharingModel.dragMultipliers
   );
+  const afterRhythm = applyCategoryRhythmMultipliersToPerSignal(
+    afterDrag.perSignal,
+    guardInputs.rhythmMultipliers
+  );
 
   return {
-    totals: afterDrag.totals,
-    perSignal: afterDrag.perSignal,
+    totals: afterRhythm.totals,
+    perSignal: afterRhythm.perSignal,
     provisionalTotals: provisional.totals,
     growthGuard,
     appliedMatrixId: appliedMatrixIdForStage(growthGuard.stage),
@@ -286,9 +299,9 @@ function runStageBasedAggregation(
 /**
  * End-to-end formation momentum (full v1 modifier chain: recency, consistency, goal alignment, grace).
  *
- * After stage matrix + sharing, {@link applyProgressionCategoryGate} scales Formation (and lightly
- * Reproduction) until Foundation’s provisional share crosses a threshold — ordered discipleship without
- * rewriting modifiers or stage detection.
+ * After stage matrix + sharing + **rolling rhythm** pillar multipliers, {@link applyProgressionCategoryGate}
+ * ramps Formation with Foundation’s **staged** (pre-gate) share and ramps Reproduction with both Foundation
+ * and Formation staged shares. Foundation column is never scaled by the gate. Stage detection inputs are unchanged.
  *
  * Pass `{ explain: true }` to attach structured pipeline inspection data (server-side tuning; not for end-user UI yet).
  */
@@ -342,15 +355,19 @@ export async function computeFormationMomentum(
 
   const wantExplain = options?.explain === true;
 
+  const rhythmCtx = computeRollingRhythmContext(normalized, goals, tz, now);
+  const rhythmMultipliers: Record<CategoryId, number> = {
+    foundation: rhythmCtx.foundationConsistencyMultiplier,
+    formation: rhythmCtx.formationConsistencyMultiplier,
+    reproduction: rhythmCtx.reproductionConsistencyMultiplier,
+  };
+
   const staged = runStageBasedAggregation(modified, normalized, tz, now, {
     elapsedPillarWeeks,
+    rhythmMultipliers,
   });
 
-  const progression = applyProgressionCategoryGate(
-    staged.totals,
-    staged.perSignal,
-    staged.provisionalTotals
-  );
+  const progression = applyProgressionCategoryGate(staged.totals, staged.perSignal);
   const aggregates = progression.totals;
 
   const explain: FormationMomentumExplain | undefined = wantExplain
@@ -366,11 +383,32 @@ export async function computeFormationMomentum(
           provisionalStageId: staged.growthGuard.provisionalStageId,
         },
         progressionGate: {
+          preGateTotals: progression.preGateTotals,
+          postGateTotals: progression.postGateTotals,
           foundationProgressForUnlock: progression.foundationProgressForUnlock,
+          formationProgressForReproductionUnlock: progression.formationProgressForReproductionUnlock,
           unlockThreshold: progression.unlockThreshold,
+          formationReproductionUnlockThreshold: progression.formationReproductionUnlockThreshold,
+          foundationUnlockReached: progression.foundationUnlockReached,
+          formationReproductionUnlockReached: progression.formationReproductionUnlockReached,
           formationGated: progression.formationGated,
-          formationGatingMultiplier: progression.formationGatingMultiplier,
-          reproductionGatingMultiplier: progression.reproductionGatingMultiplier,
+          formationMultiplier: progression.formationMultiplier,
+          reproductionFoundationMultiplier: progression.reproductionFoundationMultiplier,
+          reproductionFormationMultiplier: progression.reproductionFormationMultiplier,
+          reproductionMultiplier: progression.reproductionMultiplier,
+        },
+        rollingRhythmConsistency: {
+          rollingConsistencyLookbackWeeks: rhythmCtx.rollingConsistencyLookbackWeeks,
+          rollingFoundationScore: rhythmCtx.rollingFoundationScore,
+          rollingFormationScore: rhythmCtx.rollingFormationScore,
+          rollingReproductionScore: rhythmCtx.rollingReproductionScore,
+          foundationConsistencyMultiplier: rhythmCtx.foundationConsistencyMultiplier,
+          formationConsistencyMultiplier: rhythmCtx.formationConsistencyMultiplier,
+          reproductionConsistencyMultiplier: rhythmCtx.reproductionConsistencyMultiplier,
+          foundationWeeklyRhythm: rhythmCtx.foundationWeeklyRhythm,
+          formationWeeklyRhythm: rhythmCtx.formationWeeklyRhythm,
+          reproductionWeeklyRhythm: rhythmCtx.reproductionWeeklyRhythm,
+          formationRhythmModelNote: rhythmCtx.formationRhythmModelNote,
         },
         appliedMatrixId: staged.appliedMatrixId,
         sharingImpact: {

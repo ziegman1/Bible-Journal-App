@@ -15,7 +15,9 @@
     "cap:sync": "npx cap sync",
     "cap:sync:local": "dotenv -e .env.local -- npx cap sync ios",
     "mobile:ios": "npx cap open ios",
-    "mobile:android": "npx cap open android"
+    "mobile:android": "npx cap open android",
+    "test:progression-gate": "tsx src/lib/metrics/formation-momentum/progression-gate.test-runner.ts",
+    "test:rolling-rhythm": "tsx src/lib/metrics/formation-momentum/rolling-rhythm.test-runner.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
