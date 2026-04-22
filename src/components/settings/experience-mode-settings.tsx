@@ -92,7 +92,7 @@ export function ExperienceModeSettings({ currentMode }: ExperienceModeSettingsPr
             href="/app/dashboard-setup"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex")}
           >
-            Edit dashboard modules
+            Customize dashboard
           </Link>
         )}
       </CardContent>

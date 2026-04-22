@@ -16,12 +16,33 @@ export type IdentityQuickActionSpec = { href: string; label: string };
 export function IdentityQuickActionsRow({
   actions,
   className,
+  embedded = false,
 }: {
   actions: IdentityQuickActionSpec[];
   className?: string;
+  /** When true, only the button grid (for use inside the Me/BADWR card without a nested card shell). */
+  embedded?: boolean;
 }) {
   if (actions.length === 0) return null;
   const cols = actions.length;
+  const grid = (
+    <div
+      className={cn(
+        "relative grid w-full gap-2 sm:gap-3",
+        cols === 1 && "grid-cols-1",
+        cols === 2 && "grid-cols-2",
+        cols >= 3 && "grid-cols-3",
+        className
+      )}
+    >
+      {actions.map((a) => (
+        <Link key={a.href + a.label} href={a.href} className={actionButtonClass}>
+          {a.label}
+        </Link>
+      ))}
+    </div>
+  );
+  if (embedded) return grid;
   return (
     <div
       className={cn(
@@ -37,21 +58,7 @@ export function IdentityQuickActionsRow({
             "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(129,140,248,0.12), transparent)",
         }}
       />
-      <div
-        className={cn(
-          "relative grid w-full gap-2 sm:gap-3",
-          cols === 1 && "grid-cols-1",
-          cols === 2 && "grid-cols-2",
-          cols >= 3 && "grid-cols-3",
-          className
-        )}
-      >
-        {actions.map((a) => (
-          <Link key={a.href + a.label} href={a.href} className={actionButtonClass}>
-            {a.label}
-          </Link>
-        ))}
-      </div>
+      {grid}
     </div>
   );
 }

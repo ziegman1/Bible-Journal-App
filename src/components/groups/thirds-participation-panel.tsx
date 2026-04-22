@@ -2,22 +2,8 @@ import Link from "next/link";
 import { getThirdsParticipationStats } from "@/app/actions/thirds-personal";
 import { ThirdsParticipationStartForm } from "@/components/groups/thirds-participation-start-form";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { formatParticipationWeekLong } from "@/lib/groups/participation-week-display";
 import { cn } from "@/lib/utils";
-
-function formatWeekOf(ymd: string) {
-  try {
-    const d = new Date(`${ymd}T12:00:00.000Z`);
-    return d.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  } catch {
-    return ymd;
-  }
-}
 
 export async function ThirdsParticipationPanel() {
   const stats = await getThirdsParticipationStats();
@@ -62,8 +48,7 @@ export async function ThirdsParticipationPanel() {
             3/3rds participation
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Solo rhythm on a UTC week. Finalize each week in{" "}
-            <span className="font-medium text-foreground">Solo 3/3rds</span> to add to your tally.
+            Track your weekly 3/3rds rhythm. Finalize each week to add to your progress.
           </p>
         </div>
         {soloLink}
@@ -89,9 +74,9 @@ export async function ThirdsParticipationPanel() {
 
       {stats.hasSettings && stats.participationStartedOn ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          Counting from UTC week of{" "}
+          Tracking from the week of{" "}
           <span className="font-medium text-foreground">
-            {formatWeekOf(stats.participationStartedOn)}
+            {formatParticipationWeekLong(stats.participationStartedOn)}
           </span>
           .
         </p>

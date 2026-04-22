@@ -34,6 +34,7 @@ export async function upsertThirdsPillarWeekCompletion(input: {
   if (error) return { error: error.message };
   revalidatePath("/app");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   return { success: true };
 }
 

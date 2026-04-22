@@ -38,7 +38,7 @@ export const PROCESS_NODES: ProcessMapNode[] = [
 
   { id: "chat",        label: "CHAT",                x: 6.0,  y: 39.4, href: "/app/chat",         size: 103,  type: "chat"        },
 
-  { id: "family",      label: "My 3/3 Family",       x: 17.1, y: 81.0, href: "/app/groups",       size: 169, type: "community"   },
+  { id: "family",      label: "My 3/3 Family",       x: 17.1, y: 81.0, href: "/app/groups/family", size: 169, type: "community"   },
 
   { id: "watch",       label: "Watch Phase",          x: 46.2, y: 72.6, href: "/app/growth/watch", size: 186, type: "watch"       },
 

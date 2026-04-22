@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatParticipationWeekLong } from "@/lib/groups/participation-week-display";
 import {
   buildSuggestedLookForward,
   effectiveThirdsPersonalPassageRef,
@@ -295,7 +296,7 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Week of {initial.currentWeekMondayYmd} (UTC)
+            Week of {formatParticipationWeekLong(initial.currentWeekMondayYmd)}
           </p>
           <h1 className="text-2xl font-serif font-light text-foreground">Solo 3/3rds</h1>
         </div>

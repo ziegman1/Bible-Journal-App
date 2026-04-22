@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { setThirdsParticipationStartedOn } from "@/app/actions/thirds-personal";
 import { Button } from "@/components/ui/button";
+import { formatParticipationWeekLong } from "@/lib/groups/participation-week-display";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -31,7 +32,7 @@ export function ThirdsParticipationStartForm({
         return;
       }
       setMessage(
-        `Tracking from week of ${res.normalizedStartMonday} (UTC Monday of the date you chose).`
+        `Tracking from the week of ${formatParticipationWeekLong(res.normalizedStartMonday)}.`
       );
       router.refresh();
     });
@@ -42,8 +43,8 @@ export function ThirdsParticipationStartForm({
       <div className="space-y-2">
         <Label htmlFor="thirds-start">Participation start date</Label>
         <p className="text-xs text-muted-foreground">
-          We normalize to the UTC Monday that begins that week. Your ratio counts finalized solo weeks
-          from that Monday through the current week.
+          Your progress is tracked week by week starting from your selected start date. Each week runs
+          Monday through Sunday.
         </p>
         <Input
           id="thirds-start"

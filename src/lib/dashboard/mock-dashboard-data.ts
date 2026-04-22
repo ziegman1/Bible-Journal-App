@@ -64,7 +64,7 @@ export const mockCommunityNodes = [
     title: "3/3rds Family",
     description: "Your 3/3rds groups and meetings.",
     countLabel: "2 groups",
-    href: "/app/groups",
+    href: "/app/groups/family",
   },
 ] as const;
 

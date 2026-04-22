@@ -1,7 +1,14 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Me / BADWR strip + display name (identity card top). */
-export function IdentityProfileHeader({ displayName }: { displayName: string }) {
+/** Me / BADWR strip + display name; optional footer for quick actions / rhythm inside the same card. */
+export function IdentityProfileHeader({
+  displayName,
+  children,
+}: {
+  displayName: string;
+  children?: ReactNode;
+}) {
   return (
     <div
       className={cn(
@@ -24,6 +31,11 @@ export function IdentityProfileHeader({ displayName }: { displayName: string }) 
       <h2 className="relative mt-1 text-2xl font-serif font-light tracking-wide text-foreground">
         {displayName}
       </h2>
+      {children ? (
+        <div className="relative mt-6 space-y-5 border-t border-indigo-200/50 pt-5 text-left dark:border-indigo-500/20">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

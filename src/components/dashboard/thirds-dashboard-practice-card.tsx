@@ -86,7 +86,7 @@ export async function ThirdsDashboardPracticeCard({
   }
 
   const paceMessage = paceMessageForTone(gauge.message, copyTone);
-  const ariaDesc = `${paceMessage} ${gauge.hasParticipationStart ? `Participation started; ${gauge.participatedWeeks} of ${gauge.totalWeeks} weeks finalized.` : "Set a participation start in Groups to track week completion."}`;
+  const ariaDesc = `${paceMessage} ${gauge.hasParticipationStart ? `Participation started; ${gauge.participatedWeeks} of ${gauge.totalWeeks} weeks finalized.` : "Set a start date under Groups → View progress to track week completion."}`;
 
   return (
     <Link

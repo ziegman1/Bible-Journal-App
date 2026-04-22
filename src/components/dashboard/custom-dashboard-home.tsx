@@ -23,7 +23,6 @@ import {
 } from "@/lib/app-experience-mode/custom-dashboard-rhythm";
 import { mockCommunityNodes, mockMultiplicationNodes } from "@/lib/dashboard/mock-dashboard-data";
 import type { GrowthModePresentation } from "@/lib/growth-mode/types";
-import { cn } from "@/lib/utils";
 
 function statByLabel(
   label: string,
@@ -44,59 +43,6 @@ const GROWTH_NODE_BY_ITEM: Record<
 
 function needsIdentityStreakFetch(itemIds: readonly DashboardItemId[]): boolean {
   return itemIds.some((id) => dashboardItemHasStreakTile(id));
-}
-
-function CustomDashboardGroupedRhythm({
-  mergeQuick,
-  mergeStreak,
-  quickActionsOrdered,
-  streakRowsOrdered,
-}: {
-  mergeQuick: boolean;
-  mergeStreak: boolean;
-  quickActionsOrdered: { href: string; label: string }[];
-  streakRowsOrdered: { label: string; value: string }[];
-}) {
-  if (!mergeQuick && !mergeStreak) return null;
-  return (
-    <div className="space-y-4">
-      {mergeQuick ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Quick actions
-          </p>
-          <IdentityQuickActionsRow actions={quickActionsOrdered} />
-        </div>
-      ) : null}
-      {mergeStreak ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Your rhythm
-          </p>
-          <div
-            className={cn(
-              "relative overflow-hidden rounded-xl border border-indigo-200/60 p-4 shadow-sm sm:p-5",
-              "bg-gradient-to-br from-white via-indigo-50/30 to-violet-50/40",
-              "dark:border-indigo-500/20 dark:from-card dark:via-indigo-950/20 dark:to-violet-950/15"
-            )}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-20"
-              style={{
-                background:
-                  "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(129,140,248,0.12), transparent)",
-              }}
-            />
-            <div className="relative grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {streakRowsOrdered.map((row) => (
-                <DashboardStreakTile key={row.label} label={row.label} value={row.value} />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 /**
@@ -136,6 +82,27 @@ export async function CustomDashboardHome({
     return [{ label: st.label, value: st.value }];
   });
   const mergeStreak = streakRowsOrdered.length >= 2;
+
+  /** Inside Me/BADWR card, directly under merged “Your rhythm” when both apply. */
+  const hoistMomentumAfterMergedRhythm =
+    mergeStreak && itemIds.includes("feature_discipleship_momentum");
+
+  const identityCardExtensions =
+    mergeQuick || mergeStreak || hoistMomentumAfterMergedRhythm ? (
+      <>
+        {mergeQuick ? (
+          <IdentityQuickActionsRow embedded actions={quickActionsOrdered} />
+        ) : null}
+        {mergeStreak ? (
+          <div className="relative grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {streakRowsOrdered.map((row) => (
+              <DashboardStreakTile key={row.label} label={row.label} value={row.value} />
+            ))}
+          </div>
+        ) : null}
+        {hoistMomentumAfterMergedRhythm ? <FormationMomentumCard /> : null}
+      </>
+    ) : null;
 
   const chunks: ReactNode[] = [];
 
@@ -221,6 +188,7 @@ export async function CustomDashboardHome({
         break;
       }
       case "feature_discipleship_momentum":
+        if (hoistMomentumAfterMergedRhythm) break;
         chunks.push(
           <Fragment key={key}>
             <FormationMomentumCard />
@@ -294,13 +262,7 @@ export async function CustomDashboardHome({
   return (
     <div className="mx-auto flex w-full max-w-[min(100%,42rem)] flex-col gap-4 px-4 py-6 sm:px-6">
       <DashboardHeader />
-      <IdentityProfileHeader displayName={displayName} />
-      <CustomDashboardGroupedRhythm
-        mergeQuick={mergeQuick}
-        mergeStreak={mergeStreak}
-        quickActionsOrdered={quickActionsOrdered}
-        streakRowsOrdered={streakRowsOrdered}
-      />
+      <IdentityProfileHeader displayName={displayName}>{identityCardExtensions}</IdentityProfileHeader>
       {chunks}
     </div>
   );

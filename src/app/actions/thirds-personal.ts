@@ -175,6 +175,7 @@ export async function setThirdsParticipationStartedOn(
   if (error) return { error: error.message };
   revalidatePath("/app");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   revalidatePath("/app/groups/personal-thirds");
   return { success: true as const, normalizedStartMonday };
 }
@@ -265,6 +266,7 @@ export async function saveThirdsPersonalLookBack(input: {
   if (error) return { error: error.message };
   revalidatePath("/app/groups/personal-thirds");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   return { success: true as const };
 }
 
@@ -320,6 +322,7 @@ export async function saveThirdsPersonalLookUp(input: {
   if (error) return { error: error.message };
   revalidatePath("/app/groups/personal-thirds");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   return { success: true as const };
 }
 
@@ -361,6 +364,7 @@ export async function saveThirdsPersonalLookForward(input: {
   if (error) return { error: error.message };
   revalidatePath("/app/groups/personal-thirds");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   return { success: true as const };
 }
 
@@ -422,6 +426,7 @@ export async function finalizeThirdsPersonalWeek(): Promise<{ error: string } | 
   revalidatePath("/app");
   revalidatePath("/app/groups/personal-thirds");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   return { success: true as const };
 }
 
@@ -450,6 +455,7 @@ export async function recordThirdsPersonalGroupComplete(): Promise<
 
   revalidatePath("/app");
   revalidatePath("/app/groups");
+  revalidatePath("/app/groups/progress");
   revalidatePath("/app/groups/personal-thirds");
   return { success: true as const };
 }
