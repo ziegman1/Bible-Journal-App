@@ -23,19 +23,44 @@ function streakTitleAttr(label: string): string | undefined {
 }
 
 /** Single streak stat (used in custom dashboard item-by-item layout). */
-export function DashboardStreakTile({ label, value }: { label: string; value: string }) {
+export function DashboardStreakTile({
+  label,
+  value,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  /** Narrow grid cells (e.g. 2-column mobile); looser typography when false (full-width row). */
+  compact?: boolean;
+}) {
   return (
     <div
       className={cn(
-        "flex min-h-[4.25rem] flex-col justify-center rounded-xl border border-indigo-100/60 px-3 py-3 shadow-sm",
+        "flex min-w-0 max-w-full flex-col justify-center rounded-xl border border-indigo-100/60 shadow-sm",
         "bg-white/80 backdrop-blur-xs",
-        "dark:border-indigo-500/10 dark:bg-white/[0.03]"
+        "dark:border-indigo-500/10 dark:bg-white/[0.03]",
+        compact
+          ? "min-h-[3.75rem] px-2.5 py-2.5 sm:min-h-[4.25rem] sm:px-3 sm:py-3"
+          : "min-h-[4.25rem] px-3 py-3"
       )}
     >
-      <dt className="text-[11px] tracking-wide text-muted-foreground" title={streakTitleAttr(label)}>
+      <dt
+        className={cn(
+          "tracking-wide text-muted-foreground leading-snug",
+          compact ? "text-[10px] sm:text-[11px]" : "text-[11px]"
+        )}
+        title={streakTitleAttr(label)}
+      >
         {label}
       </dt>
-      <dd className="text-sm font-medium text-foreground">{value}</dd>
+      <dd
+        className={cn(
+          "font-medium text-foreground",
+          compact ? "mt-0.5 text-xs tabular-nums sm:text-sm" : "text-sm"
+        )}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

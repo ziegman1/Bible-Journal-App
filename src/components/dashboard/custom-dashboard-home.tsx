@@ -94,9 +94,9 @@ export async function CustomDashboardHome({
           <IdentityQuickActionsRow embedded actions={quickActionsOrdered} />
         ) : null}
         {mergeStreak ? (
-          <div className="relative grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="relative grid grid-cols-2 gap-2 lg:grid-cols-3">
             {streakRowsOrdered.map((row) => (
-              <DashboardStreakTile key={row.label} label={row.label} value={row.value} />
+              <DashboardStreakTile key={row.label} label={row.label} value={row.value} compact />
             ))}
           </div>
         ) : null}
