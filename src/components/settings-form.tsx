@@ -22,13 +22,10 @@ import {
 } from "@/lib/growth-mode/model";
 import type { GrowthMode } from "@/lib/growth-mode/types";
 
-type ReadingMode = "canonical" | "chronological" | "custom" | "free_reading";
 type AIStyle = "concise" | "balanced" | "in-depth";
 
 interface SettingsFormProps {
   displayName: string;
-  readingMode: ReadingMode;
-  journalYear: number;
   aiStyle: AIStyle;
   growthMode: GrowthMode;
   weeklyShareGoalEncounters: number;
@@ -37,8 +34,6 @@ interface SettingsFormProps {
 
 export function SettingsForm({
   displayName,
-  readingMode,
-  journalYear,
   aiStyle,
   growthMode: initialGrowthMode,
   weeklyShareGoalEncounters,
@@ -46,14 +41,10 @@ export function SettingsForm({
 }: SettingsFormProps) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(displayName);
-  const [reading, setReading] = useState<ReadingMode>(readingMode);
-  const [year, setYear] = useState(journalYear);
   const [ai, setAi] = useState<AIStyle>(aiStyle);
   const [growthMode, setGrowthMode] = useState<GrowthMode>(initialGrowthMode);
   const [shareGoal, setShareGoal] = useState(String(weeklyShareGoalEncounters));
   const [prayerGoalMin, setPrayerGoalMin] = useState(String(weeklyPrayerGoalMinutes));
-
-  const currentYear = new Date().getFullYear();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,8 +55,6 @@ export function SettingsForm({
 
     const result = await updateProfile({
       display_name: name,
-      reading_mode: reading,
-      journal_year: year,
       ai_style: ai,
       growth_mode: growthMode,
       weekly_share_goal_encounters:
@@ -135,35 +124,6 @@ export function SettingsForm({
               onChange={(e) => setName(e.target.value)}
               className="bg-white dark:bg-stone-900"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Reading mode</Label>
-            <Select value={reading} onValueChange={(v) => { if (v != null) setReading(v as ReadingMode); }}>
-              <SelectTrigger className="w-full bg-white dark:bg-stone-900">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="canonical">Canonical (book order)</SelectItem>
-                <SelectItem value="chronological">Chronological</SelectItem>
-                <SelectItem value="custom">Custom plan</SelectItem>
-                <SelectItem value="free_reading">Free reading</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Journal year</Label>
-            <Select value={String(year)} onValueChange={(v) => { if (v != null) setYear(parseInt(String(v), 10)); }}>
-              <SelectTrigger className="w-full bg-white dark:bg-stone-900">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[currentYear, currentYear - 1, currentYear + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label>AI response style</Label>

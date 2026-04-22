@@ -1,17 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createJournalEntry } from "@/app/actions/journal";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SoapsFieldRow } from "@/components/soaps-field-row";
-import { Loader2, BookMarked } from "lucide-react";
+import { Loader2, BookMarked, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatSoapsShareBody, type SoapsFields } from "@/lib/format-soaps-share";
 import { ShareViaEmailTextButtons } from "@/components/entry-share";
+import { appendSharePromoToPlainText } from "@/lib/share-promo";
+import { cn } from "@/lib/utils";
+
+function publicTryStorageKey(reference: string): string {
+  return `badwr-public-try-soaps-draft-v1:${reference}`;
+}
+
+type PersistenceMode = "journal" | "public-try";
 
 interface InlinePassageReflectionFormProps {
   reference: string;
@@ -26,6 +35,57 @@ interface InlinePassageReflectionFormProps {
   compact?: boolean;
   onSaved?: (entryId: string) => void;
   onClose?: () => void;
+  /** `journal` (default): save to Supabase. `public-try`: same UI, local/session draft, finish → conversion. */
+  persistenceMode?: PersistenceMode;
+  /** Signup URL after public try completion (e.g. `/signup?redirectTo=...`). */
+  signupConversionHref?: string;
+}
+
+type PublicDraft = {
+  reference: string;
+  scripture: string;
+  observation: string;
+  application: string;
+  prayer: string;
+  share: string;
+  tags: string;
+};
+
+function readPublicDraft(reference: string): PublicDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(publicTryStorageKey(reference));
+    if (!raw) return null;
+    const o = JSON.parse(raw) as Partial<PublicDraft>;
+    if (typeof o.reference !== "string") return null;
+    return {
+      reference: o.reference,
+      scripture: typeof o.scripture === "string" ? o.scripture : "",
+      observation: typeof o.observation === "string" ? o.observation : "",
+      application: typeof o.application === "string" ? o.application : "",
+      prayer: typeof o.prayer === "string" ? o.prayer : "",
+      share: typeof o.share === "string" ? o.share : "",
+      tags: typeof o.tags === "string" ? o.tags : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePublicDraft(d: PublicDraft) {
+  try {
+    sessionStorage.setItem(publicTryStorageKey(d.reference), JSON.stringify(d));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function clearPublicDraft(reference: string) {
+  try {
+    sessionStorage.removeItem(publicTryStorageKey(reference));
+  } catch {
+    /* ignore */
+  }
 }
 
 export function InlinePassageReflectionForm({
@@ -40,6 +100,8 @@ export function InlinePassageReflectionForm({
   compact = false,
   onSaved,
   onClose,
+  persistenceMode = "journal",
+  signupConversionHref = "/signup",
 }: InlinePassageReflectionFormProps) {
   const [scripture, setScripture] = useState("");
   const [observation, setObservation] = useState("");
@@ -50,11 +112,58 @@ export function InlinePassageReflectionForm({
   const [saving, setSaving] = useState(false);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [savedShareBody, setSavedShareBody] = useState<string | null>(null);
+  const [publicPhase, setPublicPhase] = useState<"form" | "conversion">("form");
+  const [hydrated, setHydrated] = useState(persistenceMode !== "public-try");
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
+
+  useEffect(() => {
+    if (persistenceMode !== "public-try") return;
+    setPublicPhase("form");
+    const d = readPublicDraft(reference);
+    if (d && d.reference === reference) {
+      setScripture(d.scripture);
+      setObservation(d.observation);
+      setApplication(d.application);
+      setPrayer(d.prayer);
+      setShare(d.share);
+      setTags(d.tags);
+    } else {
+      setScripture("");
+      setObservation("");
+      setApplication("");
+      setPrayer("");
+      setShare("");
+      setTags("");
+    }
+    setHydrated(true);
+  }, [persistenceMode, reference]);
+
+  useEffect(() => {
+    if (persistenceMode !== "public-try" || !hydrated) return;
+    writePublicDraft({
+      reference,
+      scripture,
+      observation,
+      application,
+      prayer,
+      share,
+      tags,
+    });
+  }, [
+    persistenceMode,
+    hydrated,
+    reference,
+    scripture,
+    observation,
+    application,
+    prayer,
+    share,
+    tags,
+  ]);
 
   const soapsFields: SoapsFields = {
     scriptureText: scripture,
@@ -73,6 +182,18 @@ export function InlinePassageReflectionForm({
 
   const shareSubject = `SOAPS — ${reference}`;
   const draftShareBody = formatSoapsShareBody(reference, soapsFields);
+  const shareBodyWithPromo = appendSharePromoToPlainText(draftShareBody);
+
+  const handleStartOverPublic = useCallback(() => {
+    setScripture("");
+    setObservation("");
+    setApplication("");
+    setPrayer("");
+    setShare("");
+    setTags("");
+    setPublicPhase("form");
+    clearPublicDraft(reference);
+  }, [reference]);
 
   async function handleSave() {
     setSaving(true);
@@ -111,10 +232,64 @@ export function InlinePassageReflectionForm({
     onSaved?.(result.entryId!);
   }
 
+  function handleFinishPublicTry() {
+    setPublicPhase("conversion");
+    toast.success("Nice work finishing this SOAPS");
+  }
+
+  async function copyShareMessage() {
+    try {
+      await navigator.clipboard.writeText(shareBodyWithPromo);
+      toast.success("Message copied");
+    } catch {
+      toast.error("Could not copy");
+    }
+  }
+
   function handleTagsKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
     e.preventDefault();
     (e.currentTarget as HTMLInputElement).blur();
+  }
+
+  if (persistenceMode === "public-try" && publicPhase === "conversion") {
+    return (
+      <div className="space-y-5 rounded-lg border border-border bg-card p-4">
+        <div className="space-y-2">
+          <h3 className="text-lg font-serif font-light text-foreground">Want to keep going?</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Create a free BADWR account to save your entries, pick up where you left off, track your growth over time,
+            and use the full discipleship dashboard—including your own Scripture passages whenever you read.
+          </p>
+        </div>
+        <Link
+          href={signupConversionHref}
+          className={cn(buttonVariants({ size: "lg" }), "inline-flex w-full justify-center sm:w-auto")}
+        >
+          Create your free account
+        </Link>
+        <div className="space-y-2 border-t border-border pt-4">
+          <p className="text-xs font-medium text-stone-700 dark:text-stone-300">
+            Share this SOAPS (email or text)
+          </p>
+          <ShareViaEmailTextButtons subject={shareSubject} body={draftShareBody} />
+          <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => void copyShareMessage()}>
+            <Link2 className="size-4" aria-hidden />
+            Copy message
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <Button type="button" variant="outline" size="sm" onClick={handleStartOverPublic}>
+            Start over
+          </Button>
+          {onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (savedEntryId) {
@@ -141,6 +316,22 @@ export function InlinePassageReflectionForm({
       </div>
     );
   }
+
+  const primaryAction =
+    persistenceMode === "public-try" ? (
+      <Button onClick={handleFinishPublicTry} disabled={!hasAnySoaps}>
+        Finish SOAPS
+      </Button>
+    ) : (
+      <Button onClick={() => void handleSave()} disabled={saving || !hasAnySoaps}>
+        {saving ? (
+          <Loader2 className="size-4 animate-spin mr-2" />
+        ) : (
+          <BookMarked className="size-4 mr-2" />
+        )}
+        Save to journal
+      </Button>
+    );
 
   return (
     <div
@@ -247,14 +438,7 @@ export function InlinePassageReflectionForm({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleSave} disabled={saving || !hasAnySoaps}>
-            {saving ? (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            ) : (
-              <BookMarked className="size-4 mr-2" />
-            )}
-            Save to journal
-          </Button>
+          {primaryAction}
           {onClose && (
             <Button variant="ghost" size="sm" onClick={onClose}>
               Close

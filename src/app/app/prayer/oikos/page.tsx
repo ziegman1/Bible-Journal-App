@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowLeft, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getEvangelisticPrayerFocusNames } from "@/app/actions/list-of-100";
 import { OikosPrayerFlow } from "@/components/prayer/oikos-prayer-flow";
+import { PrayerHubBackLink } from "@/components/prayer/prayer-hub-back-link";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -21,16 +22,7 @@ export default async function OikosPrayerPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-8">
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 pt-6 sm:px-6">
-        <Link
-          href="/app/prayer"
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "gap-1.5 text-muted-foreground"
-          )}
-        >
-          <ArrowLeft className="size-4" />
-          Prayer tools
-        </Link>
+        <PrayerHubBackLink />
         <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
           Dashboard
         </Link>

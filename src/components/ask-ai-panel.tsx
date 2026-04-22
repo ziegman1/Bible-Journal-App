@@ -188,9 +188,13 @@ export function AskAIPanel({
 
   if (!open) {
     return (
-      <div className="p-4 text-center text-stone-500 dark:text-stone-400 text-sm space-y-2">
-        <p>Tap a verse for actions.</p>
-        <p>Ask AI, add reflection, highlight, or favorite.</p>
+      <div className="space-y-2.5 px-2 py-4 text-center font-serif text-sm leading-relaxed text-stone-600 dark:text-stone-400">
+        <p>Tap a verse to open the SOAPS panel.</p>
+        <p>
+          Select a verse or use{" "}
+          <strong className="font-semibold text-stone-800 dark:text-stone-200">Select range</strong> for multiple
+          verses.
+        </p>
       </div>
     );
   }

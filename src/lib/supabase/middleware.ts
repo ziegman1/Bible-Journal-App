@@ -10,7 +10,8 @@ export async function updateSession(request: NextRequest) {
     if (
       path.startsWith("/app") ||
       path.startsWith("/onboarding") ||
-      path.startsWith("/scripture")
+      path.startsWith("/scripture") ||
+      path.startsWith("/start-here")
     ) {
       return NextResponse.redirect(new URL("/setup", request.url));
     }
@@ -46,6 +47,7 @@ export async function updateSession(request: NextRequest) {
   const isAppRoute = path.startsWith("/app");
   const isOnboarding = path.startsWith("/onboarding");
   const isScriptureRoute = path.startsWith("/scripture");
+  const isStartHereRoute = path.startsWith("/start-here");
   // Optional trailing slash so layout still gets x-invite-route after redirects / copy-paste
   const isInviteAcceptRoute = /^\/app\/groups\/invite\/[^/]+\/?$/.test(
     request.nextUrl.pathname
@@ -100,7 +102,11 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  if (!user && (isAppRoute || isOnboarding || isScriptureRoute) && !isInviteAcceptRoute) {
+  if (
+    !user &&
+    (isAppRoute || isOnboarding || isScriptureRoute || isStartHereRoute) &&
+    !isInviteAcceptRoute
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     const back =

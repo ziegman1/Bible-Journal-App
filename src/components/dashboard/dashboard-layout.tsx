@@ -17,13 +17,7 @@ const gridStyle = {
   `,
 } as const;
 
-export function DashboardLayout({
-  header,
-  identity,
-  daily,
-  community,
-  multiplication,
-}: Props) {
+export function DashboardLayout({ header, identity, daily, community, multiplication }: Props) {
   return (
     <div
       className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 md:grid md:items-stretch md:gap-6"

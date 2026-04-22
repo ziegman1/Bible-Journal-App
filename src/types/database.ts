@@ -4,6 +4,9 @@ export type ReadingMode = "canonical" | "chronological" | "custom" | "free_readi
 export type AIStyle = "concise" | "balanced" | "in-depth";
 export type { GrowthMode };
 
+/** Post-onboarding app path: guided journey, custom module dashboard, or full BADWR. */
+export type AppExperienceMode = "journey" | "custom" | "full";
+
 export interface Profile {
   id: string;
   display_name: string;
@@ -11,6 +14,11 @@ export interface Profile {
   journal_year: number;
   ai_style: AIStyle;
   growth_mode: GrowthMode;
+  app_experience_mode?: AppExperienceMode | null;
+  /** @deprecated Legacy section ids; use custom_dashboard_items. */
+  custom_dashboard_modules?: unknown;
+  custom_dashboard_items?: unknown;
+  journey_progress?: unknown;
   weekly_share_goal_encounters: number;
   weekly_prayer_goal_minutes: number;
   /** Count adjustments for BADWR reproduction cumulative math (optional). */

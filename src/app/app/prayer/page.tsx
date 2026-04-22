@@ -48,7 +48,7 @@ export default async function PrayerPage() {
         </div>
       </div>
 
-      <PrayerToolsHub copyTone={copyTone} />
+      <PrayerToolsHub />
     </div>
   );
 }

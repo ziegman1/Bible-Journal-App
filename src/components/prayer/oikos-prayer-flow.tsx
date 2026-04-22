@@ -69,7 +69,7 @@ export function OikosPrayerFlow({ names }: { names: string[] }) {
         <ol className="list-decimal space-y-3 pl-5 text-sm leading-relaxed text-foreground">
           {OIKOS_PRAYER_TEMPLATES.map((template, i) => (
             <li key={i} className="pl-1">
-              {formatOikosPrayerLine(template, name, i)}
+              {formatOikosPrayerLine(template, name)}
             </li>
           ))}
         </ol>

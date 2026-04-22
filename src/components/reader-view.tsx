@@ -26,6 +26,23 @@ import {
   SCROLL_BOTTOM_ROOT_MARGIN_PX,
 } from "@/lib/reading/chapter-reading-rules";
 
+function PassageActionsIdleInstructions({ variant }: { variant: "app" | "try" }) {
+  const firstLine =
+    variant === "try"
+      ? "Tap a verse to open the same SOAPS panel you use in the app."
+      : "Tap a verse to open the SOAPS panel.";
+  return (
+    <div className="space-y-2.5 border-t border-border pt-3 text-center font-serif text-sm leading-relaxed text-stone-600 dark:text-stone-400">
+      <p>{firstLine}</p>
+      <p>
+        Select a verse or use{" "}
+        <strong className="font-semibold text-stone-800 dark:text-stone-200">Select range</strong> for multiple
+        verses.
+      </p>
+    </div>
+  );
+}
+
 function subscribeIsMobile(callback: () => void) {
   const mq = window.matchMedia("(max-width: 767px)");
   mq.addEventListener("change", callback);
@@ -44,6 +61,11 @@ export interface ReaderChapterNavLink {
   href: string;
   label: string;
 }
+
+export type ReaderPublicTryOptions = {
+  /** After public try “Finish SOAPS”, link to signup (include `redirectTo` when desired). */
+  signupConversionHref: string;
+};
 
 interface ReaderViewProps {
   chapter: Chapter;
@@ -64,6 +86,17 @@ interface ReaderViewProps {
   initialHighlights?: Set<number>;
   initialHighlightIds?: Map<number, string>;
   initialFavorites?: Map<number, string>;
+  /**
+   * Unauthenticated “try SOAPS” on `/try/*`: same reader + verse SOAPS sheet as the app;
+   * no highlights/favorites/Ask AI, no reading-session persistence, no chapter picker unless enabled.
+   */
+  publicTry?: ReaderPublicTryOptions | null;
+  /** When `publicTry` is set, link and label for the top-left nav (default BADWR home). */
+  publicTryBooksLink?: { href: string; label: string };
+  /** With `publicTry`, allow chapter dropdown (uses `readBasePath` for URLs). Default false. */
+  publicTryAllowChapterPicker?: boolean;
+  /** Base path for chapter URLs when using the picker in public try; default `/try/soaps/read`. */
+  readBasePath?: string;
 }
 
 export function ReaderView({
@@ -80,8 +113,16 @@ export function ReaderView({
   initialHighlights = new Set(),
   initialHighlightIds = new Map(),
   initialFavorites = new Map(),
+  publicTry = null,
+  publicTryBooksLink = { href: "/", label: "← BADWR" },
+  publicTryAllowChapterPicker = false,
+  readBasePath = "/app/read",
 }: ReaderViewProps) {
   const router = useRouter();
+  const isPublicTry = Boolean(publicTry);
+  const verseMenuFeatures = isPublicTry
+    ? { askAi: false, highlight: false, favorite: false }
+    : undefined;
   const isMobile = useIsMobile();
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: number; end: number } | null>(null);
@@ -162,6 +203,12 @@ export function ReaderView({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [panelOpen]);
+
+  useEffect(() => {
+    if (isPublicTry && panelMode === "ask") {
+      setPanelMode("reflection");
+    }
+  }, [isPublicTry, panelMode]);
 
   // Mobile keyboard avoidance: use VisualViewport to pad scroll areas above keyboard.
   useEffect(() => {
@@ -607,6 +654,10 @@ export function ReaderView({
   const recordReadingAndMaybeNavigate = useCallback(
     async (navigateHref: string | null) => {
       if (isEmpty) return;
+      if (isPublicTry) {
+        if (navigateHref) router.push(navigateHref);
+        return;
+      }
       if (!reachedChapterEnd || !timeRequirementMet) return;
       if (savedThisVisitRef.current) {
         if (navigateHref) router.push(navigateHref);
@@ -656,6 +707,7 @@ export function ReaderView({
       router,
       chatSoapsGroupId,
       persistChatSoapsBookmark,
+      isPublicTry,
     ]
   );
 
@@ -802,21 +854,24 @@ export function ReaderView({
       <div className="border-b border-border px-6 py-4 flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-4 min-w-0">
           <Link
-            href="/app/read"
+            href={isPublicTry ? publicTryBooksLink.href : "/app/read"}
             className="text-sm text-stone-600 dark:text-stone-400 hover:underline shrink-0"
           >
-            ← Books
+            {isPublicTry ? publicTryBooksLink.label : "← Books"}
           </Link>
           <h1 className="text-lg font-serif font-light text-stone-800 dark:text-stone-200 truncate">
             {bookName} {chapterNum}
           </h1>
-          <ChapterSelector
-            bookId={bookId}
-            bookName={bookName}
-            currentChapter={chapterNum}
-            chapterCount={chapterCount}
-            chatSoapsGroupId={chatSoapsGroupId}
-          />
+          {(!isPublicTry || publicTryAllowChapterPicker) && (
+            <ChapterSelector
+              bookId={bookId}
+              bookName={bookName}
+              currentChapter={chapterNum}
+              chapterCount={chapterCount}
+              chatSoapsGroupId={chatSoapsGroupId}
+              readBasePath={readBasePath}
+            />
+          )}
         </div>
         <div className="flex gap-2 shrink-0">
           {prevChapterNav && (
@@ -843,10 +898,10 @@ export function ReaderView({
                 Connect a licensed Bible API to display the full text.
               </p>
               <Link
-                href="/app/read"
+                href={isPublicTry ? publicTryBooksLink.href : "/app/read"}
                 className="inline-block mt-6 text-sm text-stone-600 dark:text-stone-400 hover:underline"
               >
-                ← Choose another book
+                {isPublicTry ? "← Back" : "← Choose another book"}
               </Link>
             </div>
           ) : (
@@ -874,6 +929,7 @@ export function ReaderView({
                         chapter={chapterNum}
                         isHighlighted={isHighlighted}
                         isFavorited={isFavorited}
+                        menuFeatures={verseMenuFeatures}
                         isRangeSelectionMode={anchorVerse !== null}
                         onExtendRange={handleExtendRange}
                         onCompleteRange={handleCompleteRange}
@@ -916,67 +972,69 @@ export function ReaderView({
                   aria-hidden
                 />
               </article>
-              <section
-                className="mt-10 flex flex-col items-center gap-4 border-t border-stone-200 pt-10 text-center dark:border-stone-700"
-                aria-labelledby="chapter-read-heading"
-              >
-                <h2 id="chapter-read-heading" className="sr-only">
-                  Complete this chapter
-                </h2>
-                <div className="max-w-md space-y-2 text-sm text-stone-600 dark:text-stone-400">
-                  {!reachedChapterEnd && (
-                    <p>
-                      Scroll to the <strong>end of this chapter</strong> to unlock recording
-                      it as read.
-                    </p>
-                  )}
-                  {reachedChapterEnd && !timeRequirementMet && (
-                    <p aria-live="polite">
-                      Keep this tab in view for about{" "}
-                      <strong>{formatReadingTimeRemaining()}</strong> longer. Time is estimated
-                      from this chapter’s length at a typical{" "}
-                      <strong>{READING_WPM} words per minute</strong> so progress reflects real
-                      reading time.
-                    </p>
-                  )}
-                  {canRecordReading && !hasRecordedRead && (
-                    <p className="text-stone-700 dark:text-stone-300">
-                      You can mark this chapter as read with the button below or use{" "}
-                      <strong>Next</strong> to save and continue.
-                    </p>
-                  )}
-                  {hasRecordedRead && (
-                    <p className="text-stone-700 dark:text-stone-300">
-                      Reading recorded. Use <strong>Next</strong> when you are ready to continue.
-                    </p>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={!canRecordReading || savingRead || hasRecordedRead}
-                  title={
-                    hasRecordedRead
-                      ? "Already recorded for this visit"
-                      : !reachedChapterEnd
-                        ? "Scroll to the end of the chapter first"
-                        : !timeRequirementMet
-                          ? `About ${formatReadingTimeRemaining()} left`
-                          : undefined
-                  }
-                  className="min-w-[min(100%,280px)]"
-                  onClick={() => recordReadingAndMaybeNavigate(null)}
+              {!isPublicTry && (
+                <section
+                  className="mt-10 flex flex-col items-center gap-4 border-t border-stone-200 pt-10 text-center dark:border-stone-700"
+                  aria-labelledby="chapter-read-heading"
                 >
-                  {savingRead
-                    ? "Saving…"
-                    : hasRecordedRead
-                      ? "Chapter recorded"
-                      : "Finish chapter & complete reading"}
-                </Button>
-              </section>
+                  <h2 id="chapter-read-heading" className="sr-only">
+                    Complete this chapter
+                  </h2>
+                  <div className="max-w-md space-y-2 text-sm text-stone-600 dark:text-stone-400">
+                    {!reachedChapterEnd && (
+                      <p>
+                        Scroll to the <strong>end of this chapter</strong> to unlock recording
+                        it as read.
+                      </p>
+                    )}
+                    {reachedChapterEnd && !timeRequirementMet && (
+                      <p aria-live="polite">
+                        Keep this tab in view for about{" "}
+                        <strong>{formatReadingTimeRemaining()}</strong> longer. Time is estimated
+                        from this chapter’s length at a typical{" "}
+                        <strong>{READING_WPM} words per minute</strong> so progress reflects real
+                        reading time.
+                      </p>
+                    )}
+                    {canRecordReading && !hasRecordedRead && (
+                      <p className="text-stone-700 dark:text-stone-300">
+                        You can mark this chapter as read with the button below or use{" "}
+                        <strong>Next</strong> to save and continue.
+                      </p>
+                    )}
+                    {hasRecordedRead && (
+                      <p className="text-stone-700 dark:text-stone-300">
+                        Reading recorded. Use <strong>Next</strong> when you are ready to continue.
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    size="lg"
+                    disabled={!canRecordReading || savingRead || hasRecordedRead}
+                    title={
+                      hasRecordedRead
+                        ? "Already recorded for this visit"
+                        : !reachedChapterEnd
+                          ? "Scroll to the end of the chapter first"
+                          : !timeRequirementMet
+                            ? `About ${formatReadingTimeRemaining()} left`
+                            : undefined
+                    }
+                    className="min-w-[min(100%,280px)]"
+                    onClick={() => recordReadingAndMaybeNavigate(null)}
+                  >
+                    {savingRead
+                      ? "Saving…"
+                      : hasRecordedRead
+                        ? "Chapter recorded"
+                        : "Finish chapter & complete reading"}
+                  </Button>
+                </section>
+              )}
             </>
           )}
-          {(prevChapterNav || nextChapterNav) && (
+          {!isPublicTry && (prevChapterNav || nextChapterNav) && (
             <nav
               className="mt-12 flex flex-col gap-4 border-t border-stone-200 pt-8 pb-4 dark:border-stone-700 sm:flex-row sm:items-center sm:justify-between"
               aria-label="Previous and next chapter"
@@ -997,18 +1055,19 @@ export function ReaderView({
         </div>
       </div>
 
-      <aside className="w-full md:w-96 border-t md:border-t-0 md:border-l border-border flex flex-col bg-sidebar shrink-0">
-        <div ref={rightHeaderRef} className="p-4 border-b border-border shrink-0">
+      <aside className="w-full md:w-96 border-t md:border-t-0 md:border-l border-border flex flex-col bg-sidebar shrink-0 md:min-h-0 md:self-stretch">
+        <div ref={rightHeaderRef} className="shrink-0 border-b border-border bg-sidebar p-4">
           <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300">
             Passage actions
           </h2>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            {passageRef}
-          </p>
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{passageRef}</p>
+          {!(panelOpen && selectedRange) ? (
+            <PassageActionsIdleInstructions variant={isPublicTry ? "try" : "app"} />
+          ) : null}
         </div>
-        <div ref={rightScrollRef} className="flex-1 overflow-auto min-h-0">
+        <div ref={rightScrollRef} className="flex min-h-0 flex-1 flex-col overflow-auto">
           {panelOpen && selectedRange ? (
-            panelMode === "reflection" ? (
+            panelMode === "reflection" || isPublicTry ? (
               <div className="p-4">
                 <div className="space-y-3">
                   <InlinePassageReflectionForm
@@ -1022,14 +1081,18 @@ export function ReaderView({
                     chatSoapsGroupId={chatSoapsGroupId ?? undefined}
                     compact
                     onClose={() => setPanelOpen(false)}
+                    persistenceMode={isPublicTry ? "public-try" : "journal"}
+                    signupConversionHref={publicTry?.signupConversionHref}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setPanelMode("ask")}
-                    className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
-                  >
-                    Ask AI about this passage instead →
-                  </button>
+                  {!isPublicTry && (
+                    <button
+                      type="button"
+                      onClick={() => setPanelMode("ask")}
+                      className="text-sm text-stone-600 dark:text-stone-400 hover:underline"
+                    >
+                      Ask AI about this passage instead →
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1072,21 +1135,7 @@ export function ReaderView({
                 </div>
               </div>
             )
-          ) : (
-            <AskAIPanel
-              bookId={bookId}
-              bookName={bookName}
-              chapter={chapterNum}
-              verseStart={selectedRange?.start ?? null}
-              verseEnd={selectedRange?.end ?? null}
-              reference={passageRef}
-              passageText={undefined}
-              open={false}
-              onOpenChange={setPanelOpen}
-              aiStyle={aiStyle}
-              defaultToReflection={false}
-            />
-          )}
+          ) : null}
         </div>
       </aside>
       </div>
@@ -1106,10 +1155,10 @@ export function ReaderView({
             <div className="flex h-full min-h-0 flex-col">
               <div className="shrink-0 border-b border-border px-4 py-3">
                 <h2 className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                  {panelMode === "reflection" ? "SOAPS" : "Ask AI"} — {passageRef}
+                  {panelMode === "reflection" || isPublicTry ? "SOAPS" : "Ask AI"} — {passageRef}
                 </h2>
               </div>
-              {panelMode === "reflection" ? (
+              {panelMode === "reflection" || isPublicTry ? (
                 <>
                   <div className="shrink-0 border-b border-border px-4 py-3 bg-background">
                     <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
@@ -1144,11 +1193,13 @@ export function ReaderView({
                         chatSoapsGroupId={chatSoapsGroupId ?? undefined}
                         compact
                         onClose={() => setPanelOpen(false)}
+                        persistenceMode={isPublicTry ? "public-try" : "journal"}
+                        signupConversionHref={publicTry?.signupConversionHref}
                       />
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : !isPublicTry ? (
                 <div
                   className="flex-1 min-h-0 overflow-y-auto px-4"
                   style={{
@@ -1172,7 +1223,7 @@ export function ReaderView({
                     />
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </SheetContent>
         </Sheet>

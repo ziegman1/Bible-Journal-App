@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
 import { SiteFooter } from "@/components/site-footer";
+import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 
 export default async function AppLayout({
   children,
@@ -41,7 +42,7 @@ export default async function AppLayout({
 
   let { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, reading_mode, journal_year, onboarding_complete")
+    .select("display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode")
     .eq("id", user.id)
     .single();
 
@@ -56,7 +57,7 @@ export default async function AppLayout({
     );
     const { data: created } = await supabase
       .from("profiles")
-      .select("display_name, reading_mode, journal_year, onboarding_complete")
+      .select("display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode")
       .eq("id", user.id)
       .single();
     profile = created ?? profile;
@@ -70,6 +71,11 @@ export default async function AppLayout({
 
   if (isFacilitatorPresent) {
     return <>{children}</>;
+  }
+
+  const experienceMode = normalizeAppExperienceMode(profile?.app_experience_mode);
+  if (!experienceMode) {
+    redirect("/start-here");
   }
 
   return (

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Heart, ArrowLeft } from "lucide-react";
+import { Heart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getPrayerActivityLogPageData } from "@/app/actions/prayer-wheel";
+import { PrayerHubBackLink } from "@/components/prayer/prayer-hub-back-link";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -30,9 +31,9 @@ export default async function PrayerActivityLogPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
         <p className="text-sm text-destructive">{data.error}</p>
-        <Link href="/app/prayer" className={cn(buttonVariants({ variant: "link" }), "mt-4 inline-flex")}>
-          Back to prayer tools
-        </Link>
+        <div className="mt-4">
+          <PrayerHubBackLink />
+        </div>
       </div>
     );
   }
@@ -42,16 +43,7 @@ export default async function PrayerActivityLogPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8 px-4 py-6 pb-20 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
-          href="/app/prayer"
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "gap-1.5 text-muted-foreground"
-          )}
-        >
-          <ArrowLeft className="size-4" />
-          Prayer tools
-        </Link>
+        <PrayerHubBackLink />
         <Link href="/app" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
           Dashboard
         </Link>

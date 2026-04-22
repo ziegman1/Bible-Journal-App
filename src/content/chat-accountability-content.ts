@@ -43,7 +43,7 @@ export const CHAT_EVANGELISTIC_PRAYERS: readonly string[] = [
   "I ask You, Lord, to prevent Satan from blinding _____ to the truth (2 Cor 4:4; 2 Tim 2:25–26).",
   "Holy Spirit, I ask You to convict _____ of his/her sin and need for Christ’s redemption (John 16:7–14).",
   "I ask that You send someone who will share the gospel with _____ (Matt 9:37–38).",
-  "I also ask that You give me or _____ the opportunity, the courage and the right words to share with _____ (Col 4:3–6).",
+  "I also ask that You give me the opportunity, the courage and the right words to share with _____ (Col 4:3–6).",
   "Lord, I pray that _____ turn from his/her sin and follow Christ (Acts 17:30–31; 1 Thess 1:9–10).",
   "Lord, I pray that _____ would put all of his/her trust in Christ (John 1:12; 5:24).",
   "Lord, I pray that _____ confess Christ as Lord, take root and grow in faith and bear fruit for Your glory (Rom 10:9–10; Col 2:6–7; Luke 8:15).",

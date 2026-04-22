@@ -51,6 +51,10 @@ type Props = {
   signalCount: number;
   /** 1–2 prioritized suggestions from `computeNextBestSteps` (same for every category modal). */
   nextBestSteps: string[];
+  /** Tailwind grid column classes for the gauge row (default: 1 col mobile, 3 on sm+). */
+  rowGridClassName?: string;
+  /** Hide coaching summary (e.g. partial gauge selection in custom dashboard). */
+  hideSummary?: boolean;
 };
 
 export function FormationMomentumCardInteractive({
@@ -58,6 +62,8 @@ export function FormationMomentumCardInteractive({
   summaryLine,
   signalCount,
   nextBestSteps,
+  rowGridClassName = "grid-cols-1 sm:grid-cols-3 sm:gap-3",
+  hideSummary = false,
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState<CategoryId | null>(null);
@@ -76,7 +82,12 @@ export function FormationMomentumCardInteractive({
 
   return (
     <>
-      <div className="mt-3 grid grid-cols-1 gap-4 border-t border-border/50 pt-3 sm:grid-cols-3 sm:gap-3">
+      <div
+        className={cn(
+          "mt-3 grid gap-4 border-t border-border/50 pt-3",
+          rowGridClassName
+        )}
+      >
         {rows.map((row) => (
           <button
             key={row.category}
@@ -101,13 +112,17 @@ export function FormationMomentumCardInteractive({
         ))}
       </div>
 
-      <p className="mx-auto mt-3 max-w-md text-pretty px-0.5 text-center text-xs leading-snug text-foreground sm:px-0">
-        {summaryLine}
-      </p>
+      {!hideSummary && summaryLine ? (
+        <p className="mx-auto mt-3 max-w-md text-pretty px-0.5 text-center text-xs leading-snug text-foreground sm:px-0">
+          {summaryLine}
+        </p>
+      ) : null}
 
-      <p className="mt-3 border-t border-border/50 pt-2 text-center text-[10px] text-muted-foreground">
-        <span className="opacity-80">{signalCount} weekly signals</span>
-      </p>
+      {!hideSummary ? (
+        <p className="mt-3 border-t border-border/50 pt-2 text-center text-[10px] text-muted-foreground">
+          <span className="opacity-80">{signalCount} weekly signals</span>
+        </p>
+      ) : null}
 
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
         <Dialog.Portal>

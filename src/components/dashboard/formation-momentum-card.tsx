@@ -29,8 +29,14 @@ function orderCategoriesByStrength(scores: Record<CategoryId, number>) {
  *
  * **Phase gauges** map the same benchmark bands (`benchmarks.ts` + `phase-gauge.ts`) into three named
  * phases per category — presentation only, not engine truth. Raw masses stay off this surface.
+ *
+ * @param visibleCategories When set, only these category gauges are rendered (custom dashboard).
  */
-export async function FormationMomentumCard() {
+export async function FormationMomentumCard({
+  visibleCategories = null,
+}: {
+  visibleCategories?: readonly CategoryId[] | null;
+} = {}) {
   const result = await getFormationMomentumDashboard({ includeExplain: true });
 
   if ("error" in result) {
@@ -63,7 +69,13 @@ export async function FormationMomentumCard() {
   const timeZone = await getPracticeTimeZone();
   const nextBestSteps = computeNextBestSteps(explain, timeZone);
 
-  const rows: FormationMomentumRowVM[] = snapshot.categories.map(({ category, score }) => {
+  let categories = snapshot.categories;
+  if (visibleCategories && visibleCategories.length > 0) {
+    const allow = new Set(visibleCategories);
+    categories = categories.filter((c) => allow.has(c.category));
+  }
+
+  const rows: FormationMomentumRowVM[] = categories.map(({ category, score }) => {
     const gauge = scoreToPhaseGauge(category, score);
     const whyInsightLines = topInsightPhrasesForCategory(explain, category, 3);
     return {
@@ -76,6 +88,18 @@ export async function FormationMomentumCard() {
       whyInsightLines,
     };
   });
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const partial = Boolean(visibleCategories && visibleCategories.length > 0 && rows.length < 3);
+  const rowGridClassName =
+    rows.length <= 1
+      ? "grid-cols-1 max-w-md mx-auto gap-4"
+      : rows.length === 2
+        ? "grid-cols-1 sm:grid-cols-2 gap-4"
+        : "grid-cols-1 sm:grid-cols-3 sm:gap-3";
 
   const byStrength = orderCategoriesByStrength(scores);
   const strongest = byStrength[0]!.category;
@@ -112,6 +136,8 @@ export async function FormationMomentumCard() {
         summaryLine={summaryLine}
         signalCount={snapshot.meta?.signalCount ?? 0}
         nextBestSteps={nextBestSteps}
+        rowGridClassName={rowGridClassName}
+        hideSummary={partial}
       />
     </div>
   );

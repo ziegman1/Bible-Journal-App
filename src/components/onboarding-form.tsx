@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   GROWTH_MODE_DESCRIPTION,
   GROWTH_MODE_LABEL,
   GROWTH_MODES,
@@ -21,40 +14,32 @@ import {
 import type { GrowthMode } from "@/lib/growth-mode/types";
 import { cn } from "@/lib/utils";
 
-type ReadingMode = "canonical" | "chronological" | "custom" | "free_reading";
-
 interface OnboardingFormProps {
   defaultDisplayName: string;
-  defaultReadingMode: ReadingMode;
-  defaultJournalYear: number;
   defaultGrowthMode: GrowthMode;
 }
 
 export function OnboardingForm({
   defaultDisplayName,
-  defaultReadingMode,
-  defaultJournalYear,
   defaultGrowthMode,
 }: OnboardingFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(defaultDisplayName);
-  const [readingMode, setReadingMode] = useState<ReadingMode>(defaultReadingMode);
-  const [journalYear, setJournalYear] = useState(defaultJournalYear);
   const [growthMode, setGrowthMode] = useState<GrowthMode>(defaultGrowthMode);
-
-  const currentYear = new Date().getFullYear();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    const journalYear = new Date().getFullYear();
     const result = await updateProfile({
       display_name: displayName,
-      reading_mode: readingMode,
+      reading_mode: "canonical",
       journal_year: journalYear,
+      growth_mode: growthMode,
       onboarding_complete: true,
     });
 
@@ -68,7 +53,7 @@ export function OnboardingForm({
       return;
     }
 
-    router.push("/app");
+    router.push("/start-here");
     router.refresh();
   }
 
@@ -84,41 +69,6 @@ export function OnboardingForm({
           required
           className="bg-white dark:bg-stone-900"
         />
-      </div>
-      <div className="space-y-2">
-        <Label>Preferred Reading Style</Label>
-        <Select
-          value={readingMode}
-          onValueChange={(v) => { if (v != null) setReadingMode(v as ReadingMode); }}
-        >
-          <SelectTrigger className="w-full bg-white dark:bg-stone-900">
-            <SelectValue placeholder="Select reading style" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="canonical">Canonical (book order)</SelectItem>
-            <SelectItem value="chronological">Chronological</SelectItem>
-            <SelectItem value="custom">Custom plan</SelectItem>
-            <SelectItem value="free_reading">Free reading</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Journal Year</Label>
-        <Select
-          value={String(journalYear)}
-          onValueChange={(v) => { if (v != null) setJournalYear(parseInt(String(v), 10)); }}
-        >
-          <SelectTrigger className="w-full bg-white dark:bg-stone-900">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            {[currentYear, currentYear - 1, currentYear + 1].map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
       <div className="space-y-2">
         <Label className="text-base">Growth Mode</Label>

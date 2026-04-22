@@ -64,5 +64,6 @@ export async function updateProfile(data: {
   revalidatePath("/app/share");
   revalidatePath("/app/prayer");
   revalidatePath("/onboarding");
+  revalidatePath("/start-here");
   return { success: true };
 }

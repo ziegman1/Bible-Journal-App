@@ -16,6 +16,8 @@ interface ChapterSelectorProps {
   chapterCount: number;
   /** Preserve CHAT SOAPS reader mode when switching chapters. */
   chatSoapsGroupId?: string | null;
+  /** Base path before `/{bookId}/{chapter}`; default `/app/read`. */
+  readBasePath?: string;
 }
 
 export function ChapterSelector({
@@ -24,11 +26,12 @@ export function ChapterSelector({
   currentChapter,
   chapterCount,
   chatSoapsGroupId = null,
+  readBasePath = "/app/read",
 }: ChapterSelectorProps) {
   const router = useRouter();
 
   const readPath = (chapter: number) => {
-    const base = `/app/read/${bookId}/${chapter}`;
+    const base = `${readBasePath.replace(/\/$/, "")}/${bookId}/${chapter}`;
     if (!chatSoapsGroupId) return base;
     return `${base}?chatSoapsGroup=${encodeURIComponent(chatSoapsGroupId)}`;
   };

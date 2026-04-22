@@ -4,6 +4,7 @@ import { OnboardingForm } from "@/components/onboarding-form";
 import { normalizeGrowthMode } from "@/lib/growth-mode/model";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
+import { normalizeAppExperienceMode, postExperienceModePath } from "@/lib/app-experience-mode/model";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
@@ -20,7 +21,7 @@ export default async function OnboardingPage() {
 
   let { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, reading_mode, journal_year, onboarding_complete, growth_mode")
+    .select("display_name, onboarding_complete, growth_mode, app_experience_mode")
     .eq("id", user.id)
     .single();
 
@@ -35,15 +36,18 @@ export default async function OnboardingPage() {
     );
     const { data: created } = await supabase
       .from("profiles")
-      .select("display_name, reading_mode, journal_year, onboarding_complete, growth_mode")
+      .select("display_name, onboarding_complete, growth_mode, app_experience_mode")
       .eq("id", user.id)
       .single();
     profile = created ?? profile;
   }
 
-  // Only skip onboarding if user explicitly completed it (submitted the form)
   if (profile?.onboarding_complete) {
-    redirect("/app");
+    const mode = normalizeAppExperienceMode(profile.app_experience_mode);
+    if (!mode) {
+      redirect("/start-here");
+    }
+    redirect(postExperienceModePath(mode));
   }
 
   return (
@@ -59,8 +63,6 @@ export default async function OnboardingPage() {
           </p>
           <OnboardingForm
             defaultDisplayName={profile?.display_name ?? ""}
-            defaultReadingMode={(profile?.reading_mode as "canonical" | "chronological" | "custom" | "free_reading") ?? "canonical"}
-            defaultJournalYear={profile?.journal_year ?? new Date().getFullYear()}
             defaultGrowthMode={normalizeGrowthMode(profile?.growth_mode)}
           />
         </div>
