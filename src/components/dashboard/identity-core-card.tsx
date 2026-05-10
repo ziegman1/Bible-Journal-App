@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button-variants";
+import {
+  streakMainHrefForStreakStatLabel,
+  streakOpenAriaForStreakStatLabel,
+} from "@/lib/dashboard/dashboard-streak-links";
 
 export function IdentityCoreCard({
   displayName,
@@ -68,40 +72,55 @@ export function IdentityCoreCard({
       </div>
 
       {showStats ? (
-        <dl className="relative mt-6 grid grid-cols-2 gap-3 text-left sm:grid-cols-3">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className={cn(
-                "flex min-h-[4.25rem] flex-col justify-center rounded-lg border border-indigo-100/60 px-3 py-2",
-                "bg-white/60 backdrop-blur-xs",
-                "dark:border-indigo-500/10 dark:bg-white/[0.03]"
-              )}
-            >
-              <dt
-                className="text-[11px] tracking-wide text-muted-foreground"
-                title={
-                  s.label.startsWith("SOAPS")
-                    ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
-                    : s.label.startsWith("Prayer")
-                      ? "Consecutive days you engaged in prayer (Prayer Wheel, freestyle timer, or extra time—practice timezone). Miss a day → streak resets."
-                      : s.label.startsWith("Share")
-                        ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
-                        : s.label.startsWith("Scripture Memory")
-                          ? "Consecutive days you logged new memorization or review (practice timezone). Miss a day → streak resets."
-                          : s.label.startsWith("3/3 weekly")
-                            ? "Consecutive pillar weeks (Sun–Sat, practice timezone) after you recorded Complete 3/3 (solo finalize, informal group, or 3/3rds meeting)."
-                            : s.label.startsWith("CHAT weekly")
-                              ? "Consecutive pillar weeks (Sun–Sat) after you submitted the final CHAT reading check-in question—counts regardless of yes/no."
-                              : undefined
-                }
-              >
-                {s.label}
-              </dt>
-              <dd className="text-sm font-medium text-foreground">{s.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <ul className="relative m-0 mt-6 grid list-none grid-cols-2 gap-3 p-0 text-left sm:grid-cols-3">
+          {stats.map((s) => {
+            const streakHref = streakMainHrefForStreakStatLabel(s.label);
+            const streakTitle =
+              s.label.startsWith("SOAPS")
+                ? "Consecutive days with a qualifying SOAPS journal entry (same calendar day in your practice timezone). Miss a day → streak resets."
+                : s.label.startsWith("Prayer")
+                  ? "Consecutive days you engaged in prayer (Prayer Wheel, freestyle timer, or extra time—practice timezone). Miss a day → streak resets."
+                  : s.label.startsWith("Share")
+                    ? "Consecutive days with a logged gospel or testimony share. Miss a day → streak resets."
+                    : s.label.startsWith("Scripture Memory")
+                      ? "Consecutive days you logged new memorization or review (practice timezone). Miss a day → streak resets."
+                      : s.label.startsWith("3/3 weekly")
+                        ? "Consecutive pillar weeks (Sun–Sat, practice timezone) after you recorded Complete 3/3 (solo finalize, informal group, or 3/3rds meeting)."
+                        : s.label.startsWith("CHAT weekly")
+                          ? "Consecutive pillar weeks (Sun–Sat) after you submitted the final CHAT reading check-in question—counts regardless of yes/no."
+                          : undefined;
+            const tileClass = cn(
+              "flex min-h-[4.25rem] flex-col justify-center rounded-lg border border-indigo-100/60 px-3 py-2",
+              "bg-white/60 backdrop-blur-xs",
+              "dark:border-indigo-500/10 dark:bg-white/[0.03]",
+              streakHref &&
+                "cursor-pointer transition-colors hover:border-indigo-300/80 hover:bg-indigo-50/50 active:bg-indigo-100/50 dark:hover:border-indigo-400/25 dark:hover:bg-indigo-950/20 dark:active:bg-indigo-950/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            );
+            if (streakHref) {
+              const ariaLabel = `${streakOpenAriaForStreakStatLabel(s.label)}. Current streak: ${s.value}.`;
+              return (
+                <li key={s.label} className="min-w-0">
+                  <Link href={streakHref} aria-label={ariaLabel} className={cn(tileClass, "no-underline")}>
+                    <span className="text-[11px] tracking-wide text-muted-foreground" title={streakTitle}>
+                      {s.label}
+                    </span>
+                    <span className="text-sm font-medium text-foreground">{s.value}</span>
+                  </Link>
+                </li>
+              );
+            }
+            return (
+              <li key={s.label} className="min-w-0">
+                <div className={tileClass}>
+                  <span className="text-[11px] tracking-wide text-muted-foreground" title={streakTitle}>
+                    {s.label}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">{s.value}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       ) : invitationalSubtitle ? (
         <p className="relative mt-6 text-left text-sm leading-relaxed text-muted-foreground md:text-center">
           {invitationalSubtitle}

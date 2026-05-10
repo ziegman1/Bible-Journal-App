@@ -17,6 +17,7 @@ export function GenerateMeetingSummaryButton({ meetingId }: { meetingId: string 
     if ("error" in r && r.error) toast.error(r.error);
     else {
       toast.success("Summary generated");
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/meeting-summary-generate-button.tsx — #1");
       router.refresh();
     }
   }

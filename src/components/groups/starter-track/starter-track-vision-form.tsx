@@ -30,6 +30,7 @@ export function StarterTrackVisionForm({ groupId, initialStatement }: Props) {
       return;
     }
     toast.success("Vision statement saved");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/starter-track/starter-track-vision-form.tsx — #1");
     router.refresh();
     router.push(`/app/groups/${groupId}/starter-track`);
   }

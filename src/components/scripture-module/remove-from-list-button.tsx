@@ -24,6 +24,7 @@ export function RemoveFromListButton({
         alert(res.error);
         return;
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/remove-from-list-button.tsx — #1");
       router.refresh();
     });
   }

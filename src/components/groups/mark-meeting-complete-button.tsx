@@ -33,6 +33,7 @@ export function MarkMeetingCompleteButton({
     }
     setLocalStatus("completed");
     toast.success("Meeting marked complete");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/mark-meeting-complete-button.tsx — #1");
     router.refresh();
   }
 

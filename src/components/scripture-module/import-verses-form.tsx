@@ -111,6 +111,7 @@ export function ImportVersesForm() {
       setResult({ imported: res.imported, failed: res.failed });
       form.reset();
       clearCsv();
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/import-verses-form.tsx — #1");
       router.refresh();
     });
   }

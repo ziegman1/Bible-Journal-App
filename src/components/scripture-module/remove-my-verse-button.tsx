@@ -30,6 +30,7 @@ export function RemoveMyVerseButton({ myVerseId, reference }: Props) {
         setError(res.error);
         return;
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/remove-my-verse-button.tsx — #1");
       router.refresh();
     });
   }

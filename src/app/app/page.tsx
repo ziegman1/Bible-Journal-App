@@ -9,8 +9,12 @@ import { getSoapsHomeActionHref } from "@/app/actions/soaps-home-action";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { getGrowthModePresentation, normalizeGrowthMode } from "@/lib/growth-mode/model";
 import { createClient } from "@/lib/supabase/server";
+import { effectiveGuidedJourneyTools, journeyDashboardItemIds } from "@/lib/app-experience-mode/guided-journey";
+import { parseJourneyProgress } from "@/lib/app-experience-mode/journey-progress";
+import { isLinearDiscipleshipPathGraduated } from "@/lib/app-experience-mode/linear-discipleship-path";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import { resolveCustomDashboardItemIds } from "@/lib/app-experience-mode/dashboard-items";
+import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 import { redirect } from "next/navigation";
 
 /**
@@ -30,12 +34,13 @@ export default async function DashboardPage() {
   let presentation = getGrowthModePresentation("focused");
   let experienceMode = null as ReturnType<typeof normalizeAppExperienceMode>;
   let customItemIds = null as ReturnType<typeof resolveCustomDashboardItemIds> | null;
+  let journeyProgress: unknown = null;
 
   if (user && supabase) {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "display_name, growth_mode, app_experience_mode, custom_dashboard_items, custom_dashboard_modules"
+        "display_name, growth_mode, app_experience_mode, custom_dashboard_items, custom_dashboard_modules, journey_progress"
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -46,6 +51,7 @@ export default async function DashboardPage() {
       profile?.custom_dashboard_items,
       profile?.custom_dashboard_modules
     );
+    journeyProgress = profile?.journey_progress;
     displayName =
       profile?.display_name?.trim() ||
       user.email?.split("@")[0]?.trim() ||
@@ -65,6 +71,27 @@ export default async function DashboardPage() {
     if (experienceMode === "custom" && customItemIds.length === 0) {
       redirect("/app/dashboard-setup");
     }
+  }
+
+  if (experienceMode === "journey" && user && supabase) {
+    const jp = parseJourneyProgress(journeyProgress);
+    const linear = jp.linearDiscipleshipPath;
+    if (linear && !isLinearDiscipleshipPathGraduated(linear)) {
+      if (canAccessGuidedJourney(user)) {
+        redirect("/app/journey");
+      }
+    }
+    const journeyItemIds = journeyDashboardItemIds(effectiveGuidedJourneyTools(jp));
+    return (
+      <CustomDashboardHome
+        itemIds={journeyItemIds}
+        displayName={displayName}
+        soapsActionHref={soapsActionHref}
+        soapsActionLabel={soapsActionLabel}
+        primaryChatGroupId={primaryChatGroupId}
+        presentation={presentation}
+      />
+    );
   }
 
   if (experienceMode === "custom" && customItemIds && customItemIds.length > 0) {

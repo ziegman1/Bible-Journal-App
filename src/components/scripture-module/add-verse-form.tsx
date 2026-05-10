@@ -30,6 +30,7 @@ export function AddVerseForm({
         return;
       }
       router.push(`/scripture/items/${res.id}`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/add-verse-form.tsx — #1");
       router.refresh();
     });
   }

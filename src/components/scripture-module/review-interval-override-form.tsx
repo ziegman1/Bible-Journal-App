@@ -48,6 +48,7 @@ export function ReviewIntervalOverrideForm({
         setError(res.error);
         return;
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/review-interval-override-form.tsx — #1");
       router.refresh();
     });
   }

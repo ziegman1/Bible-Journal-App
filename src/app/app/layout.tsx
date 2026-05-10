@@ -1,13 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import { authLog } from "@/lib/auth-debug";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
+import { AuthHydrationBoundary } from "@/components/auth/auth-hydration-boundary";
 import { SiteFooter } from "@/components/site-footer";
 import { resolveCustomDashboardItemIds } from "@/lib/app-experience-mode/dashboard-items";
 import {
   customDashboardNavHrefsFromItemIds,
   resolveCustomDashboardSidebarItemIds,
 } from "@/lib/app-experience-mode/custom-sidebar-nav";
+import { journeyFilteredNavHrefList } from "@/lib/app-experience-mode/journey-nav";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import type { AppExperienceMode } from "@/lib/app-experience-mode/types";
 
@@ -43,13 +46,14 @@ export default async function AppLayout({
   }
 
   if (!user) {
+    authLog("redirect_to_login", { reason: "app_layout_no_user" });
     redirect("/login");
   }
 
   let { data: profile } = await supabase
     .from("profiles")
     .select(
-      "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules"
+      "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules, journey_progress"
     )
     .eq("id", user.id)
     .single();
@@ -66,7 +70,7 @@ export default async function AppLayout({
     const { data: created } = await supabase
       .from("profiles")
       .select(
-        "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules"
+        "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules, journey_progress"
       )
       .eq("id", user.id)
       .single();
@@ -80,7 +84,9 @@ export default async function AppLayout({
   }
 
   if (isFacilitatorPresent) {
-    return <>{children}</>;
+    return (
+      <AuthHydrationBoundary>{children}</AuthHydrationBoundary>
+    );
   }
 
   const experienceMode = normalizeAppExperienceMode(profile?.app_experience_mode);
@@ -88,29 +94,40 @@ export default async function AppLayout({
     redirect("/start-here");
   }
 
-  const customSidebarNavHrefs = buildCustomSidebarNavHrefs(
+  const { hrefs: customSidebarNavHrefs, kind: sidebarFilterKind } = buildSidebarNavState(
     experienceMode,
     profile?.custom_dashboard_items,
-    profile?.custom_dashboard_modules
+    profile?.custom_dashboard_modules,
+    profile?.journey_progress
   );
 
   return (
     <AppShell
       displayName={profile?.display_name ?? undefined}
       customSidebarNavHrefs={customSidebarNavHrefs}
+      sidebarFilterKind={sidebarFilterKind}
     >
-      {children}
+      <AuthHydrationBoundary>{children}</AuthHydrationBoundary>
     </AppShell>
   );
 }
 
-function buildCustomSidebarNavHrefs(
+function buildSidebarNavState(
   mode: AppExperienceMode,
   rawItems: unknown,
-  rawModules: unknown
-): readonly string[] | null {
-  if (mode !== "custom") return null;
-  const rawIds = resolveCustomDashboardItemIds("custom", rawItems, rawModules);
-  const itemIds = resolveCustomDashboardSidebarItemIds(rawIds);
-  return Array.from(customDashboardNavHrefsFromItemIds(itemIds));
+  rawModules: unknown,
+  journeyProgress: unknown
+): {
+  hrefs: readonly string[] | null;
+  kind: "custom" | "journey" | null;
+} {
+  if (mode === "journey") {
+    return { hrefs: journeyFilteredNavHrefList(journeyProgress), kind: "journey" };
+  }
+  if (mode === "custom") {
+    const rawIds = resolveCustomDashboardItemIds("custom", rawItems, rawModules);
+    const itemIds = resolveCustomDashboardSidebarItemIds(rawIds);
+    return { hrefs: Array.from(customDashboardNavHrefsFromItemIds(itemIds)), kind: "custom" };
+  }
+  return { hrefs: null, kind: null };
 }

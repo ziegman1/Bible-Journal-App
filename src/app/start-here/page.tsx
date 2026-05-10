@@ -4,6 +4,7 @@ import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { StartHereClient } from "@/components/start-here/start-here-client";
 import { normalizeAppExperienceMode, postExperienceModePath } from "@/lib/app-experience-mode/model";
+import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 
 export default async function StartHerePage() {
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export default async function StartHerePage() {
   }
 
   const mode = normalizeAppExperienceMode(profile.app_experience_mode);
-  if (mode) {
+  if (mode && !(mode === "journey" && !canAccessGuidedJourney(user))) {
     redirect(postExperienceModePath(mode));
   }
 
@@ -42,7 +43,7 @@ export default async function StartHerePage() {
           <p className="text-center text-stone-600 dark:text-stone-400 mb-10 max-w-xl mx-auto text-sm sm:text-base">
             Choose how you want BADWR to meet you today. You can change this later in Settings.
           </p>
-          <StartHereClient />
+          <StartHereClient showGuidedJourneyOption={canAccessGuidedJourney(user)} />
         </div>
       </div>
       <div className="shrink-0 border-t border-border px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">

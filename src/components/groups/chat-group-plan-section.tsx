@@ -131,6 +131,7 @@ export function ChatGroupPlanSection({
       }
       setTimeText("");
       setReadingPlan("");
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/chat-group-plan-section.tsx — #1");
       router.refresh();
     });
   };
@@ -146,6 +147,7 @@ export function ChatGroupPlanSection({
       if ("planJustFinalized" in out && out.planJustFinalized) {
         setShowPaceMatchPrompt(true);
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/chat-group-plan-section.tsx — #2");
       router.refresh();
     });
   };

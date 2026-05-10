@@ -233,6 +233,7 @@ export function ScriptureTypedReviewFlow({
   );
 
   const refreshFromServer = useCallback(() => {
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/scripture-typed-review-flow.tsx — refreshFromServer");
     router.refresh();
   }, [router]);
 

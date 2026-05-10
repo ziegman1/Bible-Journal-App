@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const OPTIONS: {
+const ALL_OPTIONS: {
   mode: AppExperienceMode;
   title: string;
   description: string;
@@ -39,9 +39,10 @@ const OPTIONS: {
   },
 ];
 
-export function StartHereClient() {
+export function StartHereClient({ showGuidedJourneyOption }: { showGuidedJourneyOption: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState<AppExperienceMode | null>(null);
+  const OPTIONS = showGuidedJourneyOption ? ALL_OPTIONS : ALL_OPTIONS.filter((o) => o.mode !== "journey");
 
   async function choose(mode: AppExperienceMode) {
     setPending(mode);
@@ -55,6 +56,7 @@ export function StartHereClient() {
 
     if ("redirectTo" in result && result.redirectTo) {
       router.push(result.redirectTo);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/start-here/start-here-client.tsx — #1");
       router.refresh();
     }
   }

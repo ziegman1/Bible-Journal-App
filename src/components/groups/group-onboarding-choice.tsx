@@ -34,6 +34,7 @@ export function GroupOnboardingChoice({ groupId, groupName }: Props) {
     }
     if ("redirectTo" in r && r.redirectTo) {
       router.push(r.redirectTo);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/group-onboarding-choice.tsx — #1");
       router.refresh();
     }
   }

@@ -3,9 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { AppExperienceMode } from "@/lib/app-experience-mode/types";
-import { isAppExperienceMode, postExperienceModePath } from "@/lib/app-experience-mode/model";
+import {
+  isAppExperienceMode,
+  normalizeAppExperienceMode,
+  postExperienceModePath,
+} from "@/lib/app-experience-mode/model";
 import type { DashboardItemId } from "@/lib/app-experience-mode/dashboard-items";
 import { DASHBOARD_ITEM_IDS, isDashboardItemId } from "@/lib/app-experience-mode/dashboard-items";
+import { DEFAULT_JOURNEY_PROGRESS_V1 } from "@/lib/app-experience-mode/journey-progress";
+import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 
 function revalidateExperiencePaths() {
   revalidatePath("/start-here");
@@ -30,22 +36,38 @@ async function persistAppExperienceMode(mode: AppExperienceMode, options?: Persi
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" as const };
 
+  if (mode === "journey" && !canAccessGuidedJourney(user)) {
+    return { error: "Guided Journey is not available yet" as const };
+  }
+
+  let priorMode: ReturnType<typeof normalizeAppExperienceMode> = null;
   if (requireOnboarding) {
     const { data: profile, error: fetchError } = await supabase
       .from("profiles")
-      .select("onboarding_complete")
+      .select("onboarding_complete, app_experience_mode")
       .eq("id", user.id)
       .single();
 
     if (fetchError || !profile?.onboarding_complete) {
       return { error: "Complete onboarding first" as const };
     }
+    priorMode = normalizeAppExperienceMode(profile?.app_experience_mode);
+  } else {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("app_experience_mode")
+      .eq("id", user.id)
+      .maybeSingle();
+    priorMode = normalizeAppExperienceMode(profile?.app_experience_mode);
   }
+
+  const enteringJourney = mode === "journey" && priorMode !== "journey";
 
   const { error } = await supabase
     .from("profiles")
     .update({
       app_experience_mode: mode,
+      ...(enteringJourney ? { journey_progress: { ...DEFAULT_JOURNEY_PROGRESS_V1 } } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

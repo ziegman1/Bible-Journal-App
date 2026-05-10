@@ -31,6 +31,7 @@ export function AddToMyVersesButton({ listId, itemId, initialInMyVerses }: Props
       }
       setInMyVerses(true);
       setHint("Added to My Verses");
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/add-to-my-verses-button.tsx — #1");
       router.refresh();
     });
   }

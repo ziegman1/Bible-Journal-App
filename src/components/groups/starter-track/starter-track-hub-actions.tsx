@@ -24,6 +24,7 @@ export function EnrollStarterTrackButton({ groupId }: { groupId: string }) {
       return;
     }
     toast.success("Starter Track enabled for this group");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/starter-track/starter-track-hub-actions.tsx — #1");
     router.refresh();
     router.push(`/app/groups/${groupId}/starter-track/intro`);
   }
@@ -49,6 +50,7 @@ export function CompleteIntroButton({ groupId }: { groupId: string }) {
       return;
     }
     toast.success("Introduction marked complete");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/starter-track/starter-track-hub-actions.tsx — #2");
     router.refresh();
     router.push(`/app/groups/${groupId}/starter-track/vision`);
   }
@@ -82,6 +84,7 @@ export function StartStarterWeekMeetingButton({
     if ("meetingId" in r && r.meetingId) {
       toast.success("Opening meeting room…");
       router.push(`/app/groups/${groupId}/meetings/${r.meetingId}`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/starter-track/starter-track-hub-actions.tsx — #3");
       router.refresh();
     }
   }

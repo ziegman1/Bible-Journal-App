@@ -53,6 +53,7 @@ export function ScriptureMemoryTotalMemorizedSection({
       }
       toast.success("Total memorized updated");
       setOpen(false);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-memory/scripture-memory-total-memorized-section.tsx — #1");
       router.refresh();
     });
   }

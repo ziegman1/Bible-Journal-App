@@ -293,6 +293,7 @@ export function MemorizeFlow({
   );
 
   const refreshFromServer = useCallback(() => {
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/memorize-flow.tsx — refreshFromServer");
     router.refresh();
   }, [router]);
 

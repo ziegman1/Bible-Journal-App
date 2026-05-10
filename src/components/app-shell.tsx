@@ -24,6 +24,7 @@ import {
   LayoutGrid,
   ScrollText,
   Share2,
+  Map,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -195,14 +196,17 @@ function NavLinks({
   variant = "full",
   withTooltips = false,
   customSidebarNavHrefs = null,
+  sidebarFilterKind = null,
 }: {
   pathname: string;
   onNavigate?: () => void;
   variant?: "full" | "icons";
   /** Desktop icon rail: show Base UI tooltips on hover (no native `title`). */
   withTooltips?: boolean;
-  /** When set (Custom dashboard mode), only these tool routes appear between Home and Settings. */
+  /** When set (Custom or Guided Journey), only these tool routes appear between Home and Settings. */
   customSidebarNavHrefs?: readonly string[] | null;
+  /** Which filtered-nav experience is active (controls secondary link below tools). */
+  sidebarFilterKind?: "custom" | "journey" | null;
 }) {
   const showLabels = variant === "full";
   const filter = customSidebarNavHrefs != null ? new Set(customSidebarNavHrefs) : null;
@@ -231,15 +235,27 @@ function NavLinks({
             onNavigate={onNavigate}
           />
         ))}
-        <SidebarNavItem
-          href="/app/dashboard-setup"
-          label="Customize dashboard"
-          icon={LayoutGrid}
-          isActive={isDashboardSetupActive(pathname)}
-          showLabels={showLabels}
-          withTooltips={withTooltips}
-          onNavigate={onNavigate}
-        />
+        {sidebarFilterKind === "journey" ? (
+          <SidebarNavItem
+            href="/app/journey"
+            label="Guided Journey"
+            icon={Map}
+            isActive={pathname.startsWith("/app/journey")}
+            showLabels={showLabels}
+            withTooltips={withTooltips}
+            onNavigate={onNavigate}
+          />
+        ) : (
+          <SidebarNavItem
+            href="/app/dashboard-setup"
+            label="Customize dashboard"
+            icon={LayoutGrid}
+            isActive={isDashboardSetupActive(pathname)}
+            showLabels={showLabels}
+            withTooltips={withTooltips}
+            onNavigate={onNavigate}
+          />
+        )}
         <SidebarNavItem
           href="/app/settings"
           label="Settings"
@@ -312,11 +328,18 @@ function NavLinks({
 interface AppShellProps {
   displayName?: string;
   children: React.ReactNode;
-  /** Custom dashboard mode: visible primary tool hrefs (Home / Settings / customize added in nav). */
+  /** Custom or Guided Journey: visible primary tool hrefs (Home / Settings / secondary link added in nav). */
   customSidebarNavHrefs?: readonly string[] | null;
+  /** When hrefs are filtered, whether secondary link is dashboard setup (custom) or Guided Journey. */
+  sidebarFilterKind?: "custom" | "journey" | null;
 }
 
-export function AppShell({ displayName, children, customSidebarNavHrefs = null }: AppShellProps) {
+export function AppShell({
+  displayName,
+  children,
+  customSidebarNavHrefs = null,
+  sidebarFilterKind = null,
+}: AppShellProps) {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pinnedExpanded, setPinnedExpanded] = useState(false);
@@ -425,6 +448,7 @@ export function AppShell({ displayName, children, customSidebarNavHrefs = null }
                 variant={showLabels ? "full" : "icons"}
                 withTooltips={desktopTooltips}
                 customSidebarNavHrefs={customSidebarNavHrefs}
+                sidebarFilterKind={sidebarFilterKind}
               />
             </div>
             <button
@@ -471,6 +495,7 @@ export function AppShell({ displayName, children, customSidebarNavHrefs = null }
                         variant="full"
                         withTooltips={false}
                         customSidebarNavHrefs={customSidebarNavHrefs}
+                        sidebarFilterKind={sidebarFilterKind}
                       />
                     </nav>
                   </SheetContent>

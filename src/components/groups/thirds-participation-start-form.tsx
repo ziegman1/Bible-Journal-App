@@ -34,6 +34,7 @@ export function ThirdsParticipationStartForm({
       setMessage(
         `Tracking from the week of ${formatParticipationWeekLong(res.normalizedStartMonday)}.`
       );
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/thirds-participation-start-form.tsx — #1");
       router.refresh();
     });
   }

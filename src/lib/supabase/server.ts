@@ -24,8 +24,21 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
-            // Called from Server Component
+          } catch (e) {
+            const err = e instanceof Error ? e : new Error(String(e));
+            const names = cookiesToSet.map((c) => c.name).join(",");
+            if (process.env.NODE_ENV === "development") {
+              console.error(
+                "[supabase/server] cookie setAll failed — session may not persist. Names:",
+                names,
+                err
+              );
+            } else {
+              console.warn("[supabase/server] cookie setAll failed", {
+                cookieNames: names,
+                message: err.message,
+              });
+            }
           }
         },
       },

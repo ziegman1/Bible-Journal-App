@@ -157,6 +157,7 @@ export function ListOf100Editor({ initialLines }: { initialLines: NetworkListLin
         return;
       }
       updateRow(index, { evangelisticFocus: selected });
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/list-of-100/list-of-100-editor.tsx — #1");
       router.refresh();
     },
     [persist, router, updateRow]

@@ -38,6 +38,7 @@ export function DeleteScriptureListButton({
             throw new Error(res.error);
           }
           router.push("/scripture/lists");
+          console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/delete-scripture-list-button.tsx — #1");
           router.refresh();
         }}
       />

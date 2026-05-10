@@ -4,9 +4,8 @@ import { ResetPracticeMetricsSettings } from "@/components/settings/reset-practi
 import { ExperienceModeSettings } from "@/components/settings/experience-mode-settings";
 import { SettingsForm } from "@/components/settings-form";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
-import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
-import { DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES } from "@/lib/prayer-wheel/stats";
 import { normalizeGrowthMode } from "@/lib/growth-mode/model";
+import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -18,9 +17,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      "display_name, ai_style, growth_mode, weekly_share_goal_encounters, weekly_prayer_goal_minutes, app_experience_mode"
-    )
+    .select("display_name, ai_style, growth_mode, app_experience_mode")
     .eq("id", user.id)
     .single();
 
@@ -36,14 +33,12 @@ export default async function SettingsPage() {
         displayName={profile?.display_name ?? ""}
         aiStyle={(profile?.ai_style as "concise" | "balanced" | "in-depth") ?? "balanced"}
         growthMode={growthMode}
-        weeklyShareGoalEncounters={
-          profile?.weekly_share_goal_encounters ?? DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS
-        }
-        weeklyPrayerGoalMinutes={
-          profile?.weekly_prayer_goal_minutes ?? DEFAULT_PRAYER_WEEKLY_GOAL_MINUTES
-        }
       />
-      <ExperienceModeSettings key={experienceMode} currentMode={experienceMode} />
+      <ExperienceModeSettings
+        key={experienceMode}
+        currentMode={experienceMode}
+        showGuidedJourneyOption={canAccessGuidedJourney(user)}
+      />
       <ResetPracticeMetricsSettings />
     </div>
   );

@@ -288,7 +288,10 @@ export function FacilitatorMeetingView({
           commenceLiveFacilitatorOnceRef.current = false;
           return;
         }
-        if (r.commenced) router.refresh();
+        if (r.commenced) {
+          console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/facilitator-meeting-view.tsx — commencePresentFacilitator commenced");
+          router.refresh();
+        }
       });
     }, 500);
     return () => window.clearTimeout(tid);

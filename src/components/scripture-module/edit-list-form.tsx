@@ -34,6 +34,7 @@ export function EditListForm({
         return;
       }
       router.push(`/scripture/lists/${listId}`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/edit-list-form.tsx — #1");
       router.refresh();
     });
   }

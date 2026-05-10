@@ -70,6 +70,7 @@ export function ScriptureMemorySettingsPanel({
       }
       toast.success("Settings saved");
       setOpen(false);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-memory/scripture-memory-settings-panel.tsx — #1");
       router.refresh();
     });
   }

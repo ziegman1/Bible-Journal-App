@@ -18,16 +18,22 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 
-const MODES: AppExperienceMode[] = ["journey", "custom", "full"];
+const ALL_MODES: AppExperienceMode[] = ["journey", "custom", "full"];
 
 interface ExperienceModeSettingsProps {
   currentMode: AppExperienceMode;
+  /** When false, Guided Journey is hidden and cannot be selected (dev gating). */
+  showGuidedJourneyOption: boolean;
 }
 
-export function ExperienceModeSettings({ currentMode }: ExperienceModeSettingsProps) {
+export function ExperienceModeSettings({ currentMode, showGuidedJourneyOption }: ExperienceModeSettingsProps) {
   const router = useRouter();
   const [mode, setMode] = useState<AppExperienceMode>(currentMode);
   const [saving, setSaving] = useState(false);
+  const MODES =
+    showGuidedJourneyOption || currentMode === "journey"
+      ? ALL_MODES
+      : ALL_MODES.filter((m) => m !== "journey");
 
   async function applyChange(next: AppExperienceMode) {
     if (next === currentMode) return;
@@ -50,6 +56,7 @@ export function ExperienceModeSettings({ currentMode }: ExperienceModeSettingsPr
       return;
     }
     toast.success("Experience mode updated");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/settings/experience-mode-settings.tsx — #1");
     router.refresh();
   }
 
@@ -68,7 +75,7 @@ export function ExperienceModeSettings({ currentMode }: ExperienceModeSettingsPr
           <Select
             value={mode}
             onValueChange={(v) => {
-              if (!MODES.includes(v as AppExperienceMode)) return;
+              if (!ALL_MODES.includes(v as AppExperienceMode)) return;
               const next = v as AppExperienceMode;
               setMode(next);
               void applyChange(next);

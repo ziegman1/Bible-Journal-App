@@ -68,6 +68,7 @@ export function ChatWeeklyLogSection({ groupId, rows, meetingHint, error }: Prop
         return;
       }
       toast.success("Saved");
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/chat/chat-weekly-log-section.tsx — #1");
       router.refresh();
     } catch (e) {
       setOptimistic((o) => {

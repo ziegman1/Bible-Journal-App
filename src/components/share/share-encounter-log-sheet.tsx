@@ -92,6 +92,7 @@ export function ShareEncounterLogSheet({
         return;
       }
       setMessage(shareSaveSuccessMessage(copyTone));
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/share/share-encounter-log-sheet.tsx — #1");
       router.refresh();
     });
   }

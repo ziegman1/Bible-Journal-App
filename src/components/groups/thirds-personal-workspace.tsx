@@ -216,7 +216,10 @@ export function ThirdsPersonalWorkspace({ initial }: { initial: ThirdsPersonalWo
     });
   }, [initial]);
 
-  const refresh = useCallback(() => router.refresh(), [router]);
+  const refresh = useCallback(() => {
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/thirds-personal-workspace.tsx — refresh()");
+    router.refresh();
+  }, [router]);
 
   const onSaveLookBack = () => {
     startTransition(async () => {

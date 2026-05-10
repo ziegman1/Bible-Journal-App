@@ -29,6 +29,7 @@ export function OikosPrayerFlow({ names }: { names: string[] }) {
         recordedRef.current = false;
         return;
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/prayer/oikos-prayer-flow.tsx — #1");
       router.refresh();
     });
   }, [router]);

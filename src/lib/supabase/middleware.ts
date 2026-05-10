@@ -1,5 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authLog } from "@/lib/auth-debug";
+import { isLinearDiscipleshipPathGraduated } from "@/lib/app-experience-mode/linear-discipleship-path";
+import { parseJourneyProgress } from "@/lib/app-experience-mode/journey-progress";
+import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
+import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -96,6 +101,30 @@ export async function updateSession(request: NextRequest) {
     return res;
   };
 
+  const normalizedPath = path.replace(/\/$/, "") || "/";
+  if (user && normalizedPath === "/app") {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("app_experience_mode, journey_progress")
+        .eq("id", user.id)
+        .maybeSingle();
+      const mode = normalizeAppExperienceMode(profile?.app_experience_mode);
+      if (mode === "journey" && profile?.journey_progress != null && user && canAccessGuidedJourney(user)) {
+        const jp = parseJourneyProgress(profile.journey_progress);
+        const linear = jp.linearDiscipleshipPath;
+        if (linear && !isLinearDiscipleshipPathGraduated(linear)) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/app/journey";
+          url.search = "";
+          return redirectWithCookies(url);
+        }
+      }
+    } catch {
+      /* profile read failed — allow /app to render and let the page redirect */
+    }
+  }
+
   if (user && isAuthRoute && !isOnboarding) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
@@ -107,6 +136,16 @@ export async function updateSession(request: NextRequest) {
     (isAppRoute || isOnboarding || isScriptureRoute || isStartHereRoute) &&
     !isInviteAcceptRoute
   ) {
+    const cookieNames = request.cookies.getAll().map((c) => c.name);
+    const supabaseAuthCookieHint = cookieNames.some((n) =>
+      n.includes("sb-") && n.includes("-auth-")
+    );
+    authLog("redirect_to_login", {
+      reason: "middleware_no_user",
+      path,
+      supabaseAuthCookieHint,
+      cookieNameCount: cookieNames.length,
+    });
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     const back =

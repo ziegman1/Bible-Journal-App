@@ -62,36 +62,6 @@ export async function signUp(formData: FormData) {
   redirect(`/login?${loginQ.toString()}`);
 }
 
-export async function signIn(formData: FormData) {
-  const supabase = await createClient();
-  if (!supabase) {
-    redirect("/setup");
-  }
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const redirectTo = formData.get("redirectTo") as string | null;
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    const message =
-      error.message?.toLowerCase().includes("fetch") ||
-      error.message?.toLowerCase().includes("network")
-        ? "Unable to connect. Please check your internet connection and try again."
-        : error.message;
-    const q = new URLSearchParams({ error: message });
-    if (redirectTo && isAllowedPostAuthPath(redirectTo)) {
-      q.set("redirectTo", redirectTo);
-    }
-    redirect(`/login?${q.toString()}`);
-  }
-
-  revalidatePath("/", "layout");
-  const target =
-    redirectTo && isAllowedPostAuthPath(redirectTo) ? redirectTo : "/app";
-  redirect(target);
-}
-
 export async function resetPassword(formData: FormData) {
   const supabase = await createClient();
   if (!supabase) {

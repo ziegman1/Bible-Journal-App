@@ -81,6 +81,7 @@ export function StartChatGroupPanel({
             inviteFailed: true,
             groupId: out.groupId,
           });
+          console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/start-chat-group-panel.tsx — #1");
           router.refresh();
         }
         return;
@@ -92,6 +93,7 @@ export function StartChatGroupPanel({
         emailSent: out.emailSent,
         emailError: out.emailError,
       });
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/start-chat-group-panel.tsx — #2");
       router.refresh();
     });
   };

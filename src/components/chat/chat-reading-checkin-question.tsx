@@ -110,6 +110,7 @@ export function ChatReadingCheckinQuestion({
         } else {
           toast.success("Answer saved.");
         }
+        console.log("[BADWR DEBUG] router.refresh triggered from: src/components/chat/chat-reading-checkin-question.tsx — #1");
         router.refresh();
       }
     });

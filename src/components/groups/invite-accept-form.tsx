@@ -36,6 +36,7 @@ export function InviteAcceptForm({ token }: InviteAcceptFormProps) {
     }
     if ("success" in result && result.success && result.groupId) {
       router.push(`/app/groups/${result.groupId}`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/invite-accept-form.tsx — #1");
       router.refresh();
     }
   }

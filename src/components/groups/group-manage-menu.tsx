@@ -77,6 +77,7 @@ export function GroupManageMenu({
       }
       toast.success("Group name updated");
       setRenameOpen(false);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/group-manage-menu.tsx — #1");
       router.refresh();
     } finally {
       setRenameBusy(false);
@@ -91,6 +92,7 @@ export function GroupManageMenu({
     }
     toast.success("Group archived");
     if (afterArchiveHref) router.push(afterArchiveHref);
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/group-manage-menu.tsx — #2");
     router.refresh();
   }
 
@@ -101,6 +103,7 @@ export function GroupManageMenu({
       throw new Error(r.error);
     }
     toast.success("Group restored");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/group-manage-menu.tsx — #3");
     router.refresh();
   }
 
@@ -112,6 +115,7 @@ export function GroupManageMenu({
     }
     toast.success("Group deleted");
     router.push(afterDeleteHref);
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/group-manage-menu.tsx — #4");
     router.refresh();
   }
 

@@ -73,6 +73,7 @@ export function FreestylePrayerPanel({
         return;
       }
       dismissNote();
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/prayer/freestyle-prayer-panel.tsx — #1");
       router.refresh();
     });
   }

@@ -36,6 +36,7 @@ export function EditVerseForm({
         return;
       }
       router.push(`/scripture/items/${item.id}`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/edit-verse-form.tsx — #1");
       router.refresh();
     });
   }

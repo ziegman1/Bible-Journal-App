@@ -50,6 +50,7 @@ export function ChatReadingPaceSettingsForm({
         setError(res.error ?? "Could not save settings");
         return;
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/chat/chat-reading-pace-settings-form.tsx — #1");
       router.refresh();
     });
   }

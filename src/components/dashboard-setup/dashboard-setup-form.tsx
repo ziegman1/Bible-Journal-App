@@ -59,6 +59,7 @@ export function DashboardSetupForm({ initialSelected }: DashboardSetupFormProps)
     }
     toast.success("Dashboard saved");
     router.push("/app");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/dashboard-setup/dashboard-setup-form.tsx — #1");
     router.refresh();
   }
 

@@ -27,6 +27,7 @@ export function EntryDeleteButton({ entryId }: EntryDeleteButtonProps) {
     }
     toast.success("Entry deleted");
     router.push("/app/journal");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/entry-delete-button.tsx — #1");
     router.refresh();
   }
 

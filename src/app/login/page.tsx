@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { signIn } from "@/app/actions/auth";
-import { AuthFormSubmit } from "@/components/auth-form-submit";
+import { LoginPasswordForm } from "@/components/auth/login-password-form";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default async function LoginPage({
   searchParams,
@@ -53,35 +50,10 @@ export default async function LoginPage({
             {params.message}
           </p>
         )}
-        <form action={signIn} className="space-y-4">
-          {params.redirectTo && (
-            <input type="hidden" name="redirectTo" value={params.redirectTo} />
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-              className={authFieldClass}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className={authFieldClass}
-            />
-          </div>
-          <AuthFormSubmit label="Sign In" />
-        </form>
+        <LoginPasswordForm
+          redirectTo={params.redirectTo}
+          authFieldClass={authFieldClass}
+        />
 
         <p className="text-center text-sm text-stone-500 dark:text-stone-400 flex flex-wrap items-center justify-center gap-x-2 gap-y-2">
           <Link

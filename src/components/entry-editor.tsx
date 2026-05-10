@@ -75,6 +75,7 @@ export function EntryEditor({
     }
 
     toast.success("Entry updated");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/entry-editor.tsx — #1");
     router.refresh();
   }
 

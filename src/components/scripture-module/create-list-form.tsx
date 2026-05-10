@@ -31,6 +31,7 @@ export function CreateListForm({ returnTo }: { returnTo?: string }) {
       } else {
         router.push(`/scripture/lists/${res.id}`);
       }
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/create-list-form.tsx — #1");
       router.refresh();
     });
   }

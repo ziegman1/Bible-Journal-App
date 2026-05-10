@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShareEncounterLogSheet } from "@/components/share/share-encounter-log-sheet";
+import { ShareToolPageTabs } from "@/components/share/share-tool-page-tabs";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS } from "@/lib/dashboard/share-weekly-constants";
-import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { ANONYMOUS_SHARE_COPY_TONE, shareToolPageIntro } from "@/lib/growth-mode/copy";
-import type { GrowthCopyTone } from "@/lib/growth-mode/types";
 import { fetchUserGrowthPresentation } from "@/lib/growth-mode/server";
+import type { GrowthCopyTone, GrowthMode } from "@/lib/growth-mode/types";
+import { fetchUserRhythmGoals } from "@/lib/profile/rhythm-goals";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +19,17 @@ export default async function SharePage() {
   } = await supabase.auth.getUser();
 
   let weeklyShareGoalEncounters = DEFAULT_SHARE_WEEKLY_GOAL_ENCOUNTERS;
+  let weeklyPrayerGoalMinutes = 0;
   let copyTone: GrowthCopyTone = ANONYMOUS_SHARE_COPY_TONE;
+  let growthMode: GrowthMode = "guided";
+
   if (user) {
     const g = await fetchUserRhythmGoals(supabase, user.id);
     weeklyShareGoalEncounters = g.shareWeeklyGoalEncounters;
-    copyTone = (await fetchUserGrowthPresentation(supabase, user.id)).copyTone;
+    weeklyPrayerGoalMinutes = g.prayerWeeklyGoalMinutes;
+    const presentation = await fetchUserGrowthPresentation(supabase, user.id);
+    copyTone = presentation.copyTone;
+    growthMode = presentation.mode;
   }
 
   const goalPhrase =
@@ -34,14 +41,26 @@ export default async function SharePage() {
     <div className="mx-auto max-w-lg space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-serif font-light text-foreground">Share</h1>
-        <p className="text-sm text-muted-foreground">
-          {shareToolPageIntro(copyTone, goalPhrase)}
-        </p>
       </div>
-      <ShareEncounterLogSheet
-        weeklyShareGoalEncounters={weeklyShareGoalEncounters}
-        copyTone={copyTone}
-      />
+      {user ? (
+        <ShareToolPageTabs
+          weeklyShareGoalEncounters={weeklyShareGoalEncounters}
+          weeklyPrayerGoalMinutes={weeklyPrayerGoalMinutes}
+          growthMode={growthMode}
+          copyTone={copyTone}
+          goalPhrase={goalPhrase}
+        />
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {shareToolPageIntro(copyTone, goalPhrase)}
+          </p>
+          <ShareEncounterLogSheet
+            weeklyShareGoalEncounters={weeklyShareGoalEncounters}
+            copyTone={copyTone}
+          />
+        </div>
+      )}
       <Link href="/app" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
         ← Dashboard
       </Link>

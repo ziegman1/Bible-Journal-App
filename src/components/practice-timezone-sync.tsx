@@ -31,6 +31,7 @@ export function PracticeTimeZoneSync() {
 
       const maxAge = 60 * 60 * 24 * 400;
       document.cookie = `${PRACTICE_TIMEZONE_COOKIE}=${encodeURIComponent(tz)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/practice-timezone-sync.tsx — #1");
       router.refresh();
     } catch {
       /* ignore */

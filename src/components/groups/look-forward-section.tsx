@@ -301,6 +301,7 @@ export function LookForwardSection({
     if (r.error) toast.error(r.error);
     else {
       toast.success(`${type.label} — added to your practice`);
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/look-forward-section.tsx — #1");
       router.refresh();
     }
   }

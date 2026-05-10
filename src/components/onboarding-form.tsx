@@ -54,6 +54,7 @@ export function OnboardingForm({
     }
 
     router.push("/start-here");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/onboarding-form.tsx — #1");
     router.refresh();
   }
 

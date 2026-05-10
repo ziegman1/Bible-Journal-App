@@ -32,6 +32,7 @@ export function CompleteThirdsStreakButton({
           }
           toast.success("3/3 week recorded for your streak.");
           setDone(true);
+          console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/complete-thirds-streak-button.tsx — #1");
           router.refresh();
         });
       }}

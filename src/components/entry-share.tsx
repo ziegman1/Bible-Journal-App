@@ -6,34 +6,112 @@ import { formatSoapsBodyFields, type SoapsFields } from "@/lib/format-soaps-shar
 import { appendSharePromoToPlainText } from "@/lib/share-promo";
 import { Share2, Mail, MessageCircle } from "lucide-react";
 
+type ShareViaEmailTextButtonsProps = {
+  subject: string;
+  body: string;
+  className?: string;
+  /** When false, the body is used as-is (no “Sent from … / URL” footer). Default true. */
+  appendProductFooter?: boolean;
+  /** Prefill the To: line (e.g. journey invite email). */
+  mailtoRecipient?: string;
+  /** Prefill the SMS recipient (optional; body still opens if empty). */
+  smsRecipient?: string;
+  /** Override default button labels. */
+  emailButtonLabel?: string;
+  smsButtonLabel?: string;
+  /** When true, links are inert and do not open mail or SMS. */
+  disabled?: boolean;
+  /** Fires when the user chooses Email or Text (before the OS handoff). Ignored if `beforeShareNavigate` is set. */
+  onShareChannelIntent?: (channel: "email" | "sms") => void;
+  /**
+   * When set, click is intercepted: await this (e.g. persist share intent), then navigate to mailto/sms.
+   * Return false to cancel opening the share sheet.
+   */
+  beforeShareNavigate?: (channel: "email" | "sms") => Promise<boolean>;
+};
+
 export function ShareViaEmailTextButtons({
   subject,
   body,
   className,
-}: {
-  subject: string;
-  body: string;
-  className?: string;
-}) {
-  const bodyWithPromo = appendSharePromoToPlainText(body);
-  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyWithPromo)}`;
-  const smsUrl = `sms:?body=${encodeURIComponent(bodyWithPromo)}`;
+  appendProductFooter = true,
+  mailtoRecipient,
+  smsRecipient,
+  emailButtonLabel = "Share via Email",
+  smsButtonLabel = "Share via Text",
+  disabled = false,
+  onShareChannelIntent,
+  beforeShareNavigate,
+}: ShareViaEmailTextButtonsProps) {
+  const bodyWithPromo = appendProductFooter ? appendSharePromoToPlainText(body) : body.trimEnd();
+  const to = mailtoRecipient?.trim();
+  const mailtoUrl = to
+    ? `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyWithPromo)}`
+    : `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyWithPromo)}`;
+  const smsTo = smsRecipient?.trim();
+  const smsUrl = smsTo
+    ? `sms:${smsTo.replace(/\s+/g, "")}?body=${encodeURIComponent(bodyWithPromo)}`
+    : `sms:?body=${encodeURIComponent(bodyWithPromo)}`;
+
+  async function handleClick(
+    e: React.MouseEvent<HTMLAnchorElement>,
+    channel: "email" | "sms",
+    url: string
+  ) {
+    if (beforeShareNavigate) {
+      e.preventDefault();
+      const ok = await beforeShareNavigate(channel);
+      if (ok) {
+        onShareChannelIntent?.(channel);
+        window.location.href = url;
+      }
+      return;
+    }
+    onShareChannelIntent?.(channel);
+  }
+
+  if (disabled) {
+    return (
+      <div className={cn("flex flex-wrap gap-2", className)} aria-disabled="true">
+        <span
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "pointer-events-none cursor-not-allowed opacity-50"
+          )}
+        >
+        <Mail className="size-4 mr-2" />
+        {emailButtonLabel}
+      </span>
+        <span
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "pointer-events-none cursor-not-allowed opacity-50"
+          )}
+        >
+          <MessageCircle className="size-4 mr-2" />
+          {smsButtonLabel}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
       <a
         href={mailtoUrl}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        onClick={(e) => void handleClick(e, "email", mailtoUrl)}
       >
         <Mail className="size-4 mr-2" />
-        Email
+        {emailButtonLabel}
       </a>
       <a
         href={smsUrl}
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        onClick={(e) => void handleClick(e, "sms", smsUrl)}
       >
         <MessageCircle className="size-4 mr-2" />
-        Text
+        {smsButtonLabel}
       </a>
     </div>
   );

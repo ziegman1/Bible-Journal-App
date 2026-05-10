@@ -63,6 +63,7 @@ export function InviteAcceptGate({
           groupId: out.groupId,
         });
         router.push(`/app/groups/${out.groupId}`);
+        console.log("[BADWR DEBUG] router.refresh triggered from: src/components/groups/invite-accept-gate.tsx — #1");
         router.refresh();
         return;
       }

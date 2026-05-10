@@ -36,6 +36,7 @@ export function ExtraPrayerMinutesForm({ copyTone = "accountability" }: { copyTo
         return;
       }
       setMessage(extraPrayerSaveSuccess(copyTone, m));
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/prayer/extra-prayer-minutes-form.tsx — #1");
       router.refresh();
     });
   }

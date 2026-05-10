@@ -27,6 +27,7 @@ export function ThreadPageClient({ threadId }: ThreadPageClientProps) {
     }
     toast.success("Thread deleted");
     router.push("/app/read");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/thread-page-client.tsx — #1");
     router.refresh();
   }
 

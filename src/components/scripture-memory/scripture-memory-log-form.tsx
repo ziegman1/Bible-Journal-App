@@ -69,6 +69,7 @@ export function ScriptureMemoryLogForm({
         return;
       }
       toast.success("Saved");
+      console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-memory/scripture-memory-log-form.tsx — #1");
       router.refresh();
     });
   }

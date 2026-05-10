@@ -31,6 +31,7 @@ export function ThreadCard({ id, reference, title, created_at }: ThreadCardProps
       return;
     }
     toast.success("Thread deleted");
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/thread-card.tsx — #1");
     router.refresh();
   }
 

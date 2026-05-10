@@ -45,6 +45,7 @@ export function MeditationFlow({
   }, [initialMemory.memorizeParaphrase, initialMemory.memorizeMeaning]);
 
   const refreshFromServer = useCallback(() => {
+    console.log("[BADWR DEBUG] router.refresh triggered from: src/components/scripture-module/meditation-flow.tsx — #1");
     router.refresh();
   }, [router]);
 
