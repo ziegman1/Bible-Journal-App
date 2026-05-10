@@ -14,9 +14,11 @@ import { journeyFilteredNavHrefList } from "@/lib/app-experience-mode/journey-na
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import type { AppExperienceMode } from "@/lib/app-experience-mode/types";
 import { resolveCachedAppLayoutAuth } from "@/lib/supabase/cached-app-auth.server";
+import { BADWR_ADMIN_GUEST_PREVIEW_HEADER } from "@/lib/admin/admin-test-headers";
 import { GUEST_REQUEST_HEADER } from "@/lib/guest/guest-paths";
 import { GuestAppShell } from "@/components/guest/guest-app-shell";
 import { GuestModeProvider } from "@/components/guest/guest-mode-context";
+import { isBadwrAdminTestUser } from "@/lib/admin/badwr-admin-test-access";
 
 export default async function AppLayout({
   children,
@@ -32,11 +34,12 @@ export default async function AppLayout({
   const isFacilitatorPresent =
     headersList.get("x-facilitator-present") === "1";
   const isGuestBrowser = headersList.get(GUEST_REQUEST_HEADER) === "1";
+  const adminGuestPreviewShell = headersList.get(BADWR_ADMIN_GUEST_PREVIEW_HEADER) === "1";
 
   if (isGuestBrowser) {
     return (
       <GuestModeProvider>
-        <GuestAppShell>
+        <GuestAppShell adminGuestPreview={adminGuestPreviewShell}>
           <AuthHydrationBoundary allowAnonymous>{children}</AuthHydrationBoundary>
         </GuestAppShell>
       </GuestModeProvider>
@@ -94,11 +97,14 @@ export default async function AppLayout({
   );
   navDiagServerAppLayoutStep("app_layout_ready_shell", { experienceMode: experienceMode ?? "" });
 
+  const isAdminTester = isBadwrAdminTestUser(user);
+
   return (
     <AppShell
       displayName={profile?.display_name ?? undefined}
       customSidebarNavHrefs={customSidebarNavHrefs}
       sidebarFilterKind={sidebarFilterKind}
+      isAdminTester={isAdminTester}
     >
       <AuthHydrationBoundary>{children}</AuthHydrationBoundary>
     </AppShell>

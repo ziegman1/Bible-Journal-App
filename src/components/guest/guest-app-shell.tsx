@@ -65,12 +65,23 @@ function linkClass(active: boolean) {
   );
 }
 
-export function GuestAppShell({ children }: { children: React.ReactNode }) {
+export function GuestAppShell({
+  children,
+  adminGuestPreview = false,
+}: {
+  children: React.ReactNode;
+  /** Signed-in admin viewing guest UI via `?guestPreview=1` — do not clear real auth. */
+  adminGuestPreview?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   function exitGuest() {
+    if (adminGuestPreview) {
+      router.replace("/app");
+      return;
+    }
     clearGuestBrowserSession();
     router.replace("/login");
   }
@@ -78,6 +89,14 @@ export function GuestAppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <GuestModeBanner />
+      {adminGuestPreview ? (
+        <div
+          role="status"
+          className="border-b border-amber-400 bg-amber-200/90 px-4 py-2 text-center text-xs font-semibold text-amber-950 dark:border-amber-700 dark:bg-amber-950/90 dark:text-amber-50"
+        >
+          Admin Test Mode — Guest shell preview. You remain signed in. Exit returns to the normal app (no guest cookie).
+        </div>
+      ) : null}
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-52 shrink-0 flex-col border-r border-border bg-muted/30 md:flex">
           <div className="border-b border-border p-4">
@@ -104,7 +123,7 @@ export function GuestAppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <Button type="button" variant="ghost" size="sm" className="mt-1 w-full touch-manipulation" onClick={exitGuest}>
               <LogOut className="mr-2 size-4" aria-hidden />
-              Exit guest
+              {adminGuestPreview ? "Exit preview" : "Exit guest"}
             </Button>
           </div>
         </aside>
@@ -144,10 +163,13 @@ export function GuestAppShell({ children }: { children: React.ReactNode }) {
                   </SheetContent>
                 </Sheet>
                 <BadwrLogo variant="micro" className="md:hidden" />
-                <span className="text-sm text-muted-foreground">Guest · {APP_NAME}</span>
+                <span className="text-sm text-muted-foreground">
+                  {adminGuestPreview ? "Guest preview · " : "Guest · "}
+                  {APP_NAME}
+                </span>
               </div>
               <Button type="button" variant="ghost" size="sm" className="touch-manipulation" onClick={exitGuest}>
-                Exit
+                {adminGuestPreview ? "Exit preview" : "Exit"}
               </Button>
             </div>
           </header>

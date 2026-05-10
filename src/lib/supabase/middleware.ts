@@ -6,6 +6,8 @@ import { isLinearDiscipleshipPathGraduated } from "@/lib/app-experience-mode/lin
 import { parseJourneyProgress } from "@/lib/app-experience-mode/journey-progress";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
+import { isBadwrAdminTestUser } from "@/lib/admin/badwr-admin-test-access";
+import { BADWR_ADMIN_GUEST_PREVIEW_HEADER } from "@/lib/admin/admin-test-headers";
 import {
   GUEST_COOKIE_NAME,
   GUEST_COOKIE_VALUE,
@@ -95,6 +97,29 @@ export async function updateSession(request: NextRequest) {
     );
     supabaseResponse = presentResponse;
   }
+
+  const guestPreviewQuery = request.nextUrl.searchParams.get("guestPreview") === "1";
+  if (
+    user &&
+    isAppRoute &&
+    !isInviteAcceptRoute &&
+    !isFacilitatorPresentRoute &&
+    guestPreviewQuery &&
+    isGuestAllowedAppPath(path) &&
+    isBadwrAdminTestUser(user)
+  ) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(GUEST_REQUEST_HEADER, "1");
+    requestHeaders.set(BADWR_ADMIN_GUEST_PREVIEW_HEADER, "1");
+    const previewResponse = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    supabaseResponse.cookies.getAll().forEach((c) =>
+      previewResponse.cookies.set(c.name, c.value, { path: "/" })
+    );
+    return previewResponse;
+  }
+
   const isAuthRoute =
     path === "/login" ||
     path === "/signup" ||

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentPropsWithoutRef } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Tooltip } from "@base-ui/react/tooltip";
@@ -40,6 +40,7 @@ import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_NAME } from "@/lib/site-config";
 import { navDiagAlways } from "@/lib/debug/nav-diag";
+import { AdminTestPreviewBanner } from "@/components/admin/admin-test-preview-banner";
 
 const navItems = [
   { href: "/app", label: "Home", icon: Home },
@@ -333,6 +334,8 @@ interface AppShellProps {
   customSidebarNavHrefs?: readonly string[] | null;
   /** When hrefs are filtered, whether secondary link is dashboard setup (custom) or Guided Journey. */
   sidebarFilterKind?: "custom" | "journey" | null;
+  /** Authorized QA / admin testers — enables preview banner when test query params are present. */
+  isAdminTester?: boolean;
 }
 
 export function AppShell({
@@ -340,6 +343,7 @@ export function AppShell({
   children,
   customSidebarNavHrefs = null,
   sidebarFilterKind = null,
+  isAdminTester = false,
 }: AppShellProps) {
   const pathname = usePathname();
   const prevPathRef = useRef<string | null>(null);
@@ -536,7 +540,12 @@ export function AppShell({
               </form>
             </div>
           </header>
-          <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+          <main className="min-h-0 flex-1 overflow-auto">
+            <Suspense fallback={null}>
+              <AdminTestPreviewBanner isAdminTester={isAdminTester} />
+            </Suspense>
+            {children}
+          </main>
           <div className="shrink-0 border-t border-stone-200 bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-stone-800">
             <SiteFooter variant="compact" />
           </div>

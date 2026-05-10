@@ -154,9 +154,15 @@ function CheckRow({
 export function ThirdsPersonalWorkspace({
   initial,
   persistence = "server",
+  adminTestHarnessActive = false,
+  adminPreviewLookUpMode = null,
 }: {
   initial: ThirdsPersonalWorkspacePayload;
   persistence?: "server" | "guest";
+  /** Admin QA: `?testMode=1` — Look Up mode toggles do not persist to Supabase. */
+  adminTestHarnessActive?: boolean;
+  /** Admin QA: `?mode=dbs` | `?mode=devotional` (with testMode) — UI-only Look Up style. */
+  adminPreviewLookUpMode?: SoloLookUpMode | null;
 }) {
   const isGuest = persistence === "guest";
   const router = useRouter();
@@ -165,7 +171,9 @@ export function ThirdsPersonalWorkspace({
   const [lookBackSubstep, setLookBackSubstep] = useState<LookBackSubstep>(1);
   /** Where the user was before switching the top stepper (for “Return to …”). */
   const [returnTarget, setReturnTarget] = useState<SoloReturnSnapshot | null>(null);
-  const [soloUiMode, setSoloUiMode] = useState<SoloLookUpMode>(initial.soloLookUpMode);
+  const [soloUiMode, setSoloUiMode] = useState<SoloLookUpMode>(
+    adminPreviewLookUpMode ?? initial.soloLookUpMode
+  );
 
   const sectionFocusRef1 = useRef<HTMLElement | null>(null);
   const sectionFocusRef2 = useRef<HTMLElement | null>(null);
@@ -305,8 +313,12 @@ export function ThirdsPersonalWorkspace({
   }, [scripturePassage, lastLoadedInput]);
 
   useEffect(() => {
+    if (adminTestHarnessActive && adminPreviewLookUpMode && !isGuest) {
+      setSoloUiMode(adminPreviewLookUpMode);
+      return;
+    }
     setSoloUiMode(initial.soloLookUpMode);
-  }, [initial.soloLookUpMode]);
+  }, [initial.soloLookUpMode, adminTestHarnessActive, adminPreviewLookUpMode, isGuest]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -476,6 +488,10 @@ export function ThirdsPersonalWorkspace({
   const onSoloLookUpModeChange = (mode: SoloLookUpMode) => {
     if (readOnly) return;
     setSoloUiMode(mode);
+    if (adminTestHarnessActive && !isGuest) {
+      toast.info("Admin test mode — Look Up preference not saved to your profile.");
+      return;
+    }
     if (isGuest) {
       saveThirdsState(toPayload(week, mode, dbsObservations));
       return;

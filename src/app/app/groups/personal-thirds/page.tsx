@@ -6,8 +6,15 @@ import { ThirdsPersonalWorkspace } from "@/components/groups/thirds-personal-wor
 import { currentUtcWeekMondayYmd } from "@/lib/groups/thirds-personal-helpers";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
+import { parseAdminTestToolQuery } from "@/lib/admin/admin-test-preview-params";
 
-export default async function PersonalThirdsPage() {
+export default async function PersonalThirdsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   if (await isGuestRequest()) {
     const currentWeekMondayYmd = currentUtcWeekMondayYmd();
     return (
@@ -22,6 +29,10 @@ export default async function PersonalThirdsPage() {
       </div>
     );
   }
+
+  const supabase = await createClient();
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+  const adminToolPreview = parseAdminTestToolQuery(sp, user);
 
   const ws = await getThirdsPersonalWorkspace();
 
@@ -44,7 +55,11 @@ export default async function PersonalThirdsPage() {
       >
         ← 3/3rds Groups
       </Link>
-      <ThirdsPersonalWorkspace initial={ws} />
+      <ThirdsPersonalWorkspace
+        initial={ws}
+        adminTestHarnessActive={Boolean(adminToolPreview?.testHarnessActive)}
+        adminPreviewLookUpMode={adminToolPreview?.lookUpMode ?? null}
+      />
     </div>
   );
 }
