@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { getEmailForGuidedJourneyAccess, isGuidedJourneyAdminEmail } from "@/lib/guided-journey/guided-journey-access";
-import { isScriptureModuleOperatorEmail } from "@/lib/scripture-module/access";
+import { isScriptureModuleOperatorEmail } from "@/lib/scripture-module/access-eval";
 
 const ENV_BADWR_ADMIN_EMAILS = "BADWR_ADMIN_EMAILS";
 
