@@ -1,12 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authLog } from "@/lib/auth-debug";
+import { navDiagServer } from "@/lib/debug/nav-diag";
 import { isLinearDiscipleshipPathGraduated } from "@/lib/app-experience-mode/linear-discipleship-path";
 import { parseJourneyProgress } from "@/lib/app-experience-mode/journey-progress";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
+import {
+  GUEST_COOKIE_NAME,
+  GUEST_COOKIE_VALUE,
+  GUEST_REQUEST_HEADER,
+  isGuestAllowedAppPath,
+} from "@/lib/guest/guest-paths";
 
 export async function updateSession(request: NextRequest) {
+  const mwT0 = Date.now();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -131,6 +139,35 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
+  const guestBrowserCookie =
+    request.cookies.get(GUEST_COOKIE_NAME)?.value === GUEST_COOKIE_VALUE;
+
+  if (
+    !user &&
+    isAppRoute &&
+    !isInviteAcceptRoute &&
+    guestBrowserCookie &&
+    isGuestAllowedAppPath(path)
+  ) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(GUEST_REQUEST_HEADER, "1");
+    const guestResponse = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    supabaseResponse.cookies.getAll().forEach((c) =>
+      guestResponse.cookies.set(c.name, c.value, { path: "/" })
+    );
+    supabaseResponse = guestResponse;
+    return supabaseResponse;
+  }
+
+  if (!user && isAppRoute && !isInviteAcceptRoute && guestBrowserCookie) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/app";
+    url.search = "";
+    return redirectWithCookies(url);
+  }
+
   if (
     !user &&
     (isAppRoute || isOnboarding || isScriptureRoute || isStartHereRoute) &&
@@ -153,6 +190,11 @@ export async function updateSession(request: NextRequest) {
       (request.nextUrl.search ? request.nextUrl.search : "");
     url.searchParams.set("redirectTo", back);
     return redirectWithCookies(url);
+  }
+
+  const mwMs = Date.now() - mwT0;
+  if (process.env.BADWR_NAV_DIAG === "1" && mwMs > 400) {
+    navDiagServer("middleware_slow", { path, ms: mwMs });
   }
 
   return supabaseResponse;

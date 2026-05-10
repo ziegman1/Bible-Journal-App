@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { GuestChatHub } from "@/components/guest/guest-surfaces";
+import { isGuestRequest } from "@/lib/guest/guest-request.server";
 import { createClient } from "@/lib/supabase/server";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { ChatGroupsHubList } from "@/components/groups/chat-groups-hub-list";
@@ -11,6 +13,10 @@ import { CHAT_CONTENT } from "@/content/chatContent";
 import { cn } from "@/lib/utils";
 
 export default async function ChatPage() {
+  if (await isGuestRequest()) {
+    return <GuestChatHub />;
+  }
+
   const supabase = await createClient();
   let senderDisplayName = "A friend";
   let currentUserEmail: string | null = null;

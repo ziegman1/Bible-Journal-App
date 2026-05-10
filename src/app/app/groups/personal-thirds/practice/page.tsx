@@ -1,24 +1,24 @@
 import Link from "next/link";
 import { isGuestRequest } from "@/lib/guest/guest-request.server";
 import { getThirdsPersonalWorkspace } from "@/app/actions/thirds-personal";
-import { ThirdsPersonalWorkspaceGuestBootstrap } from "@/components/guest/thirds-personal-workspace-guest-bootstrap";
-import { ThirdsPersonalWorkspace } from "@/components/groups/thirds-personal-workspace";
+import { PersonalThirdsPracticeGuestBootstrap } from "@/components/groups/personal-thirds-practice-guest-bootstrap";
+import { PersonalThirdsPracticeClient } from "@/components/groups/personal-thirds-practice-client";
 import { currentUtcWeekMondayYmd } from "@/lib/groups/thirds-personal-helpers";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
-export default async function PersonalThirdsPage() {
+export default async function PersonalThirdsPracticePage() {
   if (await isGuestRequest()) {
     const currentWeekMondayYmd = currentUtcWeekMondayYmd();
     return (
       <div className="p-6 pb-16">
         <Link
-          href="/app/groups"
+          href="/app/groups/personal-thirds"
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 mb-4 inline-flex")}
         >
-          ← 3/3rds Groups
+          ← Personal 3/3rds
         </Link>
-        <ThirdsPersonalWorkspaceGuestBootstrap currentWeekMondayYmd={currentWeekMondayYmd} />
+        <PersonalThirdsPracticeGuestBootstrap currentWeekMondayYmd={currentWeekMondayYmd} />
       </div>
     );
   }
@@ -39,12 +39,12 @@ export default async function PersonalThirdsPage() {
   return (
     <div className="p-6 pb-16">
       <Link
-        href="/app/groups"
+        href="/app/groups/personal-thirds"
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 mb-4 inline-flex")}
       >
-        ← 3/3rds Groups
+        ← Personal 3/3rds
       </Link>
-      <ThirdsPersonalWorkspace initial={ws} />
+      <PersonalThirdsPracticeClient initial={ws} />
     </div>
   );
 }

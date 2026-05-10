@@ -24,6 +24,7 @@ export function useDebouncedMeetingPersist({
   persist,
   savedHoldMs = DEFAULT_SAVED_HOLD_MS,
   onPersistError,
+  onPersistSuccess,
 }: {
   debounceMs: number;
   dirtyKey: string;
@@ -31,12 +32,15 @@ export function useDebouncedMeetingPersist({
   persist: () => Promise<{ error?: string } | undefined>;
   savedHoldMs?: number;
   onPersistError?: (message: string) => void;
+  onPersistSuccess?: () => void;
 }): MeetingPersistStatus {
   const [status, setStatus] = useState<MeetingPersistStatus>("idle");
   const persistRef = useRef(persist);
   persistRef.current = persist;
   const onPersistErrorRef = useRef(onPersistError);
   onPersistErrorRef.current = onPersistError;
+  const onPersistSuccessRef = useRef(onPersistSuccess);
+  onPersistSuccessRef.current = onPersistSuccess;
   const tailRef = useRef(Promise.resolve());
 
   useEffect(() => {
@@ -55,6 +59,7 @@ export function useDebouncedMeetingPersist({
             onPersistErrorRef.current?.(r.error);
           } else {
             setStatus("saved");
+            onPersistSuccessRef.current?.();
             window.setTimeout(() => setStatus("idle"), savedHoldMs);
           }
         } catch (e) {

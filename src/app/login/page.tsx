@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GuestLoginOptions } from "@/components/guest/guest-login-options";
 import { LoginPasswordForm } from "@/components/auth/login-password-form";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
@@ -50,6 +51,14 @@ export default async function LoginPage({
             {params.message}
           </p>
         )}
+        <GuestLoginOptions
+          signupHref={
+            params.redirectTo
+              ? `/signup?redirectTo=${encodeURIComponent(params.redirectTo)}`
+              : "/signup"
+          }
+        />
+
         <LoginPasswordForm
           redirectTo={params.redirectTo}
           authFieldClass={authFieldClass}

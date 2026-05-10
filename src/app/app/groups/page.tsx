@@ -4,9 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { listGroupsForUser } from "@/app/actions/groups";
 import { listGroupMeetings } from "@/app/actions/meetings";
 import { GroupCard } from "@/components/groups/group-card";
-import { GroupsPageToolbar } from "@/components/groups/groups-page-toolbar";
+import { GroupsHubPersonalJourneyCard } from "@/components/groups/groups-hub-personal-journey-card";
+import { GroupsHubPageShell } from "@/components/groups/groups-hub-page-shell";
+import { getIdentityStreakStats } from "@/app/actions/identity-streaks";
+import { STREAK_LABELS } from "@/lib/app-experience-mode/dashboard-items";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { isBrandNewAccountForThirdsInstruction } from "@/lib/groups/groups-hub-instructional-policy";
+import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 
 export default async function GroupsPage() {
   const supabase = await createClient();
@@ -16,10 +21,43 @@ export default async function GroupsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const [
+    pillarRow,
+    groupTap,
+    identityStats,
+    lastFinalPersonal,
+    inProgressPersonal,
+    profileRow,
+  ] = await Promise.all([
+    supabase.from("pillar_week_streak_completions").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+    supabase.from("thirds_personal_group_completions").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+    getIdentityStreakStats().catch(() => [] as { label: string; value: string }[]),
+    supabase
+      .from("thirds_personal_weeks")
+      .select("week_start_monday, finalized_at")
+      .eq("user_id", user.id)
+      .not("finalized_at", "is", null)
+      .order("finalized_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("thirds_personal_weeks")
+      .select("week_start_monday, updated_at")
+      .eq("user_id", user.id)
+      .is("finalized_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("profiles").select("app_experience_mode").eq("id", user.id).maybeSingle(),
+  ]);
+
+  const weeklyStreakLabel =
+    identityStats.find((s) => s.label === STREAK_LABELS.thirdsWeekly)?.value ?? "—";
+
   const result = await listGroupsForUser({ groupKind: "thirds" });
   if (result.error) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="mx-auto max-w-3xl p-6">
         <p className="text-amber-600 dark:text-amber-400">{result.error}</p>
       </div>
     );
@@ -34,119 +72,97 @@ export default async function GroupsPage() {
       const lastMeeting = meetings.find((m) => m.status === "completed");
       return {
         ...g,
+        meetings,
         nextMeeting: nextMeeting ?? null,
         lastMeeting: lastMeeting ?? null,
       };
     })
   );
 
+  const hasCompletedGroupMeeting = groupsWithMeetings.some((g) =>
+    g.meetings.some((m) => m.status === "completed")
+  );
+  const hasDbThirdsCompletion =
+    Boolean(lastFinalPersonal.data) || Boolean(pillarRow.data) || Boolean(groupTap.data);
+  const hasAnyThirdsCompletion = hasDbThirdsCompletion || hasCompletedGroupMeeting;
+
+  const isBrandNewAccount = isBrandNewAccountForThirdsInstruction(user.created_at);
+  const hasNoGroups = groups.length === 0;
+  const isJourneyMode = normalizeAppExperienceMode(profileRow.data?.app_experience_mode) === "journey";
+
+  /** Surface the learn sheet once on load for users who need orientation; skip for guided journey (journey hub is primary). */
+  const initialLearnOpen =
+    !isJourneyMode && (hasNoGroups || !hasAnyThirdsCompletion || isBrandNewAccount);
+
+  const resumeTarget = groupsWithMeetings.find((g) => g.nextMeeting);
+  const resumeHref = resumeTarget?.nextMeeting
+    ? `/app/groups/${resumeTarget.id}/meetings/${resumeTarget.nextMeeting.id}`
+    : null;
+
+  const subtitle = (
+    <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+      Your personal journey, groups, and weekly rhythm. Tap <span className="font-medium text-stone-700 dark:text-stone-300">Learn</span> or{" "}
+      <span className="font-medium text-stone-700 dark:text-stone-300">What is 3/3rds?</span> anytime for a full primer.
+    </p>
+  );
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-serif font-light text-stone-800 dark:text-stone-200">
-          3/3rds Groups
-        </h1>
-        <GroupsPageToolbar />
-      </div>
+      <GroupsHubPageShell resumeHref={resumeHref} initialLearnOpen={initialLearnOpen} subtitle={subtitle}>
+        <GroupsHubPersonalJourneyCard
+          weeklyStreakLabel={weeklyStreakLabel}
+          lastFinalized={
+            lastFinalPersonal.data
+              ? {
+                  week_start_monday: String(lastFinalPersonal.data.week_start_monday),
+                  finalized_at: String(lastFinalPersonal.data.finalized_at),
+                }
+              : null
+          }
+          inProgressWeek={
+            inProgressPersonal.data
+              ? { week_start_monday: String(inProgressPersonal.data.week_start_monday) }
+              : null
+          }
+        />
 
-      <p className="text-sm text-stone-600 dark:text-stone-400">
-        Meet with your 3/3rds group using Look Back, Look Up, and Look Forward—or use{" "}
-        <span className="font-medium text-stone-800 dark:text-stone-200">Solo 3/3rds</span> on your
-        own.
-      </p>
-
-      <section
-        className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5"
-        aria-labelledby="what-is-thirds-heading"
-      >
-        <h2
-          id="what-is-thirds-heading"
-          className="text-sm font-semibold text-foreground"
-        >
-          What is 3/3rds?
-        </h2>
-        <div className="mt-2 space-y-2 text-sm leading-snug text-muted-foreground">
-          <p>A simple way to meet with others and grow as a disciple.</p>
-          <p className="text-foreground/90">Each time together follows three movements:</p>
-          <ul className="list-none space-y-1 pl-0">
-            <li>
-              <span className="font-medium text-foreground">Look Back</span>
-              <span className="text-muted-foreground"> — How did you obey and share this week?</span>
-            </li>
-            <li>
-              <span className="font-medium text-foreground">Look Up</span>
-              <span className="text-muted-foreground"> — What is God saying in His Word?</span>
-            </li>
-            <li>
-              <span className="font-medium text-foreground">Look Forward</span>
-              <span className="text-muted-foreground">
-                {" "}
-                — What will you do and who will you share with?
-              </span>
-            </li>
-          </ul>
-        </div>
-        <p className="mt-3 border-t border-border/70 pt-3 text-sm text-muted-foreground">
-          Meet with a group—or use{" "}
-          <Link
-            href="/app/groups/personal-thirds"
-            className="font-medium text-foreground underline-offset-2 hover:underline"
-          >
-            Solo 3/3rds
-          </Link>{" "}
-          to practice on your own.
-        </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          <a
-            href="https://zume.training/3-3-group-meeting-pattern"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-stone-600 underline-offset-2 hover:text-foreground hover:underline dark:text-stone-400 dark:hover:text-stone-200"
-          >
-            Watch a short walkthrough (Zúme)
-            <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-          </a>
-        </p>
-      </section>
-
-      {groupsWithMeetings.length === 0 ? (
-        <div className="rounded-xl border border-border p-12 text-center bg-card">
-          <p className="text-stone-600 dark:text-stone-400 mb-4">
-            You are not in any 3/3rds groups yet.
-          </p>
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link href="/app/groups/new">
-              <Button>
-                <Plus className="size-4 mr-2" />
-                Create your first group
-              </Button>
-            </Link>
-            <Link href="/app/groups/personal-thirds">
-              <Button variant="outline">Solo 3/3rds (no group)</Button>
-            </Link>
+        {groupsWithMeetings.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-10 text-center sm:p-12">
+            <p className="mb-4 text-stone-600 dark:text-stone-400">You are not in any 3/3rds groups yet.</p>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link href="/app/groups/new">
+                <Button>
+                  <Plus className="mr-2 size-4" />
+                  Create your first group
+                </Button>
+              </Link>
+              <Link href="/app/groups/personal-thirds">
+                <Button variant="outline">Open personal journey</Button>
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {groupsWithMeetings.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              nextMeeting={group.nextMeeting}
-              lastMeeting={group.lastMeeting}
-            />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className="space-y-4">
+            {groupsWithMeetings.map((group) => (
+              <GroupCard
+                key={group.id}
+                group={group}
+                nextMeeting={group.nextMeeting}
+                lastMeeting={group.lastMeeting}
+              />
+            ))}
+          </div>
+        )}
 
-      {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID ? (
-        <p
-          className="text-[10px] text-stone-400 dark:text-stone-500 pt-4 border-t border-border font-mono"
-          title="If this list is empty on www.badwr.app but shows data on your *.vercel.app preview, the custom domain may point at a different Vercel project or deployment."
-        >
-          Deploy: {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID}
-        </p>
-      ) : null}
+        {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID ? (
+          <p
+            className="border-t border-border pt-4 font-mono text-[10px] text-stone-400 dark:text-stone-500"
+            title="If this list is empty on www.badwr.app but shows data on your *.vercel.app preview, the custom domain may point at a different Vercel project or deployment."
+          >
+            Deploy: {process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID}
+          </p>
+        ) : null}
+      </GroupsHubPageShell>
     </div>
   );
 }

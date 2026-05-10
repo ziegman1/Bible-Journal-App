@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { GuestHomeEntryRow } from "@/components/guest/guest-login-options";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_LANDING_HERO_BLURB, APP_NAME } from "@/lib/site-config";
@@ -29,17 +28,8 @@ export default async function HomePage() {
           <p className="text-base text-stone-600 dark:text-stone-400 leading-relaxed max-w-md mx-auto">
             {APP_LANDING_HERO_BLURB}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-            <Link href="/signup" className="min-h-11 inline-flex">
-              <Button size="lg" className="w-full min-h-11 sm:w-auto touch-manipulation">
-                Get Started
-              </Button>
-            </Link>
-            <Link href="/login" className="min-h-11 inline-flex">
-              <Button variant="outline" size="lg" className="w-full min-h-11 sm:w-auto touch-manipulation">
-                Sign In
-              </Button>
-            </Link>
+          <div className="flex flex-col items-center gap-4 pt-2">
+            <GuestHomeEntryRow />
           </div>
         </div>
       </div>

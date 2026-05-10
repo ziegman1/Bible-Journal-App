@@ -39,6 +39,7 @@ import {
   type AccountabilityCheckupLine,
 } from "@/lib/groups/accountability-checkup";
 import { formatCommissioningVisionLine } from "@/lib/groups/commissioning-vision";
+import { LookBackVisionEncouragement } from "@/components/groups/look-back-vision-encouragement";
 import { useMeetingCommitmentCheckoffsOnlyRealtime } from "@/hooks/use-meeting-responses-realtime";
 import {
   commencePresentFacilitatorFromPresence,
@@ -464,12 +465,13 @@ export function FacilitatorMeetingView({
       if (lookBackIdx === 0) {
         return (
           <div className="space-y-10 text-center">
-            <h2 className={FP_H2_TIGHT}>Care</h2>
+            <h2 className={FP_H2_TIGHT}>Share & Care</h2>
             <div
               className={cn("space-y-10 max-w-5xl mx-auto text-center", FP_PROMPT)}
             >
-              <p>How has your week been?</p>
-              <p>How is your relationship with God?</p>
+              <p>Where did you see the Lord at work this week?</p>
+              <p>What felt hard, heavy, or tender—and where did grace show up?</p>
+              <p>What do you want the group to carry in prayer?</p>
             </div>
           </div>
         );
@@ -477,7 +479,7 @@ export function FacilitatorMeetingView({
       if (lookBackIdx === 1) {
         return (
           <div className="space-y-10 text-center">
-            <h2 className={FP_H2_TIGHT}>Accountability</h2>
+            <h2 className={FP_H2_TIGHT}>Checking In</h2>
             {accountabilityIsWeek1Teaching ? (
               <div
                 className={cn(
@@ -644,6 +646,9 @@ export function FacilitatorMeetingView({
           <p className={cn(FP_BODY_MUTED, "max-w-4xl mx-auto")}>
             We exist to make disciples who obey, share, and multiply.
           </p>
+          <div className="mx-auto max-w-4xl text-left">
+            <LookBackVisionEncouragement />
+          </div>
         </div>
       );
     }

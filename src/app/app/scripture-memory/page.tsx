@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { GuestScriptureMemoryHub } from "@/components/guest/guest-surfaces";
+import { isGuestRequest } from "@/lib/guest/guest-request.server";
 import { getScriptureMemoryPageData } from "@/app/actions/scripture-memory";
 import { ScriptureMemoryLogForm } from "@/components/scripture-memory/scripture-memory-log-form";
 import { ScriptureMemoryProgressBars } from "@/components/scripture-memory/scripture-memory-progress-bars";
@@ -10,6 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 export default async function ScriptureMemoryPage() {
+  if (await isGuestRequest()) {
+    return <GuestScriptureMemoryHub />;
+  }
+
   const supabase = await createClient();
   if (!supabase) redirect("/setup");
   const {

@@ -10,7 +10,7 @@ import { SupabaseCheckButton } from "@/components/supabase-check-button";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; redirectTo?: string }>;
+  searchParams: Promise<{ error?: string; redirectTo?: string; fromGuest?: string }>;
 }) {
   const params = await searchParams;
   const authFieldClass =
@@ -26,6 +26,11 @@ export default async function SignUpPage({
           </div>
         </div>
 
+        {params.fromGuest === "1" && (
+          <p className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
+            Create an account to save your rhythm. Anything you typed in guest mode stayed in your browser only.
+          </p>
+        )}
         {params.error && (
           <div className="text-sm bg-destructive/10 text-destructive p-4 rounded-lg space-y-3">
             <p className="font-medium">{params.error}</p>

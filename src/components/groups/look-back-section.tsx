@@ -35,6 +35,7 @@ import {
   meetingYourLabel,
   meetingYourRegion,
 } from "@/components/groups/meeting-input-layout";
+import { LookBackVisionEncouragement } from "@/components/groups/look-back-vision-encouragement";
 
 const LOOKBACK_PILLAR_ORDER: Record<string, number> = {
   obedience: 0,
@@ -63,8 +64,12 @@ interface LookBackSectionProps {
   priorFollowups: Record<string, unknown>[];
   participants: { user_id: string; display_name: string }[];
   displayNames: Record<string, string>;
-  /** Advance the meeting stepper to Look Up */
+  /** Advance the meeting stepper to Look Up (after Vision). */
   onGoToLookUp?: () => void;
+  /** Which Look Back moment (1 Share & Care → 2 Checking In → 3 Vision). */
+  lookBackPhase: 1 | 2 | 3;
+  /** Advance to the next Look Back moment. */
+  onAdvanceLookBackPhase: () => void;
   /**
    * When false (Facilitator / TV has commenced), use a simple bottom Next instead of sticky quick nav.
    */
@@ -102,6 +107,8 @@ export function LookBackSection({
   participants,
   displayNames,
   onGoToLookUp,
+  lookBackPhase,
+  onAdvanceLookBackPhase,
   participantQuickSectionNav = true,
   othersPastoralLive = [],
   othersAccountabilityLive = [],
@@ -388,7 +395,7 @@ export function LookBackSection({
           <Textarea
             value={pastoral}
             onChange={(e) => setPastoral(e.target.value)}
-            placeholder="Share how you're doing and any prayer needs..."
+            placeholder="Where did you see God at work? What was challenging or encouraging? Prayer needs?"
             rows={3}
             className={meetingTextareaClass("mt-1")}
           />
@@ -404,8 +411,8 @@ export function LookBackSection({
             Save Look Back
           </Button>
           <p className="mt-1.5 text-xs text-muted-foreground leading-snug">
-            Saves prayer, accountability, and vision together. Auto-saves about 2s after
-            you stop typing, or tap Save.
+            Share & Care, Checking In, and Vision notes save together. Auto-saves about 2s after you stop typing, or
+            tap Save.
           </p>
           <MeetingPersistHint status={lookbackPersistStatus} />
         </div>
@@ -503,7 +510,7 @@ export function LookBackSection({
             Save Look Back
           </Button>
           <p className="mt-1 text-xs text-muted-foreground leading-snug">
-            Same auto-save as Pastoral care (above).
+            Same auto-save as Share & Care (earlier in Look Back).
           </p>
         </div>
         <div className={meetingLiveRegion}>
@@ -642,7 +649,7 @@ export function LookBackSection({
       return (
         <div className="space-y-10">
           {renderAccountabilityChecklistCard({
-            title: "Loving Accountability",
+            title: "Checking In",
             intro:
               "Review what each person committed (obey · share · train). Check off what was followed through; anything left unchecked will show again next week.",
             showReflection: true,
@@ -663,7 +670,7 @@ export function LookBackSection({
           >
             <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
               <Scale className="size-5 text-[#83b0da]" />
-              Loving Accountability
+              Checking In
             </h2>
             <div className={cn(meetingReferenceBox, "text-muted-foreground")}>
               <p className="font-medium text-foreground/90 mb-2">
@@ -699,7 +706,7 @@ export function LookBackSection({
           >
             <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
               <Scale className="size-5 text-[#83b0da]" />
-              Loving Accountability
+              Checking In
             </h2>
             <p className="text-sm text-muted-foreground">
               How did you obey last week&apos;s teaching? Did you follow through on your
@@ -726,7 +733,7 @@ export function LookBackSection({
         >
           <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
             <Scale className="size-5 text-[#83b0da]" />
-            Check-up
+            Checking In
           </h2>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#1c252e] bg-white border border-[#d8d4d0] border-l-4 border-l-[#edb73e] rounded-md px-2 py-1.5 inline-block">
             First Starter Track meeting — use this instead of reviewing last week&apos;s
@@ -762,7 +769,7 @@ export function LookBackSection({
       return (
         <div className="space-y-10">
           {renderAccountabilityChecklistCard({
-            title: "Check-up — accountability",
+            title: "Checking In",
             intro:
               "From your previous meeting(s), review each person’s obey · share · train commitments. Check them off as you hear updates; unchecked items carry to next week.",
             showReflection: true,
@@ -782,7 +789,7 @@ export function LookBackSection({
         >
           <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
             <Scale className="size-5 text-[#83b0da]" />
-            Check-up — last week&apos;s commitments
+            Checking In — last week&apos;s commitments
           </h2>
           <p className="text-sm text-muted-foreground">
             From your previous Starter Track meeting, review what each person committed
@@ -883,6 +890,7 @@ export function LookBackSection({
             vision statement out loud. It reminds you why you exist and keeps
             multiplication in view.
           </p>
+          <LookBackVisionEncouragement className="mt-4" compact />
           {starterTrackLookBack.groupVisionStatement ? (
             <div className="rounded-lg border border-[#d8d4d0]/90 border-l-4 border-l-[#83b0da] bg-[#fafaf9]/90 px-4 py-4 text-sm text-[#1c252e] leading-relaxed whitespace-pre-wrap">
               {starterTrackLookBack.groupVisionStatement}
@@ -926,53 +934,62 @@ export function LookBackSection({
       >
         <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
           <Target className="size-5 text-[#83b0da]" />
-          Vision Casting
+          Vision
         </h2>
         <p className="text-sm text-muted-foreground">
           How are you multiplying disciples? Have you shared the gospel or your story this
           week? Are there opportunities to start or multiply a group?
         </p>
+        <LookBackVisionEncouragement className="mt-4" compact />
         {renderVisionLiveBlock()}
       </div>
     );
   }
 
-  return (
-    <div className="space-y-10">
-      <div
-        className={cn(
-          "rounded-xl border border-[#d8d4d0] border-l-4 border-l-[#83b0da] bg-white",
-          meetingSectionPadding
-        )}
-      >
-        <h2 className="text-lg font-medium text-[#1c252e] flex items-center gap-2">
-          <Heart className="size-5 text-[#8c191b]" />
-          Pastoral Care
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          How are you doing? What do you need prayer for? How can the group care for you?
-        </p>
-        {renderPastoralCareLiveBlock()}
+  const phaseNav = (label: string, onClick: () => void) =>
+    participantQuickSectionNav ? (
+      <div className="sticky bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-10 mt-8 flex justify-start rounded-lg border border-border/80 bg-background/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <Button type="button" onClick={onClick}>
+          {label}
+        </Button>
       </div>
+    ) : (
+      <div className="flex justify-start pt-2">
+        <Button type="button" onClick={onClick}>
+          {label}
+        </Button>
+      </div>
+    );
 
-      {isStarter ? renderStarterCheckUp() : renderLegacyAccountability()}
+  if (lookBackPhase === 1) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-medium text-foreground">Share & Care</h2>
+          <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+            Take a breath together: where you saw the Lord at work, what felt hard, where you need care, and how God
+            has been shaping you—before you review commitments.
+          </p>
+        </div>
+        {renderPastoralCareLiveBlock()}
+        {phaseNav("Next — Checking In", onAdvanceLookBackPhase)}
+      </div>
+    );
+  }
 
+  if (lookBackPhase === 2) {
+    return (
+      <div className="space-y-8">
+        {isStarter ? renderStarterCheckUp() : renderLegacyAccountability()}
+        {phaseNav("Next — Vision", onAdvanceLookBackPhase)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
       {renderVisionSection()}
-
-      {onGoToLookUp &&
-        (participantQuickSectionNav ? (
-          <div className="sticky bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-10 mt-8 flex justify-start rounded-lg border border-border/80 bg-background/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
-            <Button type="button" onClick={onGoToLookUp}>
-              Next — Look Up
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-start pt-2">
-            <Button type="button" onClick={onGoToLookUp}>
-              Next — Look Up
-            </Button>
-          </div>
-        ))}
+      {onGoToLookUp ? phaseNav("Next — Look Up", onGoToLookUp) : null}
     </div>
   );
 }

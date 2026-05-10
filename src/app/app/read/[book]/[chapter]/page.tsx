@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isGuestRequest } from "@/lib/guest/guest-request.server";
 import { getChapter } from "@/lib/scripture/provider";
 import { getBookById } from "@/lib/scripture/books";
 import { ReaderView, type ReaderChapterNavLink } from "@/components/reader-view";
@@ -32,6 +33,43 @@ export default async function ChapterPage({ params, searchParams }: PageProps) {
 
   const chapter = await getChapter(bookId, chapterNum);
   if (!chapter) notFound();
+
+  if (await isGuestRequest()) {
+    const prevHref =
+      chapterNum > 1 ? `/app/read/${bookId}/${chapterNum - 1}` : null;
+    const nextHref =
+      chapterNum < book.chapterCount ? `/app/read/${bookId}/${chapterNum + 1}` : null;
+    const prevChapter: ReaderChapterNavLink | null =
+      prevHref != null
+        ? { href: prevHref, label: `${book.name} ${chapterNum - 1}` }
+        : null;
+    const nextChapter: ReaderChapterNavLink | null =
+      nextHref != null
+        ? { href: nextHref, label: `${book.name} ${chapterNum + 1}` }
+        : null;
+
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ReaderView
+          chapter={chapter}
+          bookId={bookId}
+          bookName={book.name}
+          chapterNum={chapterNum}
+          chapterCount={book.chapterCount}
+          resumeScroll={resumeScroll}
+          prevChapterNav={prevChapter}
+          nextChapterNav={nextChapter}
+          chatSoapsGroupId={null}
+          aiStyle="balanced"
+          initialHighlights={new Set()}
+          initialHighlightIds={new Map()}
+          initialFavorites={new Map()}
+          publicTry={{ signupConversionHref: "/signup?fromGuest=1" }}
+          publicTryBooksLink={{ href: "/app", label: "← Dashboard" }}
+        />
+      </div>
+    );
+  }
 
   const supabase = await createClient();
   if (!supabase) redirect("/setup");

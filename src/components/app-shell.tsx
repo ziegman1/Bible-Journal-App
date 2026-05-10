@@ -39,6 +39,7 @@ import { AppBrandLink } from "@/components/app-brand-link";
 import { BadwrLogo } from "@/components/badwr-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { APP_NAME } from "@/lib/site-config";
+import { navDiagAlways } from "@/lib/debug/nav-diag";
 
 const navItems = [
   { href: "/app", label: "Home", icon: Home },
@@ -341,12 +342,23 @@ export function AppShell({
   sidebarFilterKind = null,
 }: AppShellProps) {
   const pathname = usePathname();
+  const prevPathRef = useRef<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pinnedExpanded, setPinnedExpanded] = useState(false);
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const [allowHoverExpand, setAllowHoverExpand] = useState(false);
   const sidebarHydrated = useRef(false);
   const hoverLeaveTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prevPathRef.current !== pathname) {
+      navDiagAlways("client_pathname_commit", {
+        from: prevPathRef.current ?? "",
+        to: pathname,
+      });
+      prevPathRef.current = pathname;
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const mq = window.matchMedia("(hover: hover) and (pointer: fine)");

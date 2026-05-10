@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { GuestShareHub } from "@/components/guest/guest-surfaces";
+import { isGuestRequest } from "@/lib/guest/guest-request.server";
 import { ShareEncounterLogSheet } from "@/components/share/share-encounter-log-sheet";
 import { ShareToolPageTabs } from "@/components/share/share-tool-page-tabs";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -12,6 +14,10 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 export default async function SharePage() {
+  if (await isGuestRequest()) {
+    return <GuestShareHub />;
+  }
+
   const supabase = await createClient();
   if (!supabase) redirect("/setup");
   const {

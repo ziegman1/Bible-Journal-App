@@ -186,6 +186,24 @@ export const DEFAULT_PRESENTER_STATE: PresenterState = {
   practiceSlideIndex: 0,
 };
 
+/** Participant quick-nav top row: Look Back (1), Look Up (2), Look Forward (3). */
+export type ParticipantTopSection = 1 | 2 | 3;
+
+/** Within Look Back: Share & Care (1), Checking In (2), Vision (3) — from `lookBackSlide`. */
+export type LookBackSubstep = 1 | 2 | 3;
+
+export function presenterStateToParticipantTopSection(s: PresenterState): ParticipantTopSection {
+  if (s.activeThird === 1) return 1;
+  if (s.activeThird === 2) return 2;
+  return 3;
+}
+
+export function presenterStateToLookBackSubstep(s: PresenterState): LookBackSubstep {
+  if (s.activeThird !== 1) return 1;
+  const lb = Math.min(2, Math.max(0, s.lookBackSlide));
+  return (lb + 1) as LookBackSubstep;
+}
+
 export function rowToPresenterState(
   row: MeetingPresenterStateRow | null | undefined
 ): PresenterState {

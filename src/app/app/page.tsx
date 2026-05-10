@@ -16,12 +16,18 @@ import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import { resolveCustomDashboardItemIds } from "@/lib/app-experience-mode/dashboard-items";
 import { canAccessGuidedJourney } from "@/lib/guided-journey/guided-journey-access";
 import { redirect } from "next/navigation";
+import { GuestDashboardHome } from "@/components/guest/guest-dashboard-home";
+import { isGuestRequest } from "@/lib/guest/guest-request.server";
 
 /**
  * App home: dashboard shell (mock data). Previous “Scripture journey” home lived here;
  * restore from git history if you need that layout alongside this dashboard.
  */
 export default async function DashboardPage() {
+  if (await isGuestRequest()) {
+    return <GuestDashboardHome />;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

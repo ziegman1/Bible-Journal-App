@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ThreeThirdsStepper } from "@/components/groups/three-thirds-stepper";
+import {
+  LookBackSubstepIndicator,
+  ThirdsRhythmStepper,
+  type ThirdsRhythmSection,
+} from "@/components/groups/three-thirds-stepper";
 import { LookBackSection } from "@/components/groups/look-back-section";
 import { LookUpSection } from "@/components/groups/look-up-section";
 import { LookForwardSection } from "@/components/groups/look-forward-section";
@@ -20,6 +24,8 @@ import {
   PRESENTER_REREAD_VERSES_PER_CHUNK,
   lookUpPhaseToParticipantStep,
   practiceSlideCountForMeeting,
+  presenterStateToLookBackSubstep,
+  presenterStateToParticipantTopSection,
   rowToPresenterState,
   type ForwardSub,
   type MeetingPresenterStateRow,
@@ -243,18 +249,21 @@ export function LiveMeetingView({
     canPersist: false,
   });
 
-  const [localSection, setLocalSection] = useState<1 | 2 | 3>(() => {
-    const t = rowToPresenterState(presenterStateRow ?? undefined).activeThird;
-    return t === 1 || t === 2 || t === 3 ? t : 1;
-  });
+  const initialPs = rowToPresenterState(presenterStateRow ?? undefined);
+  const [localTopSection, setLocalTopSection] = useState<ThirdsRhythmSection>(() =>
+    presenterStateToParticipantTopSection(initialPs)
+  );
+  const [lookBackSubstep, setLookBackSubstep] = useState(() =>
+    presenterStateToLookBackSubstep(initialPs)
+  );
 
-  /** When the TV advances into Look Forward, follow on this device (local tab was only updating on taps). */
+  /** When the facilitator / TV is live, participant tabs follow presenter position. */
   useEffect(() => {
     if (isCompleted) return;
-    if (ps.activeThird === 3) {
-      setLocalSection(3);
-    }
-  }, [ps.activeThird, isCompleted]);
+    if (!facilitatorPresentCommenced) return;
+    setLocalTopSection(presenterStateToParticipantTopSection(ps));
+    setLookBackSubstep(presenterStateToLookBackSubstep(ps));
+  }, [isCompleted, facilitatorPresentCommenced, ps.activeThird, ps.lookBackSlide]);
 
   const {
     lookbackByUser,
@@ -335,11 +344,11 @@ export function LiveMeetingView({
     ]
   );
 
-  const activeSection = localSection;
+  const activeSection = localTopSection;
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [activeSection]);
+  }, [activeSection, lookBackSubstep]);
 
   const myLookback = lookbackByUser[viewerId] as
     | {
@@ -736,21 +745,21 @@ export function LiveMeetingView({
           )}
         >
           <div className="space-y-2 sm:space-y-2.5">
-            <ThreeThirdsStepper
+            <ThirdsRhythmStepper
               activeSection={activeSection}
               onSectionChange={(n) => {
                 if (isCompleted) return;
-                setLocalSection(n);
+                setLocalTopSection(n);
               }}
             />
             {(status === "draft" || status === "active") && (
               <p className="text-center text-sm leading-snug text-muted-foreground">
                 The tabs above are <span className="font-medium text-foreground">for you only</span>{" "}
                 — switch sections to review or catch up without changing the Facilitator / TV screen.
-                Shared slides in Look Up follow the facilitator. Move through the three steps with your
-                group:{" "}
-                <span className="font-medium text-foreground">Look Back</span>, then{" "}
-                <span className="font-medium text-foreground">Look Up</span>, then{" "}
+                Shared slides in Look Up follow the facilitator. Under{" "}
+                <span className="font-medium text-foreground">Look Back</span>, use the small step line for Share & Care,
+                Checking In, and Vision, then open{" "}
+                <span className="font-medium text-foreground">Look Up</span> and{" "}
                 <span className="font-medium text-foreground">Look Forward</span>.
               </p>
             )}
@@ -758,6 +767,15 @@ export function LiveMeetingView({
 
           {activeSection === 1 && (
             <div className={cardClass}>
+              <LookBackSubstepIndicator
+                className="mb-1"
+                activeSubstep={lookBackSubstep}
+                onSubstepChange={(sub) => {
+                  if (isCompleted) return;
+                  setLookBackSubstep(sub);
+                }}
+                allowSubstepNavigation={participantQuickSectionNav}
+              />
               <LookBackSection
                 meetingId={meetingId}
                 currentUserId={currentUserId}
@@ -770,9 +788,15 @@ export function LiveMeetingView({
                 participants={participants}
                 displayNames={memberDisplayNames}
                 participantQuickSectionNav={participantQuickSectionNav}
+                lookBackPhase={lookBackSubstep}
+                onAdvanceLookBackPhase={() => {
+                  if (isCompleted) return;
+                  if (lookBackSubstep === 1) setLookBackSubstep(2);
+                  else if (lookBackSubstep === 2) setLookBackSubstep(3);
+                }}
                 onGoToLookUp={() => {
                   if (isCompleted) return;
-                  setLocalSection(2);
+                  setLocalTopSection(2);
                 }}
                 othersPastoralLive={othersPastoralLive}
                 othersAccountabilityLive={othersAccountabilityLive}
@@ -812,7 +836,7 @@ export function LiveMeetingView({
                 readOnly={isCompleted}
                 onGoToLookForward={() => {
                   if (isCompleted) return;
-                  setLocalSection(3);
+                  setLocalTopSection(3);
                 }}
                 participantQuickSectionNav={participantQuickSectionNav}
                 presenterSync={{
@@ -845,7 +869,7 @@ export function LiveMeetingView({
                   participantQuickSectionNav
                     ? () => {
                         if (isCompleted) return;
-                        setLocalSection(2);
+                        setLocalTopSection(2);
                       }
                     : undefined
                 }

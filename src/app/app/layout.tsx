@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
 import { authLog } from "@/lib/auth-debug";
+import { navDiagServerAppLayoutReset, navDiagServerAppLayoutStep } from "@/lib/debug/nav-diag";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
@@ -13,27 +13,37 @@ import {
 import { journeyFilteredNavHrefList } from "@/lib/app-experience-mode/journey-nav";
 import { normalizeAppExperienceMode } from "@/lib/app-experience-mode/model";
 import type { AppExperienceMode } from "@/lib/app-experience-mode/types";
+import { resolveCachedAppLayoutAuth } from "@/lib/supabase/cached-app-auth.server";
+import { GUEST_REQUEST_HEADER } from "@/lib/guest/guest-paths";
+import { GuestAppShell } from "@/components/guest/guest-app-shell";
+import { GuestModeProvider } from "@/components/guest/guest-mode-context";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  navDiagServerAppLayoutReset();
+  navDiagServerAppLayoutStep("app_layout_start");
+
   const headersList = await headers();
+  navDiagServerAppLayoutStep("app_layout_after_headers");
   const isInviteRoute = headersList.get("x-invite-route") === "1";
   const isFacilitatorPresent =
     headersList.get("x-facilitator-present") === "1";
+  const isGuestBrowser = headersList.get(GUEST_REQUEST_HEADER) === "1";
 
-  const supabase = await createClient();
-  if (!supabase) {
-    redirect("/setup");
+  if (isGuestBrowser) {
+    return (
+      <GuestModeProvider>
+        <GuestAppShell>
+          <AuthHydrationBoundary allowAnonymous>{children}</AuthHydrationBoundary>
+        </GuestAppShell>
+      </GuestModeProvider>
+    );
   }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // Invite link: minimal shell for everyone; skip onboarding until after accept.
-  // Otherwise new users who sign in hit /onboarding before acceptGroupInvite runs.
+  // Invite: skip Supabase in this layout — middleware allows unauthenticated access.
   if (isInviteRoute) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -45,37 +55,19 @@ export default async function AppLayout({
     );
   }
 
+  const { supabase, user, profile } = await resolveCachedAppLayoutAuth();
+  navDiagServerAppLayoutStep("app_layout_after_resolveCachedAuth");
+  if (!supabase) {
+    redirect("/setup");
+  }
+  navDiagServerAppLayoutStep("app_layout_after_getUser", { hasUser: !!user });
+
   if (!user) {
     authLog("redirect_to_login", { reason: "app_layout_no_user" });
     redirect("/login");
   }
 
-  let { data: profile } = await supabase
-    .from("profiles")
-    .select(
-      "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules, journey_progress"
-    )
-    .eq("id", user.id)
-    .single();
-
-  // Backfill profile for users who signed up before handle_new_user trigger fix
-  if (!profile) {
-    await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        display_name: (user.user_metadata?.display_name as string) ?? "Reader",
-      },
-      { onConflict: "id" }
-    );
-    const { data: created } = await supabase
-      .from("profiles")
-      .select(
-        "display_name, reading_mode, journal_year, onboarding_complete, app_experience_mode, custom_dashboard_items, custom_dashboard_modules, journey_progress"
-      )
-      .eq("id", user.id)
-      .single();
-    profile = created ?? profile;
-  }
+  navDiagServerAppLayoutStep("app_layout_after_profile_select", { hasProfile: !!profile });
 
   const needsOnboarding = !profile?.onboarding_complete;
 
@@ -100,6 +92,7 @@ export default async function AppLayout({
     profile?.custom_dashboard_modules,
     profile?.journey_progress
   );
+  navDiagServerAppLayoutStep("app_layout_ready_shell", { experienceMode: experienceMode ?? "" });
 
   return (
     <AppShell
