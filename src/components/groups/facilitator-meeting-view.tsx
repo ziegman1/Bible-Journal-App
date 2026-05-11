@@ -16,6 +16,7 @@ import "./facilitator-present.css";
 import type { StarterTrackLookBackPayload } from "@/lib/groups/starter-track/starter-track-lookback";
 import { WEEK1_ACCOUNTABILITY_TEACHING } from "@/lib/groups/starter-track/week1-accountability-teaching";
 import { getStarterWeekConfig } from "@/lib/groups/starter-track/starter-track-v1-config";
+import type { PassageVerseLine } from "@/lib/groups/preset-story-passage.shared";
 import {
   buildFacilitatorPracticeSlides,
   chunkVerses,
@@ -46,6 +47,9 @@ import {
   saveMeetingCommitmentCheckoff,
 } from "@/app/actions/meetings";
 import { toast } from "sonner";
+import { PresenterSlideViewport } from "@/components/groups/presenter-slide-viewport";
+import type { PresenterFitVariant } from "@/lib/groups/presenter-content-fit";
+import { usePresenterContentSizing } from "@/lib/groups/use-presenter-content-sizing";
 
 interface Meeting {
   id: string;
@@ -88,12 +92,14 @@ function getDocumentFullscreenElement(): Element | null {
   );
 }
 
-/** Room-facing type scale — matches Discuss slides; exclude bible passage verse body. */
+/** Room-facing type scale — wide slide + uniform zoom; passage verse body uses CSS clamp. */
 const FP_H2 =
-  "text-4xl sm:text-5xl md:text-6xl font-semibold text-foreground";
+  "text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-semibold text-foreground";
 const FP_H2_TIGHT = `${FP_H2} tracking-tight`;
 const FP_LEAD =
-  "text-2xl sm:text-3xl md:text-4xl lg:text-[2.5rem] leading-snug sm:leading-relaxed";
+  "text-3xl sm:text-4xl md:text-5xl lg:text-[2.85rem] xl:text-[3.1rem] leading-snug sm:leading-relaxed";
+/** Full-width slide column; stage padding supplies ~3/4 inch margins */
+const FP_WIDE = "w-full min-w-0 max-w-none";
 const FP_BODY = `${FP_LEAD} text-foreground/90`;
 const FP_BODY_MUTED = `${FP_LEAD} text-muted-foreground`;
 const FP_PROMPT = `${FP_LEAD} font-medium text-foreground`;
@@ -125,8 +131,9 @@ export interface FacilitatorMeetingViewProps {
   commitmentCheckoffs?: Record<string, unknown>[];
   retell: { assigned_user_id: string } | null;
   practice: Record<string, unknown>[];
-  passageVerses: { verse: number; text: string }[];
+  passageVerses: PassageVerseLine[];
   passageRef: string | null;
+  passageLookUpCaption?: string | null;
   presenterStateRow: MeetingPresenterStateRow | null;
   /**
    * From `getMeetingDetail`: 1 = first Starter Track meeting for this group (chronological).
@@ -151,6 +158,7 @@ export function FacilitatorMeetingView({
   practice,
   passageVerses,
   passageRef,
+  passageLookUpCaption = null,
   presenterStateRow,
   starterTrackMeetingOrdinal,
 }: FacilitatorMeetingViewProps) {
@@ -402,6 +410,112 @@ export function FacilitatorMeetingView({
   const isObeyTrainShareSlide =
     activeThird === 3 && forwardSub === "obey";
 
+  const presenterFitVariant: PresenterFitVariant =
+    activeThird === 2 &&
+    (lookUpPhase === "read" || lookUpPhase === "reread") &&
+    hasPassage
+      ? "passage"
+      : "default";
+
+  const approxPresenterCharCount = useMemo(() => {
+    if (activeThird === 1) {
+      if (lookBackIdx === 0) return 160;
+      if (lookBackIdx === 1) {
+        if (accountabilityIsWeek1Teaching) {
+          const t = WEEK1_ACCOUNTABILITY_TEACHING;
+          return (
+            t.title.length +
+            t.lead.length +
+            t.paragraphs.join("").length +
+            t.scriptureRefs.join("").length
+          );
+        }
+        if (accountabilityCheckupLines.length > 0) {
+          const memberCount = new Set(
+            accountabilityCheckupLines.map((l) => l.subjectUserId)
+          ).size;
+          return (
+            accountabilityCheckupLines.reduce((a, l) => a + l.text.length, 0) +
+            memberCount * 40
+          );
+        }
+        if (
+          starterTrackLookBack?.checkUpMode === "prior_group_commitments" &&
+          starterTrackLookBack.priorWeekByMember.length > 0
+        ) {
+          return starterTrackLookBack.priorWeekByMember.reduce(
+            (a, m) =>
+              a +
+              (m.obedience?.length ?? 0) +
+              (m.sharing?.length ?? 0) +
+              (m.train?.length ?? 0),
+            0
+          );
+        }
+        return (
+          220 +
+          (priorCommitments?.obedience?.length ?? 0) +
+          (priorCommitments?.sharing?.length ?? 0) +
+          (priorCommitments?.train?.length ?? 0)
+        );
+      }
+      return (
+        visionText.length +
+        120 +
+        (starterTrackLookBack?.groupVisionStatement?.length ?? 0)
+      );
+    }
+    if (activeThird === 2) {
+      if (lookUpPhase === "read" || lookUpPhase === "reread") {
+        if (!hasPassage) return 140;
+        return passageVerses.reduce((a, v) => a + v.text.length, 0);
+      }
+      if (lookUpPhase === "retell") return 220 + (retellerName?.length ?? 0);
+      if (
+        lookUpPhase === "like" ||
+        lookUpPhase === "difficult" ||
+        lookUpPhase === "people" ||
+        lookUpPhase === "god"
+      ) {
+        return 280;
+      }
+      return 200;
+    }
+    if (activeThird === 3) {
+      if (forwardSub === "obey") return 180;
+      if (forwardSub === "practice") {
+        const slide = practiceSlides[practiceSlideIdx];
+        if (!slide) return 120;
+        if (slide.kind === "image") return 100 + (slide.caption?.length ?? 0);
+        return (slide.body?.length ?? 0) + (slide.heading?.length ?? 0) + 80;
+      }
+      if (forwardSub === "prayer") return 200;
+      if (forwardSub === "commissioning") {
+        return commissioningVisionLine.length + 320;
+      }
+    }
+    return 200;
+  }, [
+    activeThird,
+    lookBackIdx,
+    lookUpPhase,
+    forwardSub,
+    practiceSlideIdx,
+    accountabilityIsWeek1Teaching,
+    accountabilityCheckupLines,
+    starterTrackLookBack,
+    priorCommitments,
+    visionText,
+    hasPassage,
+    passageVerses,
+    retellerName,
+    practiceSlides,
+    commissioningVisionLine,
+  ]);
+
+  const { densityClass: presenterDensityClass } =
+    usePresenterContentSizing(approxPresenterCharCount);
+
   const { commitmentCompleteByKey, patchCommitmentComplete } =
     useMeetingCommitmentCheckoffsOnlyRealtime({
       meetingId,
@@ -466,9 +580,7 @@ export function FacilitatorMeetingView({
         return (
           <div className="space-y-10 text-center">
             <h2 className={FP_H2_TIGHT}>Share & Care</h2>
-            <div
-              className={cn("space-y-10 max-w-5xl mx-auto text-center", FP_PROMPT)}
-            >
+            <div className={cn("space-y-10 text-center", FP_WIDE, FP_PROMPT)}>
               <p>Where did you see the Lord at work this week?</p>
               <p>What felt hard, heavy, or tender—and where did grace show up?</p>
               <p>What do you want the group to carry in prayer?</p>
@@ -481,12 +593,7 @@ export function FacilitatorMeetingView({
           <div className="space-y-10 text-center">
             <h2 className={FP_H2_TIGHT}>Checking In</h2>
             {accountabilityIsWeek1Teaching ? (
-              <div
-                className={cn(
-                  "text-left max-w-5xl mx-auto space-y-6",
-                  FP_BODY
-                )}
-              >
+              <div className={cn("space-y-6 text-left", FP_WIDE, FP_BODY)}>
                 <p className={cn(FP_PROMPT, "text-center")}>
                   {WEEK1_ACCOUNTABILITY_TEACHING.title}
                 </p>
@@ -502,7 +609,7 @@ export function FacilitatorMeetingView({
                 </p>
               </div>
             ) : accountabilityCheckupLines.length > 0 ? (
-              <div className="text-left max-w-5xl mx-auto space-y-8">
+              <div className={cn("space-y-8 text-left", FP_WIDE)}>
                 <p className={cn(FP_BODY_MUTED, "text-center")}>
                   Review obey · share · train commitments. Check off what was
                   followed through; unchecked items stay on the list for next week.
@@ -558,7 +665,7 @@ export function FacilitatorMeetingView({
             ) : starterTrackLookBack?.checkUpMode ===
               "prior_group_commitments" &&
               starterTrackLookBack.priorWeekByMember.length > 0 ? (
-              <div className="text-left max-w-5xl mx-auto space-y-6">
+              <div className={cn("space-y-6 text-left", FP_WIDE)}>
                 <p className={cn(FP_BODY_MUTED, "text-center")}>
                   Review last week’s commitments — take turns sharing how you
                   obeyed, who you shared with, and how you trained others.
@@ -589,12 +696,7 @@ export function FacilitatorMeetingView({
                 </ul>
               </div>
             ) : (
-              <div
-                className={cn(
-                  "space-y-8 max-w-5xl mx-auto text-center",
-                  FP_PROMPT
-                )}
-              >
+              <div className={cn("space-y-8 text-center", FP_WIDE, FP_PROMPT)}>
                 <p>
                   Take time for accountability: How did we obey what God showed
                   us? Who did we share with?
@@ -640,13 +742,13 @@ export function FacilitatorMeetingView({
       return (
         <div className="space-y-10 text-center">
           <h2 className={FP_H2_TIGHT}>Vision</h2>
-          <blockquote className={cn(FP_BLOCKQUOTE, "max-w-6xl mx-auto px-4")}>
+          <blockquote className={cn(FP_BLOCKQUOTE, FP_WIDE)}>
             {visionText}
           </blockquote>
-          <p className={cn(FP_BODY_MUTED, "max-w-4xl mx-auto")}>
+          <p className={cn(FP_BODY_MUTED, FP_WIDE)}>
             We exist to make disciples who obey, share, and multiply.
           </p>
-          <div className="mx-auto max-w-4xl text-left">
+          <div className={cn("text-left", FP_WIDE)}>
             <LookBackVisionEncouragement />
           </div>
         </div>
@@ -657,7 +759,7 @@ export function FacilitatorMeetingView({
       if (lookUpPhase === "read") {
         if (!hasPassage) {
           return (
-            <div className="space-y-8 text-center max-w-5xl mx-auto">
+            <div className={cn("space-y-8 text-center", FP_WIDE)}>
               <h2 className={FP_H2}>Read</h2>
               <p className={FP_BODY_MUTED}>
                 Passage text isn’t available on this screen. Read from your
@@ -667,8 +769,8 @@ export function FacilitatorMeetingView({
           );
         }
         return (
-          <div className="facilitator-passage-reading flex min-h-0 w-full max-w-[min(100%,96rem)] flex-1 flex-col mx-auto">
-            <div className="shrink-0 text-center pb-3 sm:pb-4">
+          <div className="facilitator-passage-reading flex min-h-0 w-full flex-1 flex-col">
+            <div className="shrink-0 pb-3 text-center sm:pb-4">
               <h2 className="text-3xl font-semibold text-foreground sm:text-4xl md:text-5xl lg:text-6xl mb-1">
                 Read the passage
               </h2>
@@ -680,16 +782,28 @@ export function FacilitatorMeetingView({
                   Participant devices: part {readPage + 1} of {readChunks.length}
                 </p>
               ) : null}
+              {passageLookUpCaption ? (
+                <p className="mt-3 max-w-4xl mx-auto text-left text-base leading-snug text-muted-foreground sm:text-lg md:text-xl px-2">
+                  {passageLookUpCaption}
+                </p>
+              ) : null}
             </div>
             <div className="facilitator-passage-verses font-serif min-h-0 flex-1 overflow-y-auto overscroll-contain text-foreground leading-snug sm:leading-normal">
-              <div className="mx-auto max-w-4xl space-y-1 sm:space-y-1.5">
-                {passageVerses.map((v) => (
-                  <p key={v.verse} className="text-pretty">
-                    <span className="text-[#83b0da]/80 mr-2 tabular-nums sm:mr-3">
-                      {v.verse}
-                    </span>
-                    {v.text}
-                  </p>
+              <div className={cn("space-y-1 sm:space-y-1.5", FP_WIDE)}>
+                {passageVerses.map((line) => (
+                  <div key={line.lineId} className="min-w-0">
+                    {line.segmentHeadingBefore ? (
+                      <p className="pt-2 text-lg font-semibold text-muted-foreground sm:text-xl md:text-2xl border-t border-border/40 first:border-t-0 first:pt-0">
+                        {line.segmentHeadingBefore}
+                      </p>
+                    ) : null}
+                    <p className="text-pretty">
+                      <span className="text-[#83b0da]/80 mr-2 tabular-nums sm:mr-3">
+                        {line.verseDisplayLabel}
+                      </span>
+                      {line.text}
+                    </p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -699,7 +813,7 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "retell") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Retell</h2>
             <p className={FP_PROMPT}>
               Retell the story in your own words as best you can. Have the rest
@@ -721,7 +835,7 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "like") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Discuss</h2>
             <div className={cn("space-y-10", FP_BODY)}>
               <p className="font-medium text-foreground">
@@ -732,7 +846,7 @@ export function FacilitatorMeetingView({
               </p>
             </div>
             {starterWeek != null && starterWeek >= 1 && starterWeek <= 8 ? (
-              <p className={cn(FP_BODY_MUTED, "text-base max-w-3xl mx-auto")}>
+              <p className={cn(FP_BODY_MUTED, "text-base", FP_WIDE)}>
                 On their devices, participants anchor each written note in
                 specific verse(s) and can reopen the passage while they answer.
               </p>
@@ -743,7 +857,7 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "difficult") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Discuss</h2>
             <div className={cn("space-y-10", FP_BODY)}>
               <p className="font-medium text-foreground">
@@ -754,7 +868,7 @@ export function FacilitatorMeetingView({
               </p>
             </div>
             {starterWeek != null && starterWeek >= 1 && starterWeek <= 8 ? (
-              <p className={cn(FP_BODY_MUTED, "text-base max-w-3xl mx-auto")}>
+              <p className={cn(FP_BODY_MUTED, "text-base", FP_WIDE)}>
                 On their devices, participants anchor each written note in
                 specific verse(s) and can reopen the passage while they answer.
               </p>
@@ -765,8 +879,8 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "reread" && hasPassage) {
         return (
-          <div className="facilitator-passage-reading flex min-h-0 w-full max-w-[min(100%,96rem)] flex-1 flex-col mx-auto">
-            <div className="shrink-0 text-center pb-3 sm:pb-4">
+          <div className="facilitator-passage-reading flex min-h-0 w-full flex-1 flex-col">
+            <div className="shrink-0 pb-3 text-center sm:pb-4">
               <h2 className="text-3xl font-semibold text-foreground sm:text-4xl md:text-5xl lg:text-6xl mb-1">
                 Read again
               </h2>
@@ -782,16 +896,28 @@ export function FacilitatorMeetingView({
                   {rereadChunks.length}
                 </p>
               ) : null}
+              {passageLookUpCaption ? (
+                <p className="mt-3 max-w-4xl mx-auto text-left text-base leading-snug text-muted-foreground sm:text-lg md:text-xl px-2">
+                  {passageLookUpCaption}
+                </p>
+              ) : null}
             </div>
             <div className="facilitator-passage-verses font-serif min-h-0 flex-1 overflow-y-auto overscroll-contain text-foreground leading-snug sm:leading-normal">
-              <div className="mx-auto max-w-4xl space-y-1 sm:space-y-1.5">
-                {passageVerses.map((v) => (
-                  <p key={v.verse} className="text-pretty">
-                    <span className="text-[#83b0da]/80 mr-2 tabular-nums sm:mr-3">
-                      {v.verse}
-                    </span>
-                    {v.text}
-                  </p>
+              <div className={cn("space-y-1 sm:space-y-1.5", FP_WIDE)}>
+                {passageVerses.map((line) => (
+                  <div key={line.lineId} className="min-w-0">
+                    {line.segmentHeadingBefore ? (
+                      <p className="pt-2 text-lg font-semibold text-muted-foreground sm:text-xl md:text-2xl border-t border-border/40 first:border-t-0 first:pt-0">
+                        {line.segmentHeadingBefore}
+                      </p>
+                    ) : null}
+                    <p className="text-pretty">
+                      <span className="text-[#83b0da]/80 mr-2 tabular-nums sm:mr-3">
+                        {line.verseDisplayLabel}
+                      </span>
+                      {line.text}
+                    </p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -801,13 +927,13 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "people") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Discuss</h2>
             <p className={FP_PROMPT}>
               What does the story teach us about people, ourselves, or humanity?
             </p>
             {starterWeek != null && starterWeek >= 1 && starterWeek <= 8 ? (
-              <p className={cn(FP_BODY_MUTED, "text-base max-w-3xl mx-auto")}>
+              <p className={cn(FP_BODY_MUTED, "text-base", FP_WIDE)}>
                 On their devices, participants anchor each written note in
                 specific verse(s) and can reopen the passage while they answer.
               </p>
@@ -818,13 +944,13 @@ export function FacilitatorMeetingView({
 
       if (lookUpPhase === "god") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Discuss</h2>
             <p className={FP_PROMPT}>
               What does the story teach us about God?
             </p>
             {starterWeek != null && starterWeek >= 1 && starterWeek <= 8 ? (
-              <p className={cn(FP_BODY_MUTED, "text-base max-w-3xl mx-auto")}>
+              <p className={cn(FP_BODY_MUTED, "text-base", FP_WIDE)}>
                 On their devices, participants anchor each written note in
                 specific verse(s) and can reopen the passage while they answer.
               </p>
@@ -865,7 +991,7 @@ export function FacilitatorMeetingView({
 
         return (
           <div className="facilitator-obey-train-share-slide">
-            <h2 className="facilitator-ots-main-title">This week</h2>
+            <h2 className="facilitator-ots-main-title">This Week</h2>
             <div className="facilitator-ots-cards">
               {obeyShareTrainCards.map((c) => (
                 <div
@@ -905,12 +1031,12 @@ export function FacilitatorMeetingView({
         if (!slide) return null;
         if (slide.kind === "image") {
           return (
-            <div className="space-y-6 w-full max-w-6xl mx-auto text-center">
+            <div className={cn("space-y-6 text-center", FP_WIDE)}>
               <h2 className={FP_H2}>Practice</h2>
               {slide.caption ? (
                 <p className={FP_BODY_MUTED}>{slide.caption}</p>
               ) : null}
-              <div className="relative w-full max-w-5xl mx-auto aspect-[16/10]">
+              <div className="relative aspect-[16/10] w-full">
                 <Image
                   src={slide.src}
                   alt={slide.alt}
@@ -929,7 +1055,7 @@ export function FacilitatorMeetingView({
           );
         }
         return (
-          <div className="space-y-8 w-full max-w-6xl mx-auto text-center">
+          <div className={cn("space-y-8 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>
               {practicePresenterTitle(slide.heading)}
             </h2>
@@ -952,7 +1078,7 @@ export function FacilitatorMeetingView({
 
       if (forwardSub === "prayer") {
         return (
-          <div className="space-y-10 text-center max-w-5xl mx-auto">
+          <div className={cn("space-y-10 text-center", FP_WIDE)}>
             <h2 className={FP_H2}>Prayer</h2>
             <p className={FP_PROMPT}>
               Pray together for obedience, for those you will share with, and for
@@ -968,7 +1094,7 @@ export function FacilitatorMeetingView({
 
       if (forwardSub === "commissioning") {
         return (
-          <div className="flex w-full max-w-4xl flex-col items-center gap-4 px-3 text-center sm:gap-5 md:max-w-5xl">
+          <div className={cn("flex flex-col items-center gap-4 text-center sm:gap-5", FP_WIDE)}>
             <div className="flex flex-col items-center gap-1.5 sm:gap-2">
               <Send
                 className="size-11 text-[#83b0da] sm:size-14 md:size-16"
@@ -994,7 +1120,8 @@ export function FacilitatorMeetingView({
             <p
               className={cn(
                 FP_BODY,
-                "w-full max-w-3xl border-l-2 border-[#83b0da]/55 pl-4 text-left leading-snug sm:pl-6 sm:leading-relaxed"
+                FP_WIDE,
+                "border-l-2 border-[#83b0da]/55 pl-4 text-left leading-snug sm:pl-6 sm:leading-relaxed"
               )}
             >
               {commissioningVisionLine}
@@ -1010,7 +1137,7 @@ export function FacilitatorMeetingView({
   return (
     <div
       ref={presenterRootRef}
-      className="facilitator-fullscreen-root flex min-h-screen min-h-[100dvh] flex-col bg-[#1c252e]"
+      className="facilitator-fullscreen-root flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#1c252e]"
       data-facilitator-practice-count={practice.length}
     >
       <header className="shrink-0 border-b border-white/20 px-4 py-3 sm:py-4">
@@ -1070,10 +1197,10 @@ export function FacilitatorMeetingView({
         ) : null}
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col items-stretch px-2 py-3 sm:px-3 sm:py-4 md:px-4">
+      <main className="flex min-h-0 flex-1 flex-col items-stretch px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4">
         <div
           key={presentationKey}
-          className="facilitator-slide-in flex min-h-0 w-full max-w-[min(100%,96rem)] flex-1 flex-col mx-auto"
+          className="facilitator-slide-in flex min-h-0 w-full min-w-0 flex-1 flex-col"
         >
           <div
             className={cn(
@@ -1083,7 +1210,14 @@ export function FacilitatorMeetingView({
                 : "items-center justify-center"
             )}
           >
-            {renderMain()}
+            <PresenterSlideViewport
+              presentationKey={presentationKey}
+              variant={presenterFitVariant}
+              layout={isObeyTrainShareSlide ? "tall" : "center"}
+              densityClass={presenterDensityClass}
+            >
+              {renderMain()}
+            </PresenterSlideViewport>
           </div>
         </div>
       </main>

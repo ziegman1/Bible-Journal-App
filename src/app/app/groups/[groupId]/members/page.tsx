@@ -76,14 +76,15 @@ export default async function GroupMembersPage({
               ? "CHAT groups work best with 2–3 people. Invite someone by email; you can resend or share the link by text."
               : "Invite up to three people total (members plus pending invites). Agree on reading and meeting time from Manage group once everyone has joined."
             : members.length < 2
-              ? "A group must have at least 2 members to start meetings. Invite someone to join."
+              ? "Invite others for the full 3/3rds rhythm. As admin you can still start draft meetings while you’re the only member."
               : "Invite others and manage group membership."}
         </p>
       </header>
 
-      {needMembers === "1" && (
+      {needMembers === "1" && !isChatGroup && members.length < 2 && (
         <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-          Invite at least one more member before starting a meeting.
+          Add members here when you’re ready. From the group workspace you can also
+          start a draft meeting while you’re the only member.
         </div>
       )}
 

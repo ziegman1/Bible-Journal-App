@@ -78,6 +78,41 @@ function mergeServerLookbackIntoClient(
   return out;
 }
 
+function lookforwardRowsFingerprint(
+  rows: Record<string, unknown>[] | undefined
+): string {
+  if (!rows?.length) return "";
+  return rows
+    .map((r) => {
+      const u = normalizeMeetingUserId(r.user_id as string);
+      if (!u) return "";
+      return [
+        u,
+        r.obedience_statement ?? "",
+        r.sharing_commitment ?? "",
+        r.train_commitment ?? "",
+        r.updated_at ?? "",
+      ].join("\x1e");
+    })
+    .filter(Boolean)
+    .sort()
+    .join("\x1f");
+}
+
+/** Overlay RSC lookforward when props refresh (same pattern as lookback). Always re-normalize split fields. */
+function mergeServerLookforwardIntoClient(
+  prev: Record<string, Record<string, unknown>>,
+  server: Record<string, Record<string, unknown>>
+): Record<string, Record<string, unknown>> {
+  if (Object.keys(server).length === 0) return prev;
+  const out: Record<string, Record<string, unknown>> = { ...prev };
+  for (const [uid, srow] of Object.entries(server)) {
+    const merged = { ...(prev[uid] ?? {}), ...srow, user_id: uid };
+    out[uid] = normalizeLookforwardRow(merged);
+  }
+  return out;
+}
+
 /** Split embedded train from sharing (legacy DB without train_commitment column). */
 function rowsToLookforwardMap(
   rows: Record<string, unknown>[] | undefined
@@ -281,6 +316,11 @@ export function useMeetingResponsesRealtime(opts: {
     [opts.initialLookback]
   );
 
+  const lookforwardServerFingerprint = useMemo(
+    () => lookforwardRowsFingerprint(opts.initialLookforward),
+    [opts.initialLookforward]
+  );
+
   // Merge RSC lookback when its content changes (e.g. after revalidatePath + router.refresh). Realtime
   // alone does not update clients that never receive the event; overlay keeps maps aligned with DB.
   useEffect(() => {
@@ -290,6 +330,14 @@ export function useMeetingResponsesRealtime(opts: {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookbackServerFingerprint` reflects `initialLookback` content; array identity alone must not reset maps
   }, [lookbackServerFingerprint]);
+
+  useEffect(() => {
+    const serverMap = rowsToLookforwardMap(opts.initialLookforward);
+    setLookforwardByUser((prev) =>
+      mergeServerLookforwardIntoClient(prev, serverMap)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint reflects `initialLookforward` content; array identity alone must not reset maps
+  }, [lookforwardServerFingerprint]);
 
   // Snapshot initial rows only when switching meetings; including full opts would wipe optimistic/realtime state on re-renders.
   useEffect(() => {

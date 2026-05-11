@@ -16,10 +16,12 @@ export function splitSharingAndTrain(row: Row): {
 } {
   const explicit = String(row.train_commitment ?? "").trim();
   if (explicit) {
-    return {
-      sharing: String(row.sharing_commitment ?? ""),
-      train: explicit,
-    };
+    let sharing = String(row.sharing_commitment ?? "");
+    const i = sharing.indexOf(LOOKFORWARD_TRAIN_DELIM);
+    if (i >= 0) {
+      sharing = sharing.slice(0, i).trimEnd();
+    }
+    return { sharing, train: explicit };
   }
   const raw = String(row.sharing_commitment ?? "");
   const i = raw.indexOf(LOOKFORWARD_TRAIN_DELIM);

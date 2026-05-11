@@ -26,9 +26,29 @@ import {
 } from "lucide-react";
 import { GroupWorkspaceManageSection } from "@/components/groups/group-workspace-manage-section";
 import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
+import { canStartThirdsMeetings } from "@/lib/groups/group-workspace-admin";
+import { isBadwrAdminTestUser } from "@/lib/admin/badwr-admin-test-access";
+import {
+  effectiveGroupRoleForSandboxPreview,
+  parseSandboxRoleQuery,
+} from "@/lib/admin/admin-sandbox-third-constants";
 
 interface PageProps {
   params: Promise<{ groupId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function sandboxPreviewHref(
+  path: string,
+  enabled: boolean,
+  sandboxRole: ReturnType<typeof parseSandboxRoleQuery>
+): string {
+  if (!enabled) return path;
+  const u = new URL(path, "https://badwr.local");
+  u.searchParams.set("testMode", "1");
+  const r = sandboxRole === "participant" ? "participant" : "facilitator";
+  u.searchParams.set("sandboxRole", r);
+  return `${u.pathname}${u.search}`;
 }
 
 type GroupOnboardingFields = {
@@ -36,6 +56,7 @@ type GroupOnboardingFields = {
   onboarding_path?: string | null;
   group_kind?: string | null;
   starter_track_prompt_answered?: boolean | null;
+  badwr_admin_sandbox?: boolean | null;
 };
 
 function starterTrackPrimaryHref(
@@ -78,8 +99,9 @@ function shortMeetingDate(meeting_date: string) {
   });
 }
 
-export default async function GroupOverviewPage({ params }: PageProps) {
+export default async function GroupOverviewPage({ params, searchParams }: PageProps) {
   const { groupId } = await params;
+  const sp = (await searchParams) ?? {};
   const supabase = await createClient();
   if (!supabase) redirect("/setup");
   const {
@@ -111,7 +133,22 @@ export default async function GroupOverviewPage({ params }: PageProps) {
     .eq("group_id", groupId);
 
   const memberCount = count ?? 0;
-  const canStartMeetings = memberCount >= 2;
+  const isSandboxGroup = Boolean(g.badwr_admin_sandbox);
+  const canStartMeetings = canStartThirdsMeetings({
+    memberCount,
+    isSandboxGroup,
+    isGroupWorkspaceAdmin: canManageGroup,
+  });
+  const isAdminTester = isBadwrAdminTestUser(user);
+  const sandboxRole = parseSandboxRoleQuery(sp.sandboxRole);
+  const uiGroupRole = effectiveGroupRoleForSandboxPreview({
+    dbRole: role === "admin" ? "admin" : "member",
+    sandboxGroup: isSandboxGroup,
+    isAdminTester,
+    sandboxRole,
+  });
+  const uiIsAdmin = uiGroupRole === "admin";
+  const sbHref = (path: string) => sandboxPreviewHref(path, isSandboxGroup, sandboxRole);
 
   /**
    * First-meeting Starter Track prompt — group row only (`starter_track_prompt_answered`),
@@ -131,7 +168,6 @@ export default async function GroupOverviewPage({ params }: PageProps) {
   const onboardingPath = g.onboarding_path ?? null;
   const isExperiencedPath = onboardingPath === "experienced";
 
-  const isAdmin = role === "admin";
   const meetingsResult = await listGroupMeetings(groupId);
   const meetings = meetingsResult.meetings ?? [];
 
@@ -177,11 +213,11 @@ export default async function GroupOverviewPage({ params }: PageProps) {
 
   if (!canStartMeetings) {
     nextStepTitle = "Add another member";
-    nextStepBody = isAdmin
+    nextStepBody = uiIsAdmin
       ? "Invite someone so this group can run 3/3rds meetings."
       : "This group needs at least two members before meetings can start.";
-    nextStepHref = isAdmin ? `/app/groups/${groupId}/members` : null;
-    nextStepButtonLabel = isAdmin ? "Invite & manage members" : "";
+    nextStepHref = uiIsAdmin ? sbHref(`/app/groups/${groupId}/members`) : null;
+    nextStepButtonLabel = uiIsAdmin ? "Invite & manage members" : "";
   } else if (starterTrackPrimary && !activeMeeting && !draftMeeting) {
     nextStepTitle = "Starter Track";
     if (starterPhase === "intro")
@@ -192,23 +228,25 @@ export default async function GroupOverviewPage({ params }: PageProps) {
       nextStepBody = `Continue Week ${(starterEnrollment?.weeks_completed ?? 0) + 1} of 8 with your group.`;
     else
       nextStepBody = "Open the Starter Track to begin or continue the eight-week path.";
-    nextStepHref = starterTrackPrimaryHref(groupId, starterPhase);
+    nextStepHref = sbHref(starterTrackPrimaryHref(groupId, starterPhase));
     nextStepButtonLabel = "Open Starter Track";
   } else if (activeMeeting) {
     nextStepTitle = "Meeting in progress";
     nextStepBody = `Continue where you left off: ${meetingLabel(activeMeeting)}`;
-    nextStepHref = `/app/groups/${groupId}/meetings/${activeMeeting.id}`;
+    nextStepHref = sbHref(`/app/groups/${groupId}/meetings/${activeMeeting.id}`);
     nextStepButtonLabel = "Continue meeting";
   } else if (draftMeeting) {
     nextStepTitle = "Draft meeting ready";
     nextStepBody = `Pick up your draft: ${meetingLabel(draftMeeting)}`;
-    nextStepHref = `/app/groups/${groupId}/meetings/${draftMeeting.id}`;
+    nextStepHref = sbHref(`/app/groups/${groupId}/meetings/${draftMeeting.id}`);
     nextStepButtonLabel = "Continue draft";
   } else {
     nextStepTitle = "Start a meeting";
     nextStepBody =
-      "Begin a new 3/3rds session when your group is ready to meet.";
-    nextStepHref = `/app/groups/${groupId}/meetings/new`;
+      canManageGroup && memberCount < 2 && !isSandboxGroup
+        ? "You’re the only member so far — you can open a draft meeting to plan, or invite others when you’re ready for the full group."
+        : "Begin a new 3/3rds session when your group is ready to meet.";
+    nextStepHref = sbHref(`/app/groups/${groupId}/meetings/new`);
     nextStepButtonLabel = "Start new meeting";
   }
 
@@ -238,15 +276,22 @@ export default async function GroupOverviewPage({ params }: PageProps) {
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <span
             className={`text-xs px-2 py-0.5 rounded-full border border-border ${
-              isAdmin
+              uiIsAdmin
                 ? "bg-muted text-foreground font-medium"
                 : "bg-muted/70 text-muted-foreground"
             }`}
           >
-            You’re {isAdmin ? "an admin" : "a member"}
+            You’re {uiIsAdmin ? "an admin" : "a member"}
+            {isSandboxGroup ? (
+              <span className="ml-1 text-muted-foreground font-normal">
+                (preview — simulated roster in banner)
+              </span>
+            ) : null}
           </span>
           <span className="text-sm text-muted-foreground">
-            {memberCount} member{memberCount !== 1 ? "s" : ""}
+            {isSandboxGroup
+              ? "1 real member · simulated roster for QA"
+              : `${memberCount} member${memberCount !== 1 ? "s" : ""}`}
           </span>
         </div>
       </header>
@@ -270,20 +315,31 @@ export default async function GroupOverviewPage({ params }: PageProps) {
 
       {!canStartMeetings && (
         <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground">
-          {isAdmin
+          {uiIsAdmin
             ? "Invite at least one more member to start meetings."
             : "This group needs at least 2 members before meetings can start."}
         </div>
       )}
 
+      {canStartMeetings &&
+        canManageGroup &&
+        memberCount < 2 &&
+        !isSandboxGroup && (
+        <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground">
+          You&apos;re the only member right now. As an admin you can still start a
+          draft meeting; invite others from Members &amp; invites whenever you want
+          the full group together.
+        </div>
+      )}
+
       {/* "Invite first" hint: mirrors prompt gate (pre–second member), not user-specific state */}
       {(g.group_kind ?? "thirds") === "thirds" &&
-        !canStartMeetings &&
+        memberCount < 2 &&
         (g.starter_track_prompt_answered === false ||
           (g.onboarding_pending === true &&
             g.starter_track_prompt_answered !== true)) && (
         <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground">
-          {isAdmin
+          {uiIsAdmin
             ? "After someone joins, you’ll be asked whether anyone in this group is new to 3/3rds before the first meeting."
             : "When this group has two members, everyone will be asked whether anyone is new to 3/3rds before the first meeting."}
         </div>
@@ -315,7 +371,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
                   !activeMeeting &&
                   !draftMeeting &&
                   starterTrackPrimary && <Sparkles className="size-4 mr-2" />}
-                {!canStartMeetings && isAdmin && (
+                {!canStartMeetings && uiIsAdmin && (
                   <Users className="size-4 mr-2" />
                 )}
                 {nextStepButtonLabel}
@@ -332,7 +388,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
         </h2>
         <div className="flex flex-wrap gap-2">
           {canStartMeetings && (
-            <Link href={`/app/groups/${groupId}/meetings/new`}>
+            <Link href={sbHref(`/app/groups/${groupId}/meetings/new`)}>
               <Button
                 variant={isExperiencedPath ? "default" : "outline"}
                 size="sm"
@@ -342,14 +398,14 @@ export default async function GroupOverviewPage({ params }: PageProps) {
               </Button>
             </Link>
           )}
-          <Link href={`/app/groups/${groupId}/meetings`}>
+          <Link href={sbHref(`/app/groups/${groupId}/meetings`)}>
             <Button variant="outline" size="sm">
               <Calendar className="size-4 mr-2" />
               All meetings
             </Button>
           </Link>
-          {isAdmin && (
-            <Link href={`/app/groups/${groupId}/members`}>
+          {uiIsAdmin && (
+            <Link href={sbHref(`/app/groups/${groupId}/members`)}>
               <Button variant="outline" size="sm">
                 <UserCog className="size-4 mr-2" />
                 Members & invites
@@ -385,7 +441,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="pt-0">
                 <Link
-                  href={`/app/groups/${groupId}/meetings/${activeMeeting.id}`}
+                  href={sbHref(`/app/groups/${groupId}/meetings/${activeMeeting.id}`)}
                 >
                   <Button variant="default" size="sm" className="w-full sm:w-auto">
                     Continue meeting
@@ -409,7 +465,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="pt-0">
                 <Link
-                  href={`/app/groups/${groupId}/meetings/${draftMeeting.id}`}
+                  href={sbHref(`/app/groups/${groupId}/meetings/${draftMeeting.id}`)}
                 >
                   <Button variant="outline" size="sm">
                     Open draft
@@ -431,7 +487,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="pt-0 flex flex-wrap gap-2">
                 <Link
-                  href={`/app/groups/${groupId}/meetings/${latestCompleted.id}`}
+                  href={sbHref(`/app/groups/${groupId}/meetings/${latestCompleted.id}`)}
                 >
                   <Button variant="outline" size="sm">
                     Open meeting
@@ -439,7 +495,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
                 </Link>
                 {hasSummaryForLatestCompleted && (
                   <Link
-                    href={`/app/groups/${groupId}/meetings/${latestCompleted.id}/summary`}
+                    href={sbHref(`/app/groups/${groupId}/meetings/${latestCompleted.id}/summary`)}
                   >
                     <Button variant="outline" size="sm">
                       <FileText className="size-4 mr-1.5" />
@@ -467,7 +523,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
           </h2>
           {meetings.length > 0 && (
             <Link
-              href={`/app/groups/${groupId}/meetings`}
+              href={sbHref(`/app/groups/${groupId}/meetings`)}
               className="text-sm text-muted-foreground hover:underline"
             >
               View all
@@ -483,7 +539,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
             {recentMeetings.map((m) => (
               <li key={m.id}>
                 <Link
-                  href={`/app/groups/${groupId}/meetings/${m.id}`}
+                  href={sbHref(`/app/groups/${groupId}/meetings/${m.id}`)}
                   className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted/50 transition-colors text-sm shadow-sm"
                 >
                   <span className="text-foreground">
@@ -511,7 +567,7 @@ export default async function GroupOverviewPage({ params }: PageProps) {
         )}
       </section>
 
-      {canManageGroup && (
+      {canManageGroup && uiIsAdmin && (
         <GroupWorkspaceManageSection
           groupId={groupId}
           groupName={group.name}

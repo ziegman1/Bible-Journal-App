@@ -7,6 +7,7 @@ import {
   getStarterTrackPromptGateForGroup,
 } from "@/app/actions/groups";
 import { MeetingSetupForm } from "@/components/groups/meeting-setup-form";
+import { canStartThirdsMeetings } from "@/lib/groups/group-workspace-admin";
 
 interface PageProps {
   params: Promise<{ groupId: string }>;
@@ -40,7 +41,21 @@ export default async function NewMeetingPage({ params }: PageProps) {
   const membersResult = await getGroupMembers(groupId);
   const members = membersResult.members ?? [];
 
-  if (members.length < 2) {
+  const gRow = groupResult.group as {
+    badwr_admin_sandbox?: boolean | null;
+    admin_user_id?: string | null;
+  };
+  const isSandboxGroup = Boolean(gRow.badwr_admin_sandbox);
+  const isGroupWorkspaceAdmin =
+    groupResult.role === "admin" ||
+    Boolean(gRow.admin_user_id && gRow.admin_user_id === user.id);
+  if (
+    !canStartThirdsMeetings({
+      memberCount: members.length,
+      isSandboxGroup,
+      isGroupWorkspaceAdmin,
+    })
+  ) {
     redirect(`/app/groups/${groupId}/members?needMembers=1`);
   }
 

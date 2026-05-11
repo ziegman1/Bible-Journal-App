@@ -74,8 +74,8 @@ interface LookForwardSectionProps {
     forwardSub: ForwardSub;
     practiceSlideIndex: number;
   };
-  /** Other members&apos; saved commitments (realtime), excluding current user */
-  othersCommitmentsLive?: {
+  /** All members&apos; saved commitments (realtime); current user first */
+  groupCommitmentsLive?: {
     userId: string;
     displayName: string;
     obedienceText: string;
@@ -114,7 +114,7 @@ export function LookForwardSection({
   practice,
   currentUserId,
   presenterFocus,
-  othersCommitmentsLive = [],
+  groupCommitmentsLive = [],
   starterTrackMeetingOrdinal = null,
   groupVisionStatement = null,
   passageReferenceLabel = null,
@@ -316,7 +316,7 @@ export function LookForwardSection({
   })();
 
   return (
-    <div className="space-y-10">
+    <div className="min-w-0 space-y-10">
       <div
         ref={obeyRef}
         id="lf-obey"
@@ -404,11 +404,11 @@ export function LookForwardSection({
           </div>
           <div className={meetingLiveRegion}>
             <p className={meetingLiveLabel}>Group (live)</p>
-            {othersCommitmentsLive.length === 0 ? (
-              <p className={meetingLiveEmpty}>No one else has shared yet.</p>
+            {groupCommitmentsLive.length === 0 ? (
+              <p className={meetingLiveEmpty}>No commitments shared yet.</p>
             ) : (
               <ul className="m-0 list-none space-y-0 p-0">
-                {othersCommitmentsLive.map((o) => (
+                {groupCommitmentsLive.map((o) => (
                   <li key={o.userId} className={meetingLiveRow}>
                     <p className={meetingLiveName}>{o.displayName}</p>
                     {o.obedienceText ? (

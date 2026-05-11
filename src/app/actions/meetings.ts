@@ -28,10 +28,17 @@ import { formatObservationVerseRef } from "@/lib/groups/observation-verse-ref";
 import { revalidatePath } from "next/cache";
 import { groupNeedsStarterTrackPrompt } from "@/lib/groups/starter-track-prompt";
 import {
+  buildPresetCatalogHierarchy,
   buildPresetStoriesBySeries,
   dedupePresetStoriesForPicker,
   type PresetStoryPickerRow,
 } from "@/lib/groups/preset-stories-picker";
+import {
+  buildPresetSummaryPassageBlock,
+  parsePassageSegments,
+  type PassageSegment,
+  type PresetStoryPassageRow,
+} from "@/lib/groups/preset-story-passage.shared";
 
 type SupabaseServer = NonNullable<Awaited<ReturnType<typeof createClient>>>;
 
@@ -190,7 +197,7 @@ export async function listGroupMeetings(groupId: string) {
       verse_end,
       preset_story_id,
       starter_track_week,
-      preset_stories (title, book, chapter, verse_start, verse_end)
+      preset_stories (title, book, chapter, verse_start, verse_end, description, passage_segments, phase_title, story_subtitle, slug, deprecated)
     `
     )
     .eq("group_id", groupId)
@@ -208,8 +215,8 @@ export async function getPresetStories() {
   const { data, error } = await supabase
     .from("preset_stories")
     .select("*")
-    .order("series_name")
-    .order("series_order");
+    .eq("deprecated", false)
+    .order("series_order", { ascending: true });
 
   if (error) return { error: error.message };
 
@@ -220,8 +227,9 @@ export async function getPresetStories() {
   const bySeries = buildPresetStoriesBySeries(
     deduped as PresetStoryPickerRow[]
   );
+  const catalog = buildPresetCatalogHierarchy(deduped as PresetStoryPickerRow[]);
 
-  return { stories: deduped, bySeries };
+  return { stories: deduped, bySeries, catalog };
 }
 
 export async function createGroupMeeting(
@@ -332,7 +340,7 @@ export async function getMeetingDetail(meetingId: string) {
     .select(
       `
       *,
-      preset_stories (title, book, chapter, verse_start, verse_end, description),
+      preset_stories (title, book, chapter, verse_start, verse_end, description, passage_segments, phase_title, story_subtitle, command_ref, story_ref, additional_refs, slug, series_name, series_order, deprecated),
       groups!group_id (id, name)
     `
     )
@@ -1160,7 +1168,7 @@ export async function saveLookBackResponse(
     accountabilityResponse?: string;
     visionCastingResponse?: string;
   }
-) {
+): Promise<{ error?: string }> {
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase not configured" };
   const {
@@ -1168,22 +1176,136 @@ export async function saveLookBackResponse(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  // Single row per (meeting_id, user_id): upsert updates in place (no duplicate rows).
-  const { error } = await supabase.from("lookback_responses").upsert(
-    {
+  const { data: meeting, error: meetingErr } = await supabase
+    .from("group_meetings")
+    .select("group_id")
+    .eq("id", meetingId)
+    .maybeSingle();
+
+  if (meetingErr) return { error: meetingErr.message };
+  if (!meeting) return { error: "Meeting not found." };
+
+  const memberGate = await requireGroupMember(supabase, meeting.group_id, user.id);
+  if ("error" in memberGate) return memberGate;
+
+  const pastoral = data.pastoralCareResponse ?? null;
+  const accountability = data.accountabilityResponse ?? null;
+  const vision = data.visionCastingResponse ?? null;
+
+  const { data: existing, error: existingErr } = await supabase
+    .from("lookback_responses")
+    .select("id")
+    .eq("meeting_id", meetingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingErr) return { error: existingErr.message };
+
+  const debugLookbackSave =
+    process.env.NODE_ENV === "development" ||
+    process.env.BADWR_DEBUG_LOOKBACK_SAVE === "1";
+
+  if (debugLookbackSave) {
+    const [{ data: mem }, { data: mp }] = await Promise.all([
+      supabase
+        .from("group_members")
+        .select("role")
+        .eq("group_id", meeting.group_id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("meeting_participants")
+        .select("meeting_id, user_id, present")
+        .eq("meeting_id", meetingId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+    console.warn("[saveLookBackResponse]", {
+      authUserId: user.id,
+      meetingId,
+      groupId: meeting.group_id,
+      groupRole: mem?.role ?? null,
+      meetingParticipantRow: mp ?? null,
+      existingLookbackId: existing?.id ?? null,
+      payload: {
+        pastoralCareResponse: pastoral,
+        accountabilityResponse: accountability,
+        visionCastingResponse: vision,
+      },
+    });
+  }
+
+  /**
+   * Use UPDATE or INSERT explicitly instead of PostgREST `upsert`.
+   * Some RLS + `INSERT … ON CONFLICT DO UPDATE` paths only surface as generic 42501/permission
+   * failures for certain rows; splitting matches policies one-at-a-time and matches other meeting
+   * writers (e.g. commitment checkoffs) that already gate on group membership first.
+   */
+  if (existing?.id) {
+    const { error } = await supabase
+      .from("lookback_responses")
+      .update({
+        pastoral_care_response: pastoral,
+        accountability_response: accountability,
+        vision_casting_response: vision,
+      })
+      .eq("id", existing.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      if (debugLookbackSave) {
+        console.warn("[saveLookBackResponse] update failed", {
+          message: error.message,
+          code: error.code,
+        });
+      }
+      return { error: error.message };
+    }
+  } else {
+    const { error: insErr } = await supabase.from("lookback_responses").insert({
       meeting_id: meetingId,
       user_id: user.id,
-      pastoral_care_response: data.pastoralCareResponse ?? null,
-      accountability_response: data.accountabilityResponse ?? null,
-      vision_casting_response: data.visionCastingResponse ?? null,
-    },
-    { onConflict: "meeting_id,user_id" }
-  );
+      pastoral_care_response: pastoral,
+      accountability_response: accountability,
+      vision_casting_response: vision,
+    });
 
-  if (error) return { error: error.message };
+    if (insErr) {
+      if (insErr.code === "23505") {
+        const { data: raced } = await supabase
+          .from("lookback_responses")
+          .select("id")
+          .eq("meeting_id", meetingId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (raced?.id) {
+          const { error: upErr } = await supabase
+            .from("lookback_responses")
+            .update({
+              pastoral_care_response: pastoral,
+              accountability_response: accountability,
+              vision_casting_response: vision,
+            })
+            .eq("id", raced.id)
+            .eq("user_id", user.id);
+          if (upErr) return { error: upErr.message };
+        } else {
+          return { error: insErr.message };
+        }
+      } else {
+        if (debugLookbackSave) {
+          console.warn("[saveLookBackResponse] insert failed", {
+            message: insErr.message,
+            code: insErr.code,
+          });
+        }
+        return { error: insErr.message };
+      }
+    }
+  }
 
   await revalidateMeetingPaths(supabase, meetingId);
-  return { success: true };
+  return {};
 }
 
 export async function savePriorObedienceFollowup(
@@ -1279,22 +1401,30 @@ export async function saveMeetingCommitmentCheckoff(
   return { success: true };
 }
 
-type MeetingPassageBounds = {
-  book: string;
-  chapter: number;
-  verseStart: number;
-  verseEnd: number;
-  groupId: string;
-};
+type MeetingObservationPassageRules =
+  | {
+      groupId: string;
+      mode: "manual";
+      book: string;
+      chapter: number;
+      verseStart: number;
+      verseEnd: number;
+    }
+  | {
+      groupId: string;
+      mode: "preset";
+      segments: PassageSegment[];
+    };
 
-async function getMeetingPassageVerseBounds(
+async function getMeetingObservationPassageRules(
   supabase: SupabaseServer,
   meetingId: string
-): Promise<MeetingPassageBounds | null> {
+): Promise<MeetingObservationPassageRules | null> {
   const { data: m, error } = await supabase
     .from("group_meetings")
     .select(
-      "group_id, story_source_type, book, chapter, verse_start, verse_end, preset_stories(book, chapter, verse_start, verse_end)"
+      `group_id, story_source_type, book, chapter, verse_start, verse_end,
+       preset_stories(book, chapter, verse_start, verse_end, passage_segments)`
     )
     .eq("id", meetingId)
     .single();
@@ -1303,26 +1433,12 @@ async function getMeetingPassageVerseBounds(
 
   if (m.story_source_type === "preset_story" && m.preset_stories) {
     const raw = m.preset_stories as unknown;
-    const p = (Array.isArray(raw) ? raw[0] : raw) as {
-      book: string;
-      chapter: number;
-      verse_start: number;
-      verse_end: number;
-    } | null;
-    if (
-      p &&
-      typeof p.book === "string" &&
-      typeof p.chapter === "number" &&
-      typeof p.verse_start === "number" &&
-      typeof p.verse_end === "number"
-    ) {
-      return {
-        book: p.book,
-        chapter: p.chapter,
-        verseStart: p.verse_start,
-        verseEnd: p.verse_end,
-        groupId: m.group_id,
-      };
+    const p = (Array.isArray(raw) ? raw[0] : raw) as PresetStoryPassageRow | null;
+    if (p && typeof p.book === "string") {
+      const segments = parsePassageSegments(p);
+      if (segments.length > 0) {
+        return { groupId: m.group_id, mode: "preset", segments };
+      }
     }
   }
 
@@ -1333,11 +1449,12 @@ async function getMeetingPassageVerseBounds(
     m.verse_end != null
   ) {
     return {
+      groupId: m.group_id,
+      mode: "manual",
       book: m.book,
       chapter: m.chapter,
       verseStart: m.verse_start,
       verseEnd: m.verse_end,
-      groupId: m.group_id,
     };
   }
 
@@ -1407,26 +1524,44 @@ export async function savePassageObservation(
     return { error: "End verse must be the same as or after the start verse." };
   }
 
-  const bounds = await getMeetingPassageVerseBounds(supabase, meetingId);
+  const rules = await getMeetingObservationPassageRules(supabase, meetingId);
 
-  if (bounds) {
-    const bookOk =
-      bounds.book.trim().toLowerCase() === data.book.trim().toLowerCase();
-    const chOk = bounds.chapter === data.chapter;
-    if (!bookOk || !chOk) {
-      return {
-        error: "Use this meeting’s passage (book and chapter) for observations.",
-      };
-    }
-    if (vStart != null) {
+  if (rules && vStart != null) {
+    const vEndResolved = vEnd ?? vStart;
+    if (rules.mode === "manual") {
+      const bookOk =
+        rules.book.trim().toLowerCase() === data.book.trim().toLowerCase();
+      const chOk = rules.chapter === data.chapter;
+      if (!bookOk || !chOk) {
+        return {
+          error: "Use this meeting’s passage (book and chapter) for observations.",
+        };
+      }
       if (
-        vStart < bounds.verseStart ||
-        vStart > bounds.verseEnd ||
-        (vEnd != null &&
-          (vEnd < bounds.verseStart || vEnd > bounds.verseEnd))
+        vStart < rules.verseStart ||
+        vStart > rules.verseEnd ||
+        vEndResolved < rules.verseStart ||
+        vEndResolved > rules.verseEnd
       ) {
         return {
-          error: `Choose verse(s) between ${bounds.verseStart} and ${bounds.verseEnd}.`,
+          error: `Choose verse(s) between ${rules.verseStart} and ${rules.verseEnd}.`,
+        };
+      }
+    } else {
+      const bookNorm = data.book.trim().toLowerCase();
+      const seg = rules.segments.find(
+        (s) =>
+          s.book.trim().toLowerCase() === bookNorm &&
+          s.chapter === data.chapter &&
+          vStart >= s.verse_start &&
+          vStart <= s.verse_end &&
+          vEndResolved >= s.verse_start &&
+          vEndResolved <= s.verse_end
+      );
+      if (!seg) {
+        return {
+          error:
+            "Choose verses from one loaded segment at a time (see Part labels in Look Up). Optional catalog references are not loaded in the app.",
         };
       }
     }
@@ -1630,7 +1765,9 @@ export async function generateMeetingSummary(meetingId: string) {
 
   const { data: meeting } = await supabase
     .from("group_meetings")
-    .select("*, preset_stories(title, book, chapter, verse_start, verse_end)")
+    .select(
+      "*, preset_stories(title, book, chapter, verse_start, verse_end, description, passage_segments, phase_title, story_subtitle, command_ref, story_ref, additional_refs, slug, series_name)"
+    )
     .eq("id", meetingId)
     .single();
 
@@ -1641,7 +1778,21 @@ export async function generateMeetingSummary(meetingId: string) {
 
   const passage =
     meeting.story_source_type === "preset_story" && meeting.preset_stories
-      ? (meeting.preset_stories as { title: string; book: string; chapter: number; verse_start: number; verse_end: number })
+      ? (() => {
+          const b = buildPresetSummaryPassageBlock(
+            meeting.preset_stories as PresetStoryPassageRow
+          );
+          const subtitle = [b.phase, b.storySubtitle].filter(Boolean).join(" · ");
+          return {
+            title: b.title,
+            ...(subtitle ? { subtitle } : {}),
+            body: [b.refsLine, b.detail].filter(Boolean).join("\n\n") || undefined,
+            book: (meeting.preset_stories as PresetStoryPassageRow).book,
+            chapter: (meeting.preset_stories as PresetStoryPassageRow).chapter,
+            verse_start: (meeting.preset_stories as PresetStoryPassageRow).verse_start,
+            verse_end: (meeting.preset_stories as PresetStoryPassageRow).verse_end,
+          };
+        })()
       : meeting.book
         ? {
             title: `${meeting.book} ${meeting.chapter}:${meeting.verse_start}-${meeting.verse_end}`,

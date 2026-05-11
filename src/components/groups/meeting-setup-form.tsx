@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { BIBLE_BOOKS } from "@/lib/scripture/books";
+import type { PresetCatalogSeries } from "@/lib/groups/preset-stories-picker";
 
 interface Member {
   id: string;
@@ -25,9 +26,7 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [storySource, setStorySource] = useState<"manual_passage" | "preset_story">("preset_story");
-  const [bySeries, setBySeries] = useState<
-    Record<string, { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number }[]>
-  >({});
+  const [catalog, setCatalog] = useState<PresetCatalogSeries[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [book, setBook] = useState("");
   const [chapter, setChapter] = useState("");
@@ -43,11 +42,11 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
 
   useEffect(() => {
     getPresetStories().then((r) => {
-      if (r.stories) {
-        const res = r as { bySeries?: Record<string, { id: string; title: string; book: string; chapter: number; verse_start: number; verse_end: number }[]> };
-        setBySeries(res.bySeries ?? {});
-        const first = r.stories[0] as { id: string } | undefined;
-        if (first) setSelectedPresetId(first.id);
+      if (r.stories?.length) {
+        const cat = (r as { catalog?: PresetCatalogSeries[] }).catalog ?? [];
+        setCatalog(cat);
+        const firstId = cat[0]?.phases[0]?.lessons[0]?.id;
+        if (firstId) setSelectedPresetId(firstId);
       }
     });
   }, []);
@@ -104,8 +103,6 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
     router.push(`/app/groups/${groupId}/meetings/${result.meetingId}`);
   }
 
-  const seriesNames = Object.keys(bySeries).sort();
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-4">
@@ -154,29 +151,50 @@ export function MeetingSetupForm({ groupId, members }: MeetingSetupFormProps) {
         </div>
 
         {storySource === "preset_story" && (
-          <div className="space-y-3 mt-4">
-            {seriesNames.map((series) => (
-              <div key={series}>
-                <p className="text-xs font-medium text-stone-500 dark:text-stone-400 mb-2">
-                  {series}
+          <div className="space-y-6 mt-4 max-h-[min(70vh,520px)] overflow-y-auto pr-1">
+            {catalog.map((series) => (
+              <div key={series.seriesName}>
+                <p className="text-sm font-semibold text-stone-800 dark:text-stone-100 mb-3">
+                  {series.seriesName}
                 </p>
-                <div className="space-y-1">
-                  {bySeries[series]?.map((s) => (
-                    <label
-                      key={s.id}
-                      className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800/50"
-                    >
-                      <input
-                        type="radio"
-                        name="preset"
-                        checked={selectedPresetId === s.id}
-                        onChange={() => setSelectedPresetId(s.id)}
-                      />
-                      <span className="text-sm">
-                        {s.title} ({s.book} {s.chapter}:{s.verse_start}
-                        {s.verse_start !== s.verse_end ? `-${s.verse_end}` : ""})
-                      </span>
-                    </label>
+                <div className="space-y-5 pl-0 sm:pl-1">
+                  {series.phases.map((phase) => (
+                    <div key={`${series.seriesName}::${phase.phaseTitle}`}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400 mb-2">
+                        {phase.phaseTitle}
+                      </p>
+                      <div className="space-y-1">
+                        {phase.lessons.map((s) => (
+                          <label
+                            key={s.id}
+                            className="flex flex-col gap-0.5 cursor-pointer p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800/50"
+                          >
+                            <span className="flex items-start gap-2">
+                              <input
+                                type="radio"
+                                name="preset"
+                                className="mt-1 shrink-0"
+                                checked={selectedPresetId === s.id}
+                                onChange={() => setSelectedPresetId(s.id)}
+                              />
+                              <span className="text-sm leading-snug">
+                                <span className="font-medium text-stone-800 dark:text-stone-100">
+                                  {s.title}
+                                </span>
+                                {s.storySubtitle ? (
+                                  <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                                    Story: {s.storySubtitle}
+                                  </span>
+                                ) : null}
+                                <span className="block text-xs text-stone-600 dark:text-stone-300 mt-1">
+                                  {s.passageRefLabel}
+                                </span>
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

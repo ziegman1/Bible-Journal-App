@@ -4,14 +4,31 @@ import { getStarterTrackPromptGateForGroup } from "@/app/actions/groups";
 import { getMeetingDetail } from "@/app/actions/meetings";
 import { getChapter } from "@/lib/scripture/provider";
 import { getBookIdFromName } from "@/lib/scripture/books";
+import { loadPresetStoryVerseLines } from "@/lib/groups/preset-story-passage";
+import {
+  buildPresetLookUpLoadCaption,
+  countLoadedSegmentsFromLines,
+  formatPresetPassageHeader,
+  wrapChapterVersesAsLines,
+  type PassageVerseLine,
+  type PresetStoryPassageRow,
+} from "@/lib/groups/preset-story-passage.shared";
 import { FacilitatorMeetingView } from "@/components/groups/facilitator-meeting-view";
+import { isBadwrAdminTestUser } from "@/lib/admin/badwr-admin-test-access";
+import {
+  effectiveGroupRoleForSandboxPreview,
+  parseSandboxRoleQuery,
+} from "@/lib/admin/admin-sandbox-third-constants";
+import { isSandboxThirdsGroupRow } from "@/lib/groups/is-sandbox-thirds-group";
 
 interface PageProps {
   params: Promise<{ groupId: string; meetingId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function FacilitatorPresentPage({ params }: PageProps) {
+export default async function FacilitatorPresentPage({ params, searchParams }: PageProps) {
   const { groupId, meetingId } = await params;
+  const sp = (await searchParams) ?? {};
   const supabase = await createClient();
   if (!supabase) redirect("/setup");
   const {
@@ -37,45 +54,72 @@ export default async function FacilitatorPresentPage({ params }: PageProps) {
     notFound();
   }
 
-  const meeting = result.meeting;
-  const passage =
-    meeting.story_source_type === "preset_story" && meeting.preset_stories
-      ? (meeting.preset_stories as {
-          book: string;
-          chapter: number;
-          verse_start: number;
-          verse_end: number;
-        })
-      : meeting.book
-        ? {
-            book: meeting.book,
-            chapter: meeting.chapter!,
-            verse_start: meeting.verse_start!,
-            verse_end: meeting.verse_end!,
-          }
-        : null;
+  const { data: gRow } = await supabase
+    .from("groups")
+    .select("badwr_admin_sandbox")
+    .eq("id", groupId)
+    .maybeSingle();
+  const isSandboxGroup = isSandboxThirdsGroupRow(gRow);
+  const isAdminTester = isBadwrAdminTestUser(user);
+  const sandboxRole = parseSandboxRoleQuery(sp.sandboxRole);
+  const effectiveGroupRole = effectiveGroupRoleForSandboxPreview({
+    dbRole: result.role === "admin" ? "admin" : "member",
+    sandboxGroup: isSandboxGroup,
+    isAdminTester,
+    sandboxRole,
+  });
 
-  let passageVerses: { verse: number; text: string }[] = [];
-  if (passage) {
-    const bookId = getBookIdFromName(passage.book);
+  const meeting = result.meeting;
+  const presetRow =
+    meeting.story_source_type === "preset_story" && meeting.preset_stories
+      ? (meeting.preset_stories as PresetStoryPassageRow)
+      : null;
+
+  const manualPassage =
+    !presetRow && meeting.book
+      ? {
+          book: meeting.book,
+          chapter: meeting.chapter!,
+          verse_start: meeting.verse_start!,
+          verse_end: meeting.verse_end!,
+        }
+      : null;
+
+  let passageVerses: PassageVerseLine[] = [];
+  let passageLookUpCaption: string | null = null;
+  if (presetRow) {
+    passageVerses = await loadPresetStoryVerseLines(presetRow);
+    passageLookUpCaption = buildPresetLookUpLoadCaption(presetRow, {
+      loadedSegmentCount: countLoadedSegmentsFromLines(passageVerses),
+    });
+  } else if (manualPassage) {
+    const bookId = getBookIdFromName(manualPassage.book);
     if (bookId) {
-      const chapter = await getChapter(bookId, passage.chapter);
+      const chapter = await getChapter(bookId, manualPassage.chapter);
       if (chapter) {
-        passageVerses = chapter.verses.filter(
+        const slice = chapter.verses.filter(
           (v) =>
-            v.verse >= passage.verse_start && v.verse <= passage.verse_end
+            v.verse >= manualPassage.verse_start &&
+            v.verse <= manualPassage.verse_end
+        );
+        passageVerses = wrapChapterVersesAsLines(
+          manualPassage.book,
+          manualPassage.chapter,
+          slice
         );
       }
     }
   }
 
-  const passageRef = passage
-    ? `${passage.book} ${passage.chapter}:${passage.verse_start}${
-        passage.verse_start !== passage.verse_end
-          ? `-${passage.verse_end}`
-          : ""
-      }`
-    : null;
+  const passageRef = presetRow
+    ? formatPresetPassageHeader(presetRow)
+    : manualPassage
+      ? `${manualPassage.book} ${manualPassage.chapter}:${manualPassage.verse_start}${
+          manualPassage.verse_start !== manualPassage.verse_end
+            ? `-${manualPassage.verse_end}`
+            : ""
+        }`
+      : null;
 
   return (
     <FacilitatorMeetingView
@@ -83,11 +127,7 @@ export default async function FacilitatorPresentPage({ params }: PageProps) {
       participants={result.participants ?? []}
       memberDisplayNames={result.memberDisplayNames ?? {}}
       currentUserId={user.id}
-      groupMemberRole={
-        result.role === "admin" || result.role === "member"
-          ? result.role
-          : "member"
-      }
+      groupMemberRole={effectiveGroupRole}
       groupId={groupId}
       meetingId={meetingId}
       priorCommitments={result.priorCommitments ?? null}
@@ -97,6 +137,7 @@ export default async function FacilitatorPresentPage({ params }: PageProps) {
       retell={result.retell ?? null}
       practice={result.practice ?? []}
       passageVerses={passageVerses}
+      passageLookUpCaption={passageLookUpCaption}
       passageRef={passageRef}
       presenterStateRow={result.presenterState ?? null}
       starterTrackMeetingOrdinal={result.starterTrackMeetingOrdinal ?? null}

@@ -173,7 +173,9 @@ export function GuestAppShell({
               </Button>
             </div>
           </header>
-          <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+            {children}
+          </main>
           <div className="shrink-0 border-t border-border bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <SiteFooter variant="compact" />
           </div>

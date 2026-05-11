@@ -14,8 +14,10 @@ export const STARTER_TRACK_V1_WEEKS: StarterTrackWeekConfig[] = [
     week: 1,
     title: "Week 1 — Tell your story",
     shortLabel: "Tell your story",
-    primaryPassage: { book: "Mark", chapter: 5, verseStart: 1, verseEnd: 20 },
-    additionalLookUpRefs: ["Focus especially on verses 18–20."],
+    primaryPassage: { book: "Mark", chapter: 4, verseStart: 35, verseEnd: 41 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Has Authority (Jesus Calms the Storm).",
+    ],
     reminders: [
       "Never skip: check-up (obey / train / share) and vision in Look Back.",
       "Never skip: obey, train, share commitments and practice in Look Forward.",
@@ -39,8 +41,12 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 2,
     title: "Week 2 — Tell Jesus’ story",
     shortLabel: "Tell Jesus’ story",
-    primaryPassage: { book: "1 Corinthians", chapter: 15, verseStart: 1, verseEnd: 8 },
-    additionalLookUpRefs: ["Romans 3:23", "Romans 6:23"],
+    primaryPassage: { book: "Mark", chapter: 5, verseStart: 1, verseEnd: 20 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Has Power Over Evil (The Demon-Possessed Man).",
+      "Romans 3:23",
+      "Romans 6:23",
+    ],
     reminders: [
       "Keep building the habit of hear → obey → share every week.",
     ],
@@ -58,8 +64,10 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 3,
     title: "Week 3 — Follow & fish",
     shortLabel: "Follow & fish",
-    primaryPassage: { book: "Mark", chapter: 1, verseStart: 16, verseEnd: 20 },
-    additionalLookUpRefs: [],
+    primaryPassage: { book: "Mark", chapter: 5, verseStart: 21, verseEnd: 43 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Cares for the Broken (Jairus’ Daughter & the Bleeding Woman).",
+    ],
     reminders: [
       "Jesus calls disciples to follow him and fish for people — discuss what that looks like for your group.",
     ],
@@ -77,9 +85,12 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 4,
     title: "Week 4 — Baptism",
     shortLabel: "Baptism",
-    primaryPassage: { book: "Romans", chapter: 6, verseStart: 3, verseEnd: 4 },
+    primaryPassage: { book: "Acts", chapter: 8, verseStart: 26, verseEnd: 39 },
     additionalLookUpRefs: [
-      "Acts 8:26–40",
+      "Commands of Christ — Be Baptized (story: Philip & the Ethiopian; command: Matthew 28:19).",
+      "Romans 6:3–4",
+      "Matthew 3:13–16",
+      "Acts 2:38",
       "See also: Acts 2:37–41; 8:5–13; 8:36–38; 9:10–19; 10:47–48; 16:13–15; 16:27–34; 18:5–9; 1 Corinthians 1:10–17; Acts 19:1–5; Acts 22:14–17.",
     ],
     reminders: [
@@ -102,8 +113,10 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 5,
     title: "Week 5 — The Bible",
     shortLabel: "The Bible",
-    primaryPassage: { book: "2 Timothy", chapter: 3, verseStart: 14, verseEnd: 16 },
-    additionalLookUpRefs: [],
+    primaryPassage: { book: "Mark", chapter: 2, verseStart: 1, verseEnd: 12 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Forgives Sin (The Paralytic Lowered Through the Roof).",
+    ],
     reminders: [
       "Memorize the seven discovery questions from the simple meeting format (Look Up).",
     ],
@@ -121,8 +134,11 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 6,
     title: "Week 6 — Talk with God",
     shortLabel: "Talk with God",
-    primaryPassage: { book: "Matthew", chapter: 6, verseStart: 9, verseEnd: 13 },
-    additionalLookUpRefs: [],
+    primaryPassage: { book: "Luke", chapter: 19, verseStart: 1, verseEnd: 10 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Welcomes Sinners (Zacchaeus).",
+      "Matthew 6:9–13 (Lord’s Prayer)",
+    ],
     reminders: [
       "Use simple, brief prayer as a group throughout the meeting.",
     ],
@@ -140,8 +156,11 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 7,
     title: "Week 7 — Hard times",
     shortLabel: "Hard times",
-    primaryPassage: { book: "Acts", chapter: 5, verseStart: 17, verseEnd: 42 },
-    additionalLookUpRefs: ["Matthew 5:43–44"],
+    primaryPassage: { book: "John", chapter: 4, verseStart: 1, verseEnd: 42 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Gives Living Water (The Samaritan Woman at the Well).",
+      "Matthew 5:43–44",
+    ],
     reminders: [
       "Pray honestly for courage and love when faith is costly.",
     ],
@@ -159,8 +178,12 @@ Choose five people to tell this week. Pray and ask God to show you who those fiv
     week: 8,
     title: "Week 8 — Become a church",
     shortLabel: "Become a church",
-    primaryPassage: { book: "Acts", chapter: 2, verseStart: 42, verseEnd: 47 },
-    additionalLookUpRefs: ["1 Corinthians 11:23–34"],
+    primaryPassage: { book: "Matthew", chapter: 28, verseStart: 16, verseEnd: 20 },
+    additionalLookUpRefs: [
+      "Hope series — Jesus Sends His Followers (The Great Commission).",
+      "Acts 2:42–47",
+      "1 Corinthians 11:23–34",
+    ],
     reminders: [
       "A healthy church practices Word, fellowship, breaking bread, prayer, giving, and mission — not only when an outsider visits.",
     ],

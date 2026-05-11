@@ -3,6 +3,11 @@
  * Dedupes duplicate DB rows without collapsing legitimately different studies.
  */
 
+import {
+  formatPresetPassageHeader,
+  type PresetStoryPassageRow,
+} from "@/lib/groups/preset-story-passage.shared";
+
 export type PresetStoryPickerRow = {
   id: string;
   title: string;
@@ -12,6 +17,31 @@ export type PresetStoryPickerRow = {
   verse_end: number;
   series_name?: string | null;
   series_order?: number | null;
+  slug?: string | null;
+  phase_title?: string | null;
+  story_subtitle?: string | null;
+  description?: string | null;
+};
+
+export type PresetLessonPickerOption = {
+  id: string;
+  title: string;
+  book: string;
+  chapter: number;
+  verse_start: number;
+  verse_end: number;
+  passageRefLabel: string;
+  storySubtitle?: string | null;
+};
+
+export type PresetPhaseGroup = {
+  phaseTitle: string;
+  lessons: PresetLessonPickerOption[];
+};
+
+export type PresetCatalogSeries = {
+  seriesName: string;
+  phases: PresetPhaseGroup[];
 };
 
 function normText(s: string): string {
@@ -23,6 +53,8 @@ function normText(s: string): string {
  * Different `id` with identical fingerprint ⇒ duplicate (e.g. re-seeded rows).
  */
 export function presetStoryPickerContentKey(row: PresetStoryPickerRow): string {
+  const slug = row.slug?.trim();
+  if (slug) return `slug:${normText(slug)}`;
   const series = row.series_name?.trim() ?? "";
   const order = row.series_order ?? -999999;
   return [
@@ -96,4 +128,48 @@ export function buildPresetStoriesBySeries<T extends PresetStoryPickerRow>(
     });
     return acc;
   }, {});
+}
+
+/**
+ * Preserves global `series_order` and sub-groups by phase within each series.
+ */
+export function buildPresetCatalogHierarchy(
+  rows: PresetStoryPickerRow[]
+): PresetCatalogSeries[] {
+  const deduped = dedupePresetStoriesForPicker(rows);
+  const sorted = [...deduped].sort(
+    (a, b) => (a.series_order ?? 0) - (b.series_order ?? 0)
+  );
+
+  const seriesList: PresetCatalogSeries[] = [];
+  const seriesIndex = new Map<string, number>();
+
+  for (const r of sorted) {
+    const seriesName = r.series_name?.trim() || "Other";
+    let si = seriesIndex.get(seriesName);
+    if (si == null) {
+      si = seriesList.length;
+      seriesIndex.set(seriesName, si);
+      seriesList.push({ seriesName, phases: [] });
+    }
+    const series = seriesList[si];
+    const phaseTitle = r.phase_title?.trim() || "Lessons";
+    let phase = series.phases.find((p) => p.phaseTitle === phaseTitle);
+    if (!phase) {
+      phase = { phaseTitle, lessons: [] };
+      series.phases.push(phase);
+    }
+    const passageRow = r as unknown as PresetStoryPassageRow;
+    phase.lessons.push({
+      id: r.id,
+      title: r.title,
+      book: r.book,
+      chapter: r.chapter,
+      verse_start: r.verse_start,
+      verse_end: r.verse_end,
+      passageRefLabel: formatPresetPassageHeader(passageRow),
+      storySubtitle: r.story_subtitle ?? null,
+    });
+  }
+  return seriesList;
 }

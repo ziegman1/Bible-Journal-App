@@ -8,6 +8,10 @@ import {
 } from "@/lib/groups/starter-track/types";
 import { getStarterWeekConfig } from "@/lib/groups/starter-track/starter-track-v1-config";
 import { createGroupMeeting } from "@/app/actions/meetings";
+import {
+  canStartThirdsMeetings,
+  isGroupWorkspaceAdmin,
+} from "@/lib/groups/group-workspace-admin";
 
 function revalidateStarterPaths(groupId: string) {
   revalidatePath(`/app/groups/${groupId}`);
@@ -156,11 +160,37 @@ export async function createStarterTrackWeekMeeting(groupId: string, week: numbe
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const { data: gMeta } = await supabase
+    .from("groups")
+    .select("badwr_admin_sandbox, admin_user_id")
+    .eq("id", groupId)
+    .maybeSingle();
+  const sandboxGroup = Boolean(gMeta?.badwr_admin_sandbox);
+
+  const { data: myMembership } = await supabase
+    .from("group_members")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const { data: members } = await supabase
     .from("group_members")
     .select("user_id")
     .eq("group_id", groupId);
-  if (!members?.length || members.length < 2) {
+  const memberCount = members?.length ?? 0;
+  const isGroupAdmin = isGroupWorkspaceAdmin({
+    membershipRole: myMembership?.role ?? "member",
+    groupAdminUserId: gMeta?.admin_user_id,
+    currentUserId: user.id,
+  });
+  if (
+    !canStartThirdsMeetings({
+      memberCount,
+      isSandboxGroup: sandboxGroup,
+      isGroupWorkspaceAdmin: isGroupAdmin,
+    })
+  ) {
     return { error: "Need at least two group members to start a meeting." };
   }
 

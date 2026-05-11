@@ -948,7 +948,7 @@ export function LookBackSection({
 
   const phaseNav = (label: string, onClick: () => void) =>
     participantQuickSectionNav ? (
-      <div className="sticky bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-10 mt-8 flex justify-start rounded-lg border border-border/80 bg-background/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <div className="sticky bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-10 mt-8 flex w-full min-w-0 max-w-full justify-start rounded-lg border border-border/80 bg-background/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85">
         <Button type="button" onClick={onClick}>
           {label}
         </Button>
@@ -963,7 +963,7 @@ export function LookBackSection({
 
   if (lookBackPhase === 1) {
     return (
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <div>
           <h2 className="text-lg font-medium text-foreground">Share & Care</h2>
           <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
@@ -979,7 +979,7 @@ export function LookBackSection({
 
   if (lookBackPhase === 2) {
     return (
-      <div className="space-y-8">
+      <div className="min-w-0 space-y-8">
         {isStarter ? renderStarterCheckUp() : renderLegacyAccountability()}
         {phaseNav("Next — Vision", onAdvanceLookBackPhase)}
       </div>
@@ -987,7 +987,7 @@ export function LookBackSection({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       {renderVisionSection()}
       {onGoToLookUp ? phaseNav("Next — Look Up", onGoToLookUp) : null}
     </div>

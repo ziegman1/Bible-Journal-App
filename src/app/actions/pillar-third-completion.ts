@@ -64,11 +64,14 @@ export async function recordThirdsCompletionFromGroupMeeting(input: {
 
   const { data: grp } = await supabase
     .from("groups")
-    .select("group_kind")
+    .select("group_kind, badwr_admin_sandbox")
     .eq("id", input.groupId)
     .maybeSingle();
   if (!grp || grp.group_kind !== "thirds") {
     return { error: "This action is for 3/3rds group meetings." };
+  }
+  if (grp.badwr_admin_sandbox) {
+    return { error: "Streak counting is disabled for admin sandbox groups." };
   }
 
   const { data: mem } = await supabase

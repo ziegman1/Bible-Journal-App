@@ -26,7 +26,7 @@ const LOOK_BACK_SUBSTEP_LABELS: Record<LookBackSubstep, string> = {
 export function ThirdsRhythmStepper({ activeSection, onSectionChange }: ThirdsRhythmStepperProps) {
   return (
     <nav
-      className="flex flex-wrap items-stretch justify-center gap-1.5 sm:gap-2"
+      className="flex w-full min-w-0 max-w-full flex-wrap items-stretch justify-center gap-1.5 sm:gap-2"
       aria-label="Meeting rhythm"
     >
       {STEPS.map((s) => (
@@ -35,15 +35,19 @@ export function ThirdsRhythmStepper({ activeSection, onSectionChange }: ThirdsRh
           type="button"
           onClick={() => onSectionChange(s.num)}
           className={cn(
-            "flex min-w-[4.5rem] flex-1 flex-col items-center gap-0.5 rounded-lg border bg-card px-1.5 py-2.5 text-card-foreground transition-colors sm:min-w-0 sm:px-2 sm:py-3",
+            "flex min-w-0 flex-[1_1_0%] basis-0 flex-col items-center gap-0.5 rounded-lg border bg-card px-1.5 py-2.5 text-card-foreground transition-colors sm:min-w-0 sm:flex-1 sm:px-2 sm:py-3",
             activeSection === s.num
               ? "border-foreground/20 bg-muted text-foreground shadow-sm"
               : "border-border text-muted-foreground hover:border-foreground/15 hover:bg-muted/70"
           )}
         >
           <span className="text-base font-medium tabular-nums sm:text-lg">{s.num}</span>
-          <span className="hidden text-[0.65rem] font-medium leading-tight sm:inline sm:text-xs">{s.label}</span>
-          <span className="text-[0.65rem] font-medium leading-tight sm:hidden">{s.short}</span>
+          <span className="hidden min-w-0 break-words text-center text-[0.65rem] font-medium leading-tight sm:inline sm:text-xs">
+            {s.label}
+          </span>
+          <span className="min-w-0 break-words text-center text-[0.65rem] font-medium leading-tight sm:hidden">
+            {s.short}
+          </span>
         </button>
       ))}
     </nav>
@@ -75,7 +79,7 @@ export function LookBackSubstepIndicator({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 border-b border-border/70 pb-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex w-full min-w-0 max-w-full flex-col gap-2 border-b border-border/70 pb-3 sm:flex-row sm:items-center sm:justify-between",
         className
       )}
     >

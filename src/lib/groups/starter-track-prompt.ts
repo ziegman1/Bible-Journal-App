@@ -3,7 +3,8 @@
  *
  * - Uses only `groups` columns + member count (no profiles or user history).
  * - CHAT workspaces (`group_kind === 'chat'`) never need this prompt.
- * - With &lt;2 members, the prompt is deferred (invite flow).
+ * - With &lt;2 members, the prompt is deferred (invite flow); group admins can still
+ *   create meetings solo (see `canStartThirdsMeetings` in group-workspace-admin.ts).
  * - If `starter_track_prompt_answered` is missing on the row, falls back to
  *   `onboarding_pending` so pre-column deploys still gate correctly.
  *

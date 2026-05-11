@@ -13,6 +13,11 @@ import {
   lookforwardItemsFromRows,
   observationsForSummaryFromRows,
 } from "@/lib/groups/meeting-summary-from-responses";
+import { isSandboxThirdsGroupRow } from "@/lib/groups/is-sandbox-thirds-group";
+import {
+  formatPresetPassageHeader,
+  type PresetStoryPassageRow,
+} from "@/lib/groups/preset-story-passage.shared";
 
 interface PageProps {
   params: Promise<{ groupId: string; meetingId: string }>;
@@ -51,10 +56,11 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
 
   const { data: gRow } = await supabase
     .from("groups")
-    .select("group_kind")
+    .select("group_kind, badwr_admin_sandbox")
     .eq("id", groupId)
     .maybeSingle();
   const groupKind = gRow?.group_kind ?? "thirds";
+  const isSandboxGroup = isSandboxThirdsGroupRow(gRow);
   const showThirdsStreakCta =
     groupKind === "thirds" && meeting.status === "completed";
 
@@ -66,14 +72,23 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
 
   const passage =
     meeting.story_source_type === "preset_story" && meeting.preset_stories
-      ? (meeting.preset_stories as { title: string; book: string; chapter: number; verse_start: number; verse_end: number })
+      ? (() => {
+          const pr = meeting.preset_stories as PresetStoryPassageRow;
+          const subtitle = [pr.phase_title, pr.story_subtitle]
+            .filter(Boolean)
+            .join(" · ");
+          const refs = formatPresetPassageHeader(pr);
+          const desc = pr.description?.trim();
+          const body = desc && desc.length > 0 ? desc : refs;
+          return {
+            title: pr.title,
+            subtitle: subtitle || undefined,
+            body: body || undefined,
+          };
+        })()
       : meeting.book
         ? {
             title: `${meeting.book} ${meeting.chapter}:${meeting.verse_start}-${meeting.verse_end}`,
-            book: meeting.book,
-            chapter: meeting.chapter,
-            verse_start: meeting.verse_start,
-            verse_end: meeting.verse_end,
           }
         : null;
 
@@ -153,7 +168,11 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
               Tap when you’ve finished this 3/3rds meeting—this records your weekly streak (one per
               pillar week).
             </p>
-            <CompleteThirdsStreakButton meetingId={meetingId} groupId={groupId} />
+            <CompleteThirdsStreakButton
+              meetingId={meetingId}
+              groupId={groupId}
+              disabledForSandbox={isSandboxGroup}
+            />
           </div>
         ) : null}
       </header>
@@ -183,6 +202,16 @@ export default async function MeetingSummaryPage({ params }: PageProps) {
               <p className="font-medium text-foreground">
                 {passage.title}
               </p>
+              {"subtitle" in passage && passage.subtitle ? (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {passage.subtitle}
+                </p>
+              ) : null}
+              {"body" in passage && passage.body ? (
+                <p className="mt-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                  {passage.body}
+                </p>
+              ) : null}
             </section>
           )}
 

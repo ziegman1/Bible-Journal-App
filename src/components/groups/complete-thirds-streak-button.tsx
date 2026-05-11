@@ -9,13 +9,24 @@ import { Button } from "@/components/ui/button";
 export function CompleteThirdsStreakButton({
   meetingId,
   groupId,
+  disabledForSandbox,
 }: {
   meetingId: string;
   groupId: string;
+  /** Admin sandbox groups must not write real pillar streak rows. */
+  disabledForSandbox?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+
+  if (disabledForSandbox) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Streak counting is disabled in this admin sandbox (no production metrics).
+      </p>
+    );
+  }
 
   return (
     <Button

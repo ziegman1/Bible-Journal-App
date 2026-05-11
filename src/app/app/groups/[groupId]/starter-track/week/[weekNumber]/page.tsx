@@ -16,6 +16,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StartStarterWeekMeetingButton } from "@/components/groups/starter-track/starter-track-hub-actions";
+import {
+  canStartThirdsMeetings,
+  isGroupWorkspaceAdmin as userIsGroupWorkspaceAdmin,
+} from "@/lib/groups/group-workspace-admin";
 
 interface PageProps {
   params: Promise<{ groupId: string; weekNumber: string }>;
@@ -41,12 +45,27 @@ export default async function StarterTrackWeekPage({ params }: PageProps) {
     notFound();
   }
 
+  const gMeta = groupResult.group as {
+    badwr_admin_sandbox?: boolean | null;
+    admin_user_id?: string | null;
+  };
+  const isSandboxGroup = Boolean(gMeta.badwr_admin_sandbox);
+
   const { count } = await supabase
     .from("group_members")
     .select("id", { count: "exact", head: true })
     .eq("group_id", groupId);
   const memberCount = count ?? 0;
-  const canMeet = memberCount >= 2;
+  const isGroupAdmin = userIsGroupWorkspaceAdmin({
+    membershipRole: groupResult.role,
+    groupAdminUserId: gMeta.admin_user_id,
+    currentUserId: user.id,
+  });
+  const canMeet = canStartThirdsMeetings({
+    memberCount,
+    isSandboxGroup,
+    isGroupWorkspaceAdmin: isGroupAdmin,
+  });
 
   const { enrollment } = await getStarterTrackEnrollment(groupId);
   if (!enrollment?.vision_completed_at) {

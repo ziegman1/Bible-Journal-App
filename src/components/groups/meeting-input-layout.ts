@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 /** Calm, focused textareas (meeting flow). */
 export function meetingTextareaClass(extra?: string) {
   return cn(
-    "min-h-[4.5rem] w-full resize-none rounded-md border border-[#e0dcd7] bg-white px-3 py-2.5 text-sm text-[#1c252e]",
+    "min-h-[4.5rem] min-w-0 max-w-full w-full resize-none rounded-md border border-[#e0dcd7] bg-white px-3 py-2.5 text-sm text-[#1c252e] break-words",
     /* Dark: shared Textarea applies dark:bg-input/30 — without explicit dark text/background, merge can leave dark-on-dark typed text. */
     "dark:border-input dark:bg-background dark:text-foreground dark:caret-foreground",
     "placeholder:text-muted-foreground/65 dark:placeholder:text-muted-foreground/80",
@@ -19,32 +19,35 @@ export function meetingTextareaClass(extra?: string) {
 
 /** Current user’s editable block — distinct from live group area. */
 export const meetingYourRegion =
-  "rounded-lg border border-[#e0dcd7]/80 bg-[#fafaf9] px-4 py-4 sm:px-5 sm:py-5 text-[#1c252e] dark:border-stone-600/70 dark:bg-stone-900/85 dark:text-stone-100";
+  "min-w-0 max-w-full rounded-lg border border-[#e0dcd7]/80 bg-[#fafaf9] px-4 py-4 sm:px-5 sm:py-5 text-[#1c252e] dark:border-stone-600/70 dark:bg-stone-900/85 dark:text-stone-100";
 
 export const meetingYourLabel =
   "text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[#5c6570] dark:text-stone-400";
 
 /** Others’ live responses — separated below your input. */
-export const meetingLiveRegion = "mt-8 border-t border-[#e8e4df] pt-7 space-y-4";
+export const meetingLiveRegion =
+  "mt-8 min-w-0 max-w-full border-t border-[#e8e4df] pt-7 space-y-4";
 
 export const meetingLiveLabel =
   "text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[#83b0da]";
 
 /** One other person’s entry — divider stack, not a mini-card. */
 export const meetingLiveRow =
-  "border-b border-[#ebe9e6] pb-5 last:border-b-0 last:pb-0";
+  "min-w-0 max-w-full border-b border-[#ebe9e6] pb-5 last:border-b-0 last:pb-0";
 
-export const meetingLiveName = "text-sm font-semibold text-[#1c252e]";
+export const meetingLiveName =
+  "min-w-0 break-words text-sm font-semibold text-[#1c252e]";
 
 export const meetingLiveBody =
-  "mt-1.5 text-sm leading-relaxed text-[#5c6570] whitespace-pre-wrap";
+  "mt-1.5 min-w-0 break-words text-sm leading-relaxed text-[#5c6570] whitespace-pre-wrap";
 
 export const meetingLiveEmpty =
   "text-sm text-muted-foreground/90 italic";
 
 /** Reference / read-only context (e.g. last week’s commitments). */
 export const meetingReferenceBox =
-  "rounded-lg border border-[#e5e1dc]/70 bg-[#f8f7f5]/90 px-4 py-3.5 text-sm";
+  "min-w-0 max-w-full break-words rounded-lg border border-[#e5e1dc]/70 bg-[#f8f7f5]/90 px-4 py-3.5 text-sm";
 
 /** Inner padding / vertical rhythm for main meeting step cards (border/accent stays per-section). */
-export const meetingSectionPadding = "p-6 sm:p-7 space-y-6 sm:space-y-7";
+export const meetingSectionPadding =
+  "min-w-0 max-w-full space-y-6 p-6 sm:space-y-7 sm:p-7";

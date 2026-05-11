@@ -615,9 +615,16 @@ export async function inviteGroupMember(
 
   const { data: groupMeta } = await supabase
     .from("groups")
-    .select("group_kind")
+    .select("group_kind, badwr_admin_sandbox")
     .eq("id", groupId)
     .single();
+
+  if (groupMeta?.badwr_admin_sandbox) {
+    return {
+      error:
+        "Invites are disabled in the admin test sandbox. Use the seeded fake invites on the Members page for UI testing.",
+    };
+  }
 
   const isChat = groupMeta?.group_kind === "chat";
   if (!isChat && membership.role !== "admin") {

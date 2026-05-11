@@ -40,7 +40,7 @@ export function MeetingLivePresence({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5",
+        "flex min-w-0 max-w-full flex-col gap-1.5",
         isParticipant && "text-gray-600",
         !isParticipant && "text-white/85"
       )}
@@ -97,7 +97,7 @@ export function MeetingLivePresence({
               <li key={p.userId}>
                 <span
                   className={cn(
-                    "inline-flex max-w-[200px] items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium",
+                    "inline-flex max-w-[min(12.5rem,100%)] items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium",
                     isParticipant &&
                       "border-gray-200 bg-gray-100 text-gray-800",
                     !isParticipant &&

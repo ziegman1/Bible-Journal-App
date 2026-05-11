@@ -29,7 +29,14 @@ import {
   displayNameForMeetingUser,
   normalizeMeetingUserId,
 } from "@/lib/groups/member-display-name";
-import { formatObservationVerseRefShort } from "@/lib/groups/observation-verse-ref";
+import {
+  formatObservationVerseRef,
+  formatObservationVerseRefShort,
+} from "@/lib/groups/observation-verse-ref";
+import {
+  wrapChapterVersesAsLines,
+  type PassageVerseLine,
+} from "@/lib/groups/preset-story-passage.shared";
 import { fetchPassageVersesRangeInBrowser } from "@/lib/scripture/fetch-passage-verses-browser";
 
 type LookUpStep = ParticipantLookUpStep;
@@ -108,22 +115,27 @@ function FollowOnlyFooter({
   return <PresenterFollowHint />;
 }
 
-export type OthersObservationsByType = Record<
+/** One row in the shared Look Up stream (includes current user; labels distinguish You / Facilitator). */
+export type GroupObservationLiveItem = {
+  userId: string;
+  displayName: string;
+  text: string;
+  verseRefShort?: string;
+  isViewer: boolean;
+  isFacilitator: boolean;
+};
+
+export type GroupObservationsByType = Record<
   ObservationType,
-  {
-    userId: string;
-    displayName: string;
-    text: string;
-    verseRefShort?: string;
-  }[]
+  GroupObservationLiveItem[]
 >;
 
 export interface LookUpPresenterSync {
   step: LookUpStep;
   readChunkIndex: number;
   rereadChunkIndex: number;
-  readChunks: { verse: number; text: string }[][];
-  rereadChunks: { verse: number; text: string }[][];
+  readChunks: PassageVerseLine[][];
+  rereadChunks: PassageVerseLine[][];
   onAdvance: () => void;
   onBack: () => void;
   disabled?: boolean;
@@ -137,8 +149,10 @@ export interface LookUpPresenterSync {
 interface LookUpSectionProps {
   meetingId: string;
   currentUserId: string;
-  passageVerses: { verse: number; text: string }[];
+  passageVerses: PassageVerseLine[];
   passageRef: string | null;
+  /** Explains loaded segments vs optional catalog refs (preset meetings). */
+  passageLookUpCaption?: string | null;
   /** Anchor verse for stored observations (meeting passage). */
   observationAnchor: {
     book: string;
@@ -146,7 +160,7 @@ interface LookUpSectionProps {
     verseNumber: number;
   } | null;
   passageObservations: PassageObservationRow[];
-  othersObservationsByType: OthersObservationsByType;
+  groupObservationsByType: GroupObservationsByType;
   facilitator?: string;
   reteller?: string;
   participants: { user_id: string; display_name: string }[];
@@ -177,16 +191,17 @@ type VersePickPhase = "idle" | "picked_first" | "ready";
 function ObservationPromptField({
   meetingId,
   observationType,
-  anchor,
+  anchor: _anchor,
   readOnly,
   disabled,
   passageObservations,
   currentUserId,
   participants,
   memberDisplayNames,
-  others,
+  groupLive,
   passageRef,
   passageVerses,
+  passageLoadCaption,
 }: {
   meetingId: string;
   observationType: ObservationType;
@@ -197,14 +212,10 @@ function ObservationPromptField({
   currentUserId: string;
   participants: { user_id: string; display_name: string }[];
   memberDisplayNames?: Record<string, string>;
-  others: {
-    userId: string;
-    displayName: string;
-    text: string;
-    verseRefShort?: string;
-  }[];
+  groupLive: GroupObservationLiveItem[];
   passageRef: string | null;
-  passageVerses: { verse: number; text: string }[];
+  passageVerses: PassageVerseLine[];
+  passageLoadCaption?: string | null;
 }) {
   const selfName = (() => {
     const n = displayNameForMeetingUser(
@@ -215,12 +226,6 @@ function ObservationPromptField({
     return n === "Member" ? "You" : n;
   })();
 
-  const verseNums = useMemo(
-    () => passageVerses.map((v) => v.verse).sort((a, b) => a - b),
-    [passageVerses]
-  );
-  const verseMin = verseNums[0] ?? 1;
-  const verseMax = verseNums[verseNums.length - 1] ?? verseMin;
   const passageRefTrimmed = (passageRef ?? "").trim();
   const hasPassageRef = passageRefTrimmed.length > 0;
   const hasPassageText = hasPassageRef && passageVerses.length > 0;
@@ -237,8 +242,8 @@ function ObservationPromptField({
   );
 
   const [pickPhase, setPickPhase] = useState<VersePickPhase>("idle");
-  const [firstVerse, setFirstVerse] = useState<number | null>(null);
-  const [rangeEnd, setRangeEnd] = useState<number | null>(null);
+  const [firstLineIdx, setFirstLineIdx] = useState<number | null>(null);
+  const [endLineIdx, setEndLineIdx] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -247,86 +252,102 @@ function ObservationPromptField({
   if (observationType !== observationTypeSnap) {
     setObservationTypeSnap(observationType);
     setPickPhase("idle");
-    setFirstVerse(null);
-    setRangeEnd(null);
+    setFirstLineIdx(null);
+    setEndLineIdx(null);
     setNote("");
   }
 
-  const selStart =
-    pickPhase === "ready" && firstVerse != null && rangeEnd != null
-      ? Math.min(firstVerse, rangeEnd)
-      : pickPhase === "picked_first" && firstVerse != null
-        ? firstVerse
+  const selStartIdx =
+    pickPhase === "ready" && firstLineIdx != null && endLineIdx != null
+      ? Math.min(firstLineIdx, endLineIdx)
+      : pickPhase === "picked_first" && firstLineIdx != null
+        ? firstLineIdx
         : null;
-  const selEnd =
-    pickPhase === "ready" && firstVerse != null && rangeEnd != null
-      ? Math.max(firstVerse, rangeEnd)
-      : pickPhase === "picked_first" && firstVerse != null
-        ? firstVerse
+  const selEndIdx =
+    pickPhase === "ready" && firstLineIdx != null && endLineIdx != null
+      ? Math.max(firstLineIdx, endLineIdx)
+      : pickPhase === "picked_first" && firstLineIdx != null
+        ? firstLineIdx
         : null;
 
-  function verseHighlighted(v: number): boolean {
-    if (selStart == null || selEnd == null) return false;
-    return v >= selStart && v <= selEnd;
+  function verseLineHighlighted(lineIdx: number): boolean {
+    if (selStartIdx == null || selEndIdx == null) return false;
+    return lineIdx >= selStartIdx && lineIdx <= selEndIdx;
   }
 
-  function handleVerseClick(verseNum: number) {
+  function handleVerseLineClick(lineIdx: number) {
     if (readOnly || disabled || !hasPassageText) return;
     if (pickPhase === "ready") return;
-    if (verseNum < verseMin || verseNum > verseMax) return;
+    if (lineIdx < 0 || lineIdx >= passageVerses.length) return;
 
     if (pickPhase === "idle") {
-      setFirstVerse(verseNum);
+      setFirstLineIdx(lineIdx);
       setPickPhase("picked_first");
       return;
     }
-    if (pickPhase === "picked_first" && firstVerse != null) {
-      setRangeEnd(verseNum);
+    if (pickPhase === "picked_first" && firstLineIdx != null) {
+      if (lineIdx === firstLineIdx) {
+        setEndLineIdx(lineIdx);
+        setPickPhase("ready");
+        return;
+      }
+      const a = passageVerses[firstLineIdx];
+      const b = passageVerses[lineIdx];
+      if (a.book !== b.book || a.chapter !== b.chapter) {
+        toast.error(
+          "Select verses within the same passage segment (one Part block)."
+        );
+        return;
+      }
+      setEndLineIdx(lineIdx);
       setPickPhase("ready");
     }
   }
 
   function handleClearSelection() {
     setPickPhase("idle");
-    setFirstVerse(null);
-    setRangeEnd(null);
+    setFirstLineIdx(null);
+    setEndLineIdx(null);
     setNote("");
   }
 
   const commitObservation = useCallback(async (): Promise<{ error?: string }> => {
-    if (!anchor) return { error: "Passage reference is missing." };
     if (!hasPassageText) {
       return { error: "Passage text isn’t available for this reference." };
     }
-    if (pickPhase !== "ready" || firstVerse == null || rangeEnd == null) {
+    if (
+      pickPhase !== "ready" ||
+      firstLineIdx == null ||
+      endLineIdx == null
+    ) {
       return { error: "Select a verse range first." };
     }
     const trimmed = note.trim();
     if (!trimmed) {
       return { error: "Write your observation before saving." };
     }
-    const vS = Math.min(firstVerse, rangeEnd);
-    const vE = Math.max(firstVerse, rangeEnd);
-    if (vS < verseMin || vE > verseMax) {
-      return { error: `Choose verses between ${verseMin} and ${verseMax}.` };
-    }
+    const lo = Math.min(firstLineIdx, endLineIdx);
+    const hi = Math.max(firstLineIdx, endLineIdx);
+    const slice = passageVerses.slice(lo, hi + 1);
+    const book = slice[0].book;
+    const chapter = slice[0].chapter;
+    const vS = Math.min(...slice.map((l) => l.verse));
+    const vE = Math.max(...slice.map((l) => l.verse));
     return savePassageObservation(meetingId, {
       observationType,
-      book: anchor.book,
-      chapter: anchor.chapter,
+      book,
+      chapter,
       verseNumber: vS,
       verseEnd: vE !== vS ? vE : null,
       note: trimmed,
     });
   }, [
-    anchor,
     hasPassageText,
     pickPhase,
-    firstVerse,
-    rangeEnd,
+    firstLineIdx,
+    endLineIdx,
     note,
-    verseMin,
-    verseMax,
+    passageVerses,
     meetingId,
     observationType,
   ]);
@@ -346,14 +367,31 @@ function ObservationPromptField({
   const trimmedNote = note.trim();
   const obsReady =
     pickPhase === "ready" &&
-    firstVerse != null &&
-    rangeEnd != null &&
+    firstLineIdx != null &&
+    endLineIdx != null &&
     trimmedNote.length > 0;
-  const draftVs = obsReady ? Math.min(firstVerse, rangeEnd) : null;
-  const draftVe = obsReady ? Math.max(firstVerse, rangeEnd) : null;
+  const draftLo = obsReady ? Math.min(firstLineIdx, endLineIdx) : null;
+  const draftBook = draftLo != null ? passageVerses[draftLo]?.book : null;
+  const draftChapter = draftLo != null ? passageVerses[draftLo]?.chapter : null;
+  const draftVs =
+    obsReady && firstLineIdx != null && endLineIdx != null
+      ? Math.min(
+          passageVerses[firstLineIdx].verse,
+          passageVerses[endLineIdx].verse
+        )
+      : null;
+  const draftVe =
+    obsReady && firstLineIdx != null && endLineIdx != null
+      ? Math.max(
+          passageVerses[firstLineIdx].verse,
+          passageVerses[endLineIdx].verse
+        )
+      : null;
   const obsDirtyKey = JSON.stringify({
     observationType,
     obsReady,
+    bk: draftBook,
+    ch: draftChapter,
     draftVs,
     draftVe,
     n: trimmedNote,
@@ -363,6 +401,8 @@ function ObservationPromptField({
       ? JSON.stringify({
           observationType,
           obsReady: true,
+          bk: selfObservation.book,
+          ch: selfObservation.chapter,
           draftVs: selfObservation.verse_number,
           draftVe:
             selfObservation.verse_end != null
@@ -375,13 +415,12 @@ function ObservationPromptField({
     readOnly ||
     disabled ||
     !obsReady ||
-    !anchor ||
     !hasPassageText ||
     obsDirtyKey === savedObsKey ||
     draftVs == null ||
     draftVe == null ||
-    draftVs < verseMin ||
-    draftVe > verseMax;
+    draftBook == null ||
+    draftChapter == null;
 
   const persistObservation = useCallback(async () => {
     return commitObservation();
@@ -394,64 +433,77 @@ function ObservationPromptField({
     persist: persistObservation,
   });
 
-  const selectionRefShort =
-    pickPhase === "ready" && selStart != null && selEnd != null
-      ? formatObservationVerseRefShort(
-          selStart,
-          selEnd !== selStart ? selEnd : null
-        )
-      : null;
-
-  const savedNote = (selfObservation?.note ?? "").trim();
-  const savedVn = selfObservation?.verse_number;
-  const savedVe = selfObservation?.verse_end;
-  const savedRefShort =
-    savedVn != null
-      ? formatObservationVerseRefShort(
-          savedVn,
-          savedVe != null && savedVe !== savedVn ? savedVe : null
-        )
+  const selectionRefLabel =
+    pickPhase === "ready" &&
+    firstLineIdx != null &&
+    endLineIdx != null
+      ? formatObservationVerseRef({
+          book: passageVerses[Math.min(firstLineIdx, endLineIdx)].book,
+          chapter: passageVerses[Math.min(firstLineIdx, endLineIdx)].chapter,
+          verseStart: Math.min(
+            passageVerses[firstLineIdx].verse,
+            passageVerses[endLineIdx].verse
+          ),
+          verseEnd: (() => {
+            const x = passageVerses[firstLineIdx].verse;
+            const y = passageVerses[endLineIdx].verse;
+            const lo = Math.min(x, y);
+            const hi = Math.max(x, y);
+            return hi !== lo ? hi : null;
+          })(),
+        })
       : null;
 
   return (
-    <div className="mt-8 border-t border-[#e8e4df] pt-8">
+    <div className="mt-8 min-w-0 max-w-full border-t border-[#e8e4df] pt-8">
       <p className="text-sm leading-snug text-muted-foreground">
         Select the verse or verses that answer this question.
       </p>
 
       {hasPassageRef ? (
-        <div className="mt-3 rounded-lg border border-[#e8e4df] bg-[#fafaf9]/70 shadow-sm">
+        <div className="mt-3 min-w-0 max-w-full rounded-lg border border-[#e8e4df] bg-[#fafaf9]/70 shadow-sm">
           <p className="border-b border-[#e8e4df] px-3 py-2 text-xs font-medium text-[#1c252e]">
             {passageRefTrimmed}
           </p>
-          <div className="max-h-60 overflow-y-auto px-2 py-2 sm:max-h-72">
+          {passageLoadCaption ? (
+            <p className="border-b border-[#e8e4df] px-3 py-2 text-[0.65rem] leading-snug text-muted-foreground">
+              {passageLoadCaption}
+            </p>
+          ) : null}
+          <div className="max-h-60 min-w-0 overflow-y-auto overflow-x-hidden px-2 py-2 sm:max-h-72">
             {hasPassageText ? (
               <div className="space-y-0.5">
-                {passageVerses.map((v) => (
-                  <button
-                    key={v.verse}
-                    type="button"
-                    disabled={
-                      readOnly || disabled || pickPhase === "ready"
-                    }
-                    onClick={() => handleVerseClick(v.verse)}
-                    className={cn(
-                      "w-full rounded-md px-2 py-1.5 text-left font-serif text-sm leading-relaxed text-[#1c252e]/90 transition-colors",
-                      verseHighlighted(v.verse) &&
-                        "bg-[#e3eef8] ring-1 ring-[#83b0da]/45",
-                      !readOnly &&
-                        !disabled &&
-                        pickPhase !== "ready" &&
-                        "hover:bg-muted/60 cursor-pointer",
-                      (readOnly || disabled || pickPhase === "ready") &&
-                        "cursor-default opacity-90"
-                    )}
-                  >
-                    <span className="mr-2 inline-block min-w-[1.5rem] tabular-nums text-xs text-muted-foreground">
-                      {v.verse}
-                    </span>
-                    {v.text}
-                  </button>
+                {passageVerses.map((line, lineIdx) => (
+                  <div key={line.lineId} className="min-w-0">
+                    {line.segmentHeadingBefore ? (
+                      <p className="px-2 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground border-t border-[#e8e4df]/80 first:border-t-0 first:pt-0">
+                        {line.segmentHeadingBefore}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={
+                        readOnly || disabled || pickPhase === "ready"
+                      }
+                      onClick={() => handleVerseLineClick(lineIdx)}
+                      className={cn(
+                        "w-full min-w-0 max-w-full break-words rounded-md px-2 py-1.5 text-left font-serif text-sm leading-relaxed text-[#1c252e]/90 transition-colors",
+                        verseLineHighlighted(lineIdx) &&
+                          "bg-[#e3eef8] ring-1 ring-[#83b0da]/45",
+                        !readOnly &&
+                          !disabled &&
+                          pickPhase !== "ready" &&
+                          "hover:bg-muted/60 cursor-pointer",
+                        (readOnly || disabled || pickPhase === "ready") &&
+                          "cursor-default opacity-90"
+                      )}
+                    >
+                      <span className="mr-2 inline-block min-w-[2.75rem] tabular-nums text-xs text-muted-foreground">
+                        {line.verseDisplayLabel}
+                      </span>
+                      {line.text}
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -465,16 +517,20 @@ function ObservationPromptField({
         </div>
       ) : null}
 
-      {pickPhase === "picked_first" && firstVerse != null ? (
+      {pickPhase === "picked_first" && firstLineIdx != null ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          Tap the end verse, or tap verse <span className="font-semibold text-foreground">{firstVerse}</span> again for a single verse.
+          Tap the end line, or tap{" "}
+          <span className="font-semibold text-foreground">
+            {passageVerses[firstLineIdx]?.verseDisplayLabel}
+          </span>{" "}
+          again for a single verse. Stay within the same Part segment.
         </p>
       ) : null}
 
-      {pickPhase === "ready" && selectionRefShort ? (
+      {pickPhase === "ready" && selectionRefLabel ? (
         <div className="mt-4 space-y-3 rounded-lg border border-border/80 bg-muted/15 px-3 py-3">
           <p className="text-xs font-medium text-[#83b0da]">
-            Selected: {selectionRefShort}
+            Selected: {selectionRefLabel}
           </p>
           <div>
             <p className={meetingYourLabel}>
@@ -496,7 +552,9 @@ function ObservationPromptField({
                 type="button"
                 size="sm"
                 variant="outline"
-                disabled={disabled || saving || !anchor || !note.trim()}
+                disabled={
+                  disabled || saving || !passageVerses.length || !note.trim()
+                }
                 onClick={() => void handleSave()}
               >
                 {saving ? (
@@ -523,37 +581,35 @@ function ObservationPromptField({
         </div>
       ) : null}
 
-      {(savedNote || savedVn != null) && (
-        <div className="mt-6 rounded-lg border border-border/70 bg-card/50 px-3 py-3">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
-            Your saved observation
-          </p>
-          {savedRefShort ? (
-            <p className="mt-1 text-xs font-semibold text-[#83b0da]">
-              {savedRefShort}
-            </p>
-          ) : null}
-          {savedNote ? (
-            <p className="mt-1 text-sm text-foreground whitespace-pre-wrap">
-              {savedNote}
-            </p>
-          ) : savedVn != null ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              (No note text saved for this prompt.)
-            </p>
-          ) : null}
-        </div>
-      )}
-
       <div className={cn(meetingLiveRegion, "mt-6")}>
         <p className={meetingLiveLabel}>Group (live)</p>
-        {others.length === 0 ? (
-          <p className={meetingLiveEmpty}>No one else has shared yet.</p>
+        {groupLive.length === 0 ? (
+          <p className={meetingLiveEmpty}>No one has shared yet.</p>
         ) : (
-          <ul className="m-0 list-none space-y-0 p-0">
-            {others.map((o) => (
-              <li key={o.userId} className={meetingLiveRow}>
-                <p className={meetingLiveName}>{o.displayName}</p>
+          <ul className="m-0 min-w-0 list-none space-y-0 p-0">
+            {groupLive.map((o) => (
+              <li
+                key={o.userId}
+                className={cn(
+                  meetingLiveRow,
+                  "max-w-full",
+                  o.isViewer &&
+                    "rounded-lg border border-[#83b0da]/30 bg-[#83b0da]/[0.07] px-3 py-3 sm:px-4"
+                )}
+              >
+                <p className={cn(meetingLiveName, "flex flex-wrap items-center gap-x-2 gap-y-1")}>
+                  <span>{o.displayName}</span>
+                  {o.isViewer ? (
+                    <span className="inline-flex items-center rounded-full border border-[#83b0da]/40 bg-[#83b0da]/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-[#4a7aa8]">
+                      You
+                    </span>
+                  ) : null}
+                  {o.isFacilitator ? (
+                    <span className="inline-flex items-center rounded-full border border-[#edb73e]/45 bg-[#edb73e]/12 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-[#a67c1f]">
+                      Facilitator
+                    </span>
+                  ) : null}
+                </p>
                 {o.verseRefShort ? (
                   <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[#83b0da]">
                     {o.verseRefShort}
@@ -566,7 +622,7 @@ function ObservationPromptField({
         )}
       </div>
 
-      {!anchor && !readOnly ? (
+      {!hasPassageRef && !readOnly ? (
         <p className="mt-3 text-xs text-muted-foreground">
           Add a story or passage to this meeting to save written observations.
         </p>
@@ -578,9 +634,11 @@ function ObservationPromptField({
 function PassageVersesBlock({
   passageRef,
   passageVerses,
+  loadCaption,
 }: {
   passageRef: string;
-  passageVerses: { verse: number; text: string }[];
+  passageVerses: PassageVerseLine[];
+  loadCaption?: string | null;
 }) {
   return (
     <div
@@ -589,15 +647,29 @@ function PassageVersesBlock({
         meetingSectionPadding
       )}
     >
-      <h3 className="text-base font-semibold text-[#1c252e]">{passageRef}</h3>
-      <div className="font-serif text-[#1c252e]/90 leading-relaxed space-y-1">
-        {passageVerses.map((v) => (
-          <p key={v.verse} className="py-1.5">
-            <span className="text-muted-foreground/70 text-sm mr-2">
-              {v.verse}
-            </span>
-            {v.text}
-          </p>
+      <h3 className="break-words text-base font-semibold text-[#1c252e]">
+        {passageRef}
+      </h3>
+      {loadCaption ? (
+        <p className="mt-2 text-xs leading-snug text-muted-foreground whitespace-pre-wrap">
+          {loadCaption}
+        </p>
+      ) : null}
+      <div className="min-w-0 space-y-1 font-serif leading-relaxed text-[#1c252e]/90 mt-3">
+        {passageVerses.map((line) => (
+          <div key={line.lineId} className="min-w-0">
+            {line.segmentHeadingBefore ? (
+              <p className="py-2 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground border-t border-[#d8d4d0]/80 first:border-t-0 first:pt-0">
+                {line.segmentHeadingBefore}
+              </p>
+            ) : null}
+            <p className="break-words py-1.5">
+              <span className="text-muted-foreground/70 text-sm mr-2 tabular-nums">
+                {line.verseDisplayLabel}
+              </span>
+              {line.text}
+            </p>
+          </div>
         ))}
       </div>
     </div>
@@ -609,9 +681,10 @@ export function LookUpSection({
   currentUserId,
   passageVerses,
   passageRef,
+  passageLookUpCaption = null,
   observationAnchor,
   passageObservations,
-  othersObservationsByType,
+  groupObservationsByType,
   facilitator,
   reteller,
   participants,
@@ -626,7 +699,7 @@ export function LookUpSection({
   const [browseOverride, setBrowseOverride] =
     useState<LookUpBrowseOverride | null>(null);
   const [clientPassageVerses, setClientPassageVerses] = useState<
-    { verse: number; text: string }[]
+    PassageVerseLine[]
   >([]);
   const [meetingIdSnap, setMeetingIdSnap] = useState(meetingId);
   if (meetingId !== meetingIdSnap) {
@@ -639,7 +712,14 @@ export function LookUpSection({
     if (passageVerses.length > 0 || !scriptureLoadHint) return;
     let cancelled = false;
     void fetchPassageVersesRangeInBrowser(scriptureLoadHint).then((rows) => {
-      if (!cancelled && rows.length > 0) setClientPassageVerses(rows);
+      if (!cancelled && rows.length > 0)
+        setClientPassageVerses(
+          wrapChapterVersesAsLines(
+            scriptureLoadHint.book,
+            scriptureLoadHint.chapter,
+            rows
+          )
+        );
     });
     return () => {
       cancelled = true;
@@ -904,9 +984,10 @@ export function LookUpSection({
             currentUserId={currentUserId}
             participants={participants}
             memberDisplayNames={memberDisplayNames}
-            others={othersObservationsByType.like}
+            groupLive={groupObservationsByType.like}
             passageRef={passageRef}
             passageVerses={versesMerged}
+            passageLoadCaption={passageLookUpCaption}
           />
           {psNav ? (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -989,9 +1070,10 @@ export function LookUpSection({
             currentUserId={currentUserId}
             participants={participants}
             memberDisplayNames={memberDisplayNames}
-            others={othersObservationsByType.difficult}
+            groupLive={groupObservationsByType.difficult}
             passageRef={passageRef}
             passageVerses={versesMerged}
+            passageLoadCaption={passageLookUpCaption}
           />
           {psNav ? (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1065,6 +1147,7 @@ export function LookUpSection({
         <PassageVersesBlock
           passageRef={passageRef!}
           passageVerses={rereadVersesForChunk}
+          loadCaption={passageLookUpCaption}
         />
         {psNav ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -1139,9 +1222,10 @@ export function LookUpSection({
             currentUserId={currentUserId}
             participants={participants}
             memberDisplayNames={memberDisplayNames}
-            others={othersObservationsByType.teaches_about_people}
+            groupLive={groupObservationsByType.teaches_about_people}
             passageRef={passageRef}
             passageVerses={versesMerged}
+            passageLoadCaption={passageLookUpCaption}
           />
           {psNav ? (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1219,9 +1303,10 @@ export function LookUpSection({
             currentUserId={currentUserId}
             participants={participants}
             memberDisplayNames={memberDisplayNames}
-            others={othersObservationsByType.teaches_about_god}
+            groupLive={groupObservationsByType.teaches_about_god}
             passageRef={passageRef}
             passageVerses={versesMerged}
+            passageLoadCaption={passageLookUpCaption}
           />
           {psNav ? (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1359,6 +1444,7 @@ export function LookUpSection({
           <PassageVersesBlock
             passageRef={passageRef!}
             passageVerses={readVersesForChunk}
+            loadCaption={passageLookUpCaption}
           />
           <div className="pt-2">
             {psNav ? (

@@ -47,6 +47,12 @@ import {
   buildUncheckedAccountabilityCarryForward,
   type AccountabilityCheckupLine,
 } from "@/lib/groups/accountability-checkup";
+import { splitSharingAndTrain } from "@/lib/groups/lookforward-train-embed";
+import {
+  formatPresetPassageHeader,
+  type PassageVerseLine,
+  type PresetStoryPassageRow,
+} from "@/lib/groups/preset-story-passage.shared";
 
 interface Meeting {
   id: string;
@@ -63,7 +69,7 @@ interface Meeting {
   verse_start?: number | null;
   verse_end?: number | null;
   preset_story_id?: string | null;
-  preset_stories?: { title: string; book: string; chapter: number; verse_start: number; verse_end: number } | null;
+  preset_stories?: PresetStoryPassageRow & { title: string } | null;
   starter_track_week?: number | null;
 }
 
@@ -75,10 +81,7 @@ interface Participant {
 /** When the server omitted `passageRef`, derive from meeting row (same rules as meeting page). */
 function buildPassageRefFromMeeting(m: Meeting): string | null {
   if (m.story_source_type === "preset_story" && m.preset_stories) {
-    const p = m.preset_stories;
-    return `${p.book} ${p.chapter}:${p.verse_start}${
-      p.verse_start !== p.verse_end ? `-${p.verse_end}` : ""
-    }`;
+    return formatPresetPassageHeader(m.preset_stories as PresetStoryPassageRow);
   }
   if (m.book != null && m.chapter != null && m.verse_start != null) {
     const end = m.verse_end ?? m.verse_start;
@@ -137,8 +140,10 @@ interface LiveMeetingViewProps {
   priorFollowups: Record<string, unknown>[];
   accountabilityCheckupLines?: AccountabilityCheckupLine[];
   commitmentCheckoffs?: Record<string, unknown>[];
-  passageVerses: { verse: number; text: string }[];
+  passageVerses: PassageVerseLine[];
   passageRef: string | null;
+  /** Preset catalog: segments shown vs optional refs (Look Up). */
+  passageLookUpCaption?: string | null;
   presenterStateRow: MeetingPresenterStateRow | null;
   /** All group members — used so live responses show names even if someone isn’t in `meeting_participants`. */
   memberDisplayNames: Record<string, string>;
@@ -146,6 +151,10 @@ interface LiveMeetingViewProps {
   starterTrackMeetingOrdinal: number | null;
   /** From `groups.group_kind` — streak “Complete 3/3” only for 3/3rds groups. */
   groupKind?: string | null;
+  /** Admin QA sandbox — do not write real pillar streak rows. */
+  isSandboxThirdsGroup?: boolean;
+  /** Optional query string (no leading `?`) appended to present/summary links for admin sandbox preview. */
+  sandboxDeepLinkQuery?: string | null;
 }
 
 export function LiveMeetingView({
@@ -167,12 +176,19 @@ export function LiveMeetingView({
   commitmentCheckoffs = [],
   passageVerses,
   passageRef,
+  passageLookUpCaption = null,
   presenterStateRow,
   memberDisplayNames,
   starterTrackMeetingOrdinal,
   groupKind = "thirds",
+  isSandboxThirdsGroup = false,
+  sandboxDeepLinkQuery = null,
 }: LiveMeetingViewProps) {
   const router = useRouter();
+  const deepSuffix =
+    sandboxDeepLinkQuery && sandboxDeepLinkQuery.length > 0
+      ? `?${sandboxDeepLinkQuery}`
+      : "";
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const status = meeting.status;
   const isCompleted = status === "completed";
@@ -455,14 +471,21 @@ export function LiveMeetingView({
     | "teaches_about_people"
     | "teaches_about_god";
 
-  const othersObservationsByType = useMemo(() => {
-    const empty: Record<
+  const facilitatorNorm = facilitatorForLabel
+    ? normalizeMeetingUserId(facilitatorForLabel) ?? facilitatorForLabel
+    : null;
+
+  const groupObservationsByType = useMemo(() => {
+    const buckets: Record<
       ObsType,
       {
         userId: string;
         displayName: string;
         text: string;
         verseRefShort?: string;
+        createdAt: string;
+        isViewer: boolean;
+        isFacilitator: boolean;
       }[]
     > = {
       like: [],
@@ -471,13 +494,12 @@ export function LiveMeetingView({
       teaches_about_god: [],
     };
     for (const row of passageObservations) {
-      const uid =
-        normalizeMeetingUserId(row.user_id) ?? row.user_id;
-      if (uid === viewerId) continue;
-      const text = String(row.note ?? "").trim();
-      if (!text) continue;
+      const uid = normalizeMeetingUserId(row.user_id) ?? row.user_id;
+      const trimmedNote = String(row.note ?? "").trim();
+      const hasVerse = row.verse_number != null;
+      if (!trimmedNote && !hasVerse) continue;
       const t = row.observation_type as ObsType;
-      if (!empty[t]) continue;
+      if (!buckets[t]) continue;
       const ve = row.verse_end;
       const verseRefShort =
         formatObservationVerseRefShort(
@@ -486,15 +508,47 @@ export function LiveMeetingView({
             ? ve
             : null
         ) ?? undefined;
-      empty[t].push({
+      const displayText =
+        trimmedNote ||
+        (hasVerse ? "(No note text saved for this prompt.)" : "");
+      buckets[t].push({
         userId: uid,
         displayName: displayNameFor(uid),
-        text,
+        text: displayText,
         ...(verseRefShort ? { verseRefShort } : {}),
+        createdAt: String(row.created_at ?? ""),
+        isViewer: uid === viewerId,
+        isFacilitator: Boolean(
+          facilitatorNorm && uid === facilitatorNorm
+        ),
       });
     }
-    return empty;
-  }, [passageObservations, viewerId, displayNameFor]);
+    for (const k of Object.keys(buckets) as ObsType[]) {
+      buckets[k].sort((a, b) => {
+        const ac = a.createdAt;
+        const bc = b.createdAt;
+        if (ac && bc && ac !== bc) return bc.localeCompare(ac);
+        if (ac && !bc) return -1;
+        if (!ac && bc) return 1;
+        return a.displayName.localeCompare(b.displayName);
+      });
+    }
+    return {
+      like: buckets.like.map(({ createdAt: _c, ...r }) => r),
+      difficult: buckets.difficult.map(({ createdAt: _c, ...r }) => r),
+      teaches_about_people: buckets.teaches_about_people.map(
+        ({ createdAt: _c, ...r }) => r
+      ),
+      teaches_about_god: buckets.teaches_about_god.map(
+        ({ createdAt: _c, ...r }) => r
+      ),
+    };
+  }, [
+    passageObservations,
+    viewerId,
+    displayNameFor,
+    facilitatorNorm,
+  ]);
 
   const othersPriorFollowupLive = useMemo(() => {
     return Object.values(priorFollowupByUser)
@@ -525,21 +579,28 @@ export function LiveMeetingView({
     }[];
   }, [priorFollowupByUser, viewerId, displayNameFor]);
 
-  const othersCommitmentsLive = useMemo(() => {
-    return Object.values(lookforwardByUser)
-      .filter((r) => (r.user_id as string) !== viewerId)
+  /** Everyone with saved commitments, current user first (matches Group pastoral live). */
+  const groupCommitmentsLive = useMemo(() => {
+    const rows = Object.values(lookforwardByUser)
+      .filter((r) => {
+        const uid = normalizeMeetingUserId(r.user_id as string);
+        return uid != null;
+      })
       .map((r) => {
+        const uid =
+          normalizeMeetingUserId(r.user_id as string) ?? String(r.user_id ?? "");
         const o = String(
           (r as { obedience_statement?: string }).obedience_statement ?? ""
         ).trim();
-        const s = String(
-          (r as { sharing_commitment?: string }).sharing_commitment ?? ""
-        ).trim();
-        const t = String(
-          (r as { train_commitment?: string }).train_commitment ?? ""
-        ).trim();
+        const { sharing: sSplit, train: tSplit } = splitSharingAndTrain({
+          sharing_commitment: (r as { sharing_commitment?: string })
+            .sharing_commitment,
+          train_commitment: (r as { train_commitment?: string })
+            .train_commitment,
+        });
+        const s = String(sSplit ?? "").trim();
+        const t = String(tSplit ?? "").trim();
         if (!o && !s && !t) return null;
-        const uid = r.user_id as string;
         return {
           userId: uid,
           displayName: displayNameFor(uid),
@@ -555,6 +616,12 @@ export function LiveMeetingView({
       sharingText: string;
       trainText: string;
     }[];
+
+    const selfRows = rows.filter((o) => o.userId === viewerId);
+    const otherRows = rows
+      .filter((o) => o.userId !== viewerId)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return [...selfRows, ...otherRows];
   }, [lookforwardByUser, viewerId, displayNameFor]);
 
   async function handleMarkComplete() {
@@ -573,7 +640,7 @@ export function LiveMeetingView({
   }
 
   const cardClass =
-    "rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm sm:p-6";
+    "min-w-0 max-w-full rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm sm:p-6";
 
   const liveSyncLabel = !isCompleted
     ? (() => {
@@ -588,12 +655,12 @@ export function LiveMeetingView({
     : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-white px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] shadow-sm sm:px-4">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+    <div className="min-h-screen w-full min-w-0 overflow-x-clip bg-background">
+      <header className="sticky top-0 z-20 w-full min-w-0 overflow-x-clip border-b border-border bg-white px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] shadow-sm sm:px-4">
+        <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="flex min-w-0 items-start gap-2 sm:flex-1 sm:items-center">
             <Link
-              href={`/app/groups/${groupId}`}
+              href={`/app/groups/${groupId}${deepSuffix}`}
               aria-label="Back to group"
               className="mt-0.5 flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground hover:underline sm:text-sm"
             >
@@ -661,7 +728,7 @@ export function LiveMeetingView({
               </Button>
             )}
             <Link
-              href={`/app/groups/${groupId}/meetings/${meetingId}/present`}
+              href={`/app/groups/${groupId}/meetings/${meetingId}/present${deepSuffix}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -675,7 +742,7 @@ export function LiveMeetingView({
                 <span className="hidden sm:inline">Facilitator</span>
               </Button>
             </Link>
-            <Link href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}>
+            <Link href={`/app/groups/${groupId}/meetings/${meetingId}/summary${deepSuffix}`}>
               <Button
                 size="sm"
                 variant="outline"
@@ -689,7 +756,7 @@ export function LiveMeetingView({
         </div>
 
         {!isCompleted ? (
-          <div className="mx-auto mt-2 max-w-3xl border-t border-border/70 pt-1.5">
+          <div className="mx-auto mt-2 w-full min-w-0 max-w-3xl border-t border-border/70 pt-1.5">
             <MeetingLivePresence
               variant="participant"
               peers={presencePeers}
@@ -700,20 +767,20 @@ export function LiveMeetingView({
         ) : null}
       </header>
 
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:space-y-8">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6 px-4 py-8 sm:space-y-8">
         {isCompleted && (
           <div className={cardClass}>
             <p className="text-center text-sm text-muted-foreground">
               This meeting is finished. Open the{" "}
               <Link
-                href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
+                href={`/app/groups/${groupId}/meetings/${meetingId}/summary${deepSuffix}`}
                 className="font-semibold text-foreground underline underline-offset-2"
               >
                 summary
               </Link>{" "}
               or return to your{" "}
               <Link
-                href={`/app/groups/${groupId}`}
+                href={`/app/groups/${groupId}${deepSuffix}`}
                 className="font-semibold text-foreground underline underline-offset-2"
               >
                 group workspace
@@ -722,7 +789,7 @@ export function LiveMeetingView({
             </p>
             <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-center">
               <Link
-                href={`/app/groups/${groupId}/meetings/${meetingId}/summary`}
+                href={`/app/groups/${groupId}/meetings/${meetingId}/summary${deepSuffix}`}
                 className={cn(
                   buttonVariants({ variant: "default", size: "sm" }),
                   "inline-flex items-center gap-2"
@@ -732,7 +799,11 @@ export function LiveMeetingView({
                 View Summary
               </Link>
               {(groupKind ?? "thirds") === "thirds" ? (
-                <CompleteThirdsStreakButton meetingId={meetingId} groupId={groupId} />
+                <CompleteThirdsStreakButton
+                  meetingId={meetingId}
+                  groupId={groupId}
+                  disabledForSandbox={isSandboxThirdsGroup}
+                />
               ) : null}
             </div>
           </div>
@@ -740,11 +811,11 @@ export function LiveMeetingView({
 
         <div
           className={cn(
-            "space-y-6 sm:space-y-8",
+            "min-w-0 space-y-6 sm:space-y-8",
             isCompleted && "pointer-events-none select-none opacity-[0.65]"
           )}
         >
-          <div className="space-y-2 sm:space-y-2.5">
+          <div className="min-w-0 space-y-2 sm:space-y-2.5">
             <ThirdsRhythmStepper
               activeSection={activeSection}
               onSectionChange={(n) => {
@@ -753,7 +824,7 @@ export function LiveMeetingView({
               }}
             />
             {(status === "draft" || status === "active") && (
-              <p className="text-center text-sm leading-snug text-muted-foreground">
+              <p className="break-words text-center text-sm leading-snug text-muted-foreground">
                 The tabs above are <span className="font-medium text-foreground">for you only</span>{" "}
                 — switch sections to review or catch up without changing the Facilitator / TV screen.
                 Shared slides in Look Up follow the facilitator. Under{" "}
@@ -816,11 +887,12 @@ export function LiveMeetingView({
                 meetingId={meetingId}
                 currentUserId={currentUserId}
                 passageVerses={passageVerses}
+                passageLookUpCaption={passageLookUpCaption}
                 passageRef={passageRefEffective}
                 scriptureLoadHint={scriptureLoadHint}
                 observationAnchor={observationAnchor}
                 passageObservations={passageObservations}
-                othersObservationsByType={othersObservationsByType}
+                groupObservationsByType={groupObservationsByType}
                 facilitator={
                   facilitatorForLabel
                     ? displayNameFor(facilitatorForLabel)
@@ -874,7 +946,7 @@ export function LiveMeetingView({
                     : undefined
                 }
                 presenterFocus={lookForwardPresenterFocus}
-                othersCommitmentsLive={othersCommitmentsLive}
+                groupCommitmentsLive={groupCommitmentsLive}
                 memberDisplayNames={memberDisplayNames}
                 starterTrackMeetingOrdinal={starterTrackMeetingOrdinal}
                 groupVisionStatement={
